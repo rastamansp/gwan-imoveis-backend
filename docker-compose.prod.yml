@@ -1,0 +1,148 @@
+version: '3.8'
+
+services:
+  gwan-events-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gwan-events-backend-prod
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      # Configurações básicas
+      - NODE_ENV=production
+      - PORT=3001
+      
+      # JWT
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=24h
+      
+      # Database
+      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_HOST=${DATABASE_HOST}
+      - DATABASE_PORT=5432
+      - DATABASE_USERNAME=${DATABASE_USERNAME}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_NAME=${DATABASE_NAME}
+      
+      # Redis
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_DB=0
+      
+      # CORS
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      
+      # MCP Server
+      - MCP_BASE_URL=https://api.gwan.com.br
+      - MCP_PORT_SSE=3002
+      - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN}
+      
+      # Email
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=587
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+      
+      # Payment Gateway
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - MERCADO_PAGO_ACCESS_TOKEN=${MERCADO_PAGO_ACCESS_TOKEN}
+      - MERCADO_PAGO_PUBLIC_KEY=${MERCADO_PAGO_PUBLIC_KEY}
+      
+      # File Upload
+      - UPLOAD_PATH=/app/uploads
+      - MAX_FILE_SIZE=5242880
+      
+      # AWS S3
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
+      
+      # Logging
+      - LOG_LEVEL=info
+      
+    volumes:
+      - uploads_data:/app/uploads
+      - logs_data:/app/logs
+      
+    networks:
+      - gwan
+      
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      
+    depends_on:
+      - postgres
+      - redis
+      
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gwan-events-backend.rule=Host(`api.gwan.com.br`)"
+      - "traefik.http.routers.gwan-events-backend.tls=true"
+      - "traefik.http.routers.gwan-events-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.gwan-events-backend.loadbalancer.server.port=3001"
+      - "traefik.http.middlewares.gwan-events-backend-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.routers.gwan-events-backend.middlewares=gwan-events-backend-headers"
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: gwan-events-postgres-prod
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${DATABASE_NAME}
+      - POSTGRES_USER=${DATABASE_USERNAME}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - gwan
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME} -d ${DATABASE_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=false"
+
+  redis:
+    image: redis:7-alpine
+    container_name: gwan-events-redis-prod
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - gwan
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    labels:
+      - "traefik.enable=false"
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  uploads_data:
+    driver: local
+  logs_data:
+    driver: local
+
+networks:
+  gwan:
+    external: true

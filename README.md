@@ -33,6 +33,8 @@ Backend da plataforma de eventos e venda de ingressos construído com NestJS e T
 
 ## 🚀 Início Rápido
 
+### Desenvolvimento Local
+
 1. **Clone o repositório**:
 ```bash
 git clone https://github.com/seu-usuario/gwan-events-backend.git
@@ -49,6 +51,34 @@ npm install
 cp env.example .env
 # Edite o arquivo .env com suas configurações
 ```
+
+### Deploy com Docker
+
+1. **Configure as variáveis de ambiente**:
+```bash
+cp env.example .env
+# Edite o arquivo .env com suas configurações de produção
+```
+
+2. **Crie a rede Docker**:
+```bash
+docker network create gwan
+```
+
+3. **Deploy para produção**:
+```bash
+# Via script automatizado
+npm run portainer:deploy:prod
+
+# Ou manualmente
+docker-compose -f docker-compose.prod.yml up -d --build
+```
+
+### Deploy com Portainer
+
+1. **Configure o Portainer** com o arquivo `docker-compose.prod.yml`
+2. **Configure as variáveis de ambiente** no Portainer
+3. **Deploy automático** via GitHub Actions
 
 4. **Execute as migrações**:
 ```bash
@@ -81,6 +111,8 @@ npm run start:dev
 
 ### 🚀 Deploy e Produção
 - [Deploy Automático](./docs/deployment/deploy-automation.md)
+- [Deploy com Docker](./docs/deployment/docker.md)
+- [Deploy com Portainer](./docs/deployment/portainer.md)
 - [Configuração de Ambiente](./docs/deployment/environment.md)
 
 ### 📊 Diagramas
@@ -131,6 +163,28 @@ npm run test:watch
 - `npm run deploy:prepare` - Preparar para deploy (build + docs)
 - `npm run deploy:prod` - Deploy para produção
 - `npm run deploy:rollback` - Rollback em caso de problemas
+
+### Docker e Portainer
+- `npm run docker:build` - Build das imagens Docker
+- `npm run docker:up` - Subir containers
+- `npm run docker:down` - Parar containers
+- `npm run docker:logs` - Ver logs dos containers
+- `npm run docker:restart` - Reiniciar containers
+- `npm run docker:prod` - Deploy para produção com Docker
+- `npm run docker:dev` - Deploy para desenvolvimento com Docker
+- `npm run docker:clean` - Limpar containers e volumes
+- `npm run portainer:deploy` - Deploy via Portainer (Linux/Mac)
+- `npm run portainer:deploy:prod` - Deploy para produção via Portainer (Linux/Mac)
+- `npm run portainer:deploy:dev` - Deploy para desenvolvimento via Portainer (Linux/Mac)
+- `npm run portainer:status` - Status dos containers via Portainer (Linux/Mac)
+- `npm run portainer:logs` - Logs dos containers via Portainer (Linux/Mac)
+- `npm run portainer:rollback` - Rollback via Portainer (Linux/Mac)
+- `npm run portainer:deploy:win` - Deploy via Portainer (Windows)
+- `npm run portainer:deploy:prod:win` - Deploy para produção via Portainer (Windows)
+- `npm run portainer:deploy:dev:win` - Deploy para desenvolvimento via Portainer (Windows)
+- `npm run portainer:status:win` - Status dos containers via Portainer (Windows)
+- `npm run portainer:logs:win` - Logs dos containers via Portainer (Windows)
+- `npm run portainer:rollback:win` - Rollback via Portainer (Windows)
 
 ## 🔌 MCP Server
 

@@ -19,6 +19,8 @@ Bem-vindo à documentação completa do Gwan Events Backend, uma plataforma comp
 
 ### 🚀 Deploy e Produção
 - [Deploy Automático](./deployment/deploy-automation.md)
+- [Deploy com Docker](./deployment/docker.md)
+- [Deploy com Portainer](./deployment/portainer.md)
 - [Configuração de Ambiente](./deployment/environment.md)
 
 ### 📊 Diagramas
