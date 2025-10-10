@@ -1,0 +1,56 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run tests
+        run: npm run test
+        
+      - name: Run e2e tests
+        run: npm run test:e2e
+        
+      - name: Build project
+        run: npm run build
+        
+      - name: Generate documentation
+        run: npm run docs:generate
+        
+      - name: Validate documentation
+        run: npm run docs:validate
+        
+      - name: Deploy to production
+        run: npm run deploy:prod
+        env:
+          NODE_ENV: production
+          
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "✅ Deploy realizado com sucesso!"
+          echo "🚀 Aplicação disponível em: https://api.gwan.com.br"
+          echo "📚 Documentação disponível em: https://api.gwan.com.br/api"
+          
+      - name: Notify deployment failure
+        if: failure()
+        run: |
+          echo "❌ Deploy falhou!"
+          echo "🔍 Verificar logs para detalhes"

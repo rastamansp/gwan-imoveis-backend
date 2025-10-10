@@ -1,0 +1,694 @@
+# 🚀 Cursor Rules - Plataforma de Eventos e Venda de Ingressos
+
+## 📋 Visão Geral do Projeto
+
+Este é um projeto NestJS com TypeScript que implementa uma plataforma completa de eventos e venda de ingressos. O projeto segue os princípios de Clean Architecture, SOLID e Use Cases, oferecendo funcionalidades de gestão de eventos, usuários, ingressos, pagamentos e analytics administrativos.
+
+## 🚫 **REGRAS CRÍTICAS - NUNCA VIOLAR**
+
+### ❌ **NUNCA desabilitar funcionalidades essenciais:**
+- ❌ **NUNCA** comentar TypeORM ou banco de dados
+- ❌ **NUNCA** remover validações de entrada
+- ❌ **NUNCA** desabilitar logging ou tratamento de erros
+- ❌ **NUNCA** remover interfaces ou abstrações
+- ❌ **NUNCA** usar `any` type ou `console.log`
+- ❌ **NUNCA** fazer operações síncronas bloqueantes
+
+### ✅ **SEMPRE corrigir problemas de configuração:**
+- ✅ **SEMPRE** verificar variáveis de ambiente
+- ✅ **SEMPRE** configurar conexões de banco corretamente
+- ✅ **SEMPRE** implementar fallbacks e retry logic
+- ✅ **SEMPRE** usar logging estruturado para debug
+- ✅ **SEMPRE** seguir princípios de resiliência
+
+## 🏗️ Arquitetura e Padrões
+
+### Clean Architecture
+- **Entities**: Regras de negócio centrais
+- **Use Cases**: Casos de uso da aplicação
+- **Interface Adapters**: Controllers, Repositories, External Services
+- **Frameworks & Drivers**: NestJS, Database, RabbitMQ, Playwright
+
+### SOLID Principles
+- **S**: Single Responsibility Principle
+- **O**: Open/Closed Principle
+- **L**: Liskov Substitution Principle
+- **I**: Interface Segregation Principle
+- **D**: Dependency Inversion Principle
+
+### Design Patterns
+- **Repository Pattern**: Para acesso a dados
+- **Factory Pattern**: Para criação de objetos complexos
+- **Strategy Pattern**: Para diferentes métodos de pagamento
+- **Observer Pattern**: Para notificações de eventos
+- **Command Pattern**: Para operações de negócio
+- **Facade Pattern**: Para simplificar operações complexas
+
+## 📁 Estrutura de Pastas
+
+```
+src/
+├── main.ts                           # Ponto de entrada
+├── app.module.ts                     # Módulo principal
+├── shared/                           # Código compartilhado
+│   ├── domain/                       # Entidades e regras de negócio
+│   ├── infrastructure/               # Implementações externas
+│   ├── application/                  # Casos de uso
+│   └── presentation/                 # Controllers e DTOs
+├── modules/                          # Módulos da aplicação
+│   ├── auth/                         # Autenticação e autorização
+│   ├── users/                        # Gestão de usuários
+│   ├── events/                       # Gestão de eventos
+│   ├── tickets/                      # Gestão de ingressos
+│   ├── payments/                     # Sistema de pagamentos
+│   └── admin/                        # Painel administrativo
+├── config/                           # Configurações
+└── common/                           # Utilitários e decorators
+```
+
+## 🔧 Padrões de Código
+
+### Nomenclatura
+- **Classes**: PascalCase (ex: `EventsService`, `TicketsService`)
+- **Interfaces**: PascalCase com prefixo I (ex: `IEventRepository`)
+- **Métodos**: camelCase (ex: `createEvent`, `validateTicket`)
+- **Variáveis**: camelCase (ex: `eventData`, `ticketInfo`)
+- **Constantes**: UPPER_SNAKE_CASE (ex: `MAX_TICKETS_PER_USER`)
+- **Arquivos**: kebab-case (ex: `events.service.ts`, `tickets.controller.ts`)
+
+### Estrutura de Classes
+```typescript
+// Sempre usar decorators do NestJS
+@Injectable()
+export class EventsService {
+  constructor(
+    private readonly eventRepository: IEventRepository,
+    private readonly logger: ILogger,
+  ) {}
+
+  // Métodos públicos primeiro
+  public async createEvent(eventData: CreateEventDto): Promise<Event> {
+    // Implementação
+  }
+
+  // Métodos privados depois
+  private async validateEventData(data: CreateEventDto): Promise<void> {
+    // Validação
+  }
+}
+```
+
+### DTOs e Validação
+```typescript
+// Sempre usar class-validator
+export class CreateEventDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  title: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(1000)
+  description: string;
+
+  @IsDateString()
+  date: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(100000)
+  maxCapacity?: number;
+}
+```
+
+### Interfaces e Abstrações
+```typescript
+// Sempre definir interfaces para dependências
+export interface IEventRepository {
+  save(event: Event): Promise<Event>;
+  findById(id: string): Promise<Event | null>;
+  findByOrganizer(organizerId: string): Promise<Event[]>;
+}
+
+// Implementar com classes concretas
+@Injectable()
+export class EventRepository implements IEventRepository {
+  // Implementação
+}
+```
+
+## 🎯 Padrões de Use Cases
+
+### Estrutura de Use Case
+```typescript
+@Injectable()
+export class CreateEventUseCase {
+  constructor(
+    private readonly eventRepository: IEventRepository,
+    private readonly userRepository: IUserRepository,
+    private readonly logger: ILogger,
+  ) {}
+
+  public async execute(command: CreateEventCommand): Promise<CreateEventResult> {
+    try {
+      // 1. Validação
+      await this.validateCommand(command);
+      
+      // 2. Execução da lógica de negócio
+      const result = await this.processEventCreation(command);
+      
+      // 3. Persistência
+      await this.saveEvent(result);
+      
+      // 4. Notificação
+      await this.notifyEventCreated(result);
+      
+      return result;
+    } catch (error) {
+      this.logger.error('Erro ao criar evento', { command, error });
+      throw new EventCreationError(error.message);
+    }
+  }
+
+  private async validateCommand(command: CreateEventCommand): Promise<void> {
+    // Validação específica do use case
+  }
+
+  private async processEventCreation(command: CreateEventCommand): Promise<Event> {
+    // Lógica de negócio principal
+  }
+}
+```
+
+## 🔌 Padrões do NestJS
+
+### Módulos
+```typescript
+@Module({
+  imports: [
+    // Módulos externos primeiro
+    TypeOrmModule.forFeature([Event, Ticket, Payment]),
+    
+    // Módulos internos depois
+    AuthModule,
+    UsersModule,
+  ],
+  controllers: [EventsController],
+  providers: [
+    // Use Cases
+    CreateEventUseCase,
+    PurchaseTicketUseCase,
+    
+    // Services
+    EventsService,
+    TicketsService,
+    
+    // Repositories
+    {
+      provide: IEventRepository,
+      useClass: EventRepository,
+    },
+  ],
+  exports: [EventsService],
+})
+export class EventsModule {}
+```
+
+### Controllers
+```typescript
+@Controller('events')
+export class EventsController {
+  constructor(
+    private readonly createEventUseCase: CreateEventUseCase,
+    private readonly purchaseTicketUseCase: PurchaseTicketUseCase,
+  ) {}
+
+  @Post()
+  @HttpCode(201)
+  @UseGuards(JwtAuthGuard)
+  public async createEvent(
+    @Body() createEventDto: CreateEventDto,
+    @Request() req: any,
+  ): Promise<CreateEventResponseDto> {
+    const command = new CreateEventCommand(createEventDto, req.user.id);
+    const result = await this.createEventUseCase.execute(command);
+    
+    return CreateEventResponseDto.fromResult(result);
+  }
+
+  @Post(':id/tickets')
+  @HttpCode(201)
+  @UseGuards(JwtAuthGuard)
+  public async purchaseTicket(
+    @Param('id') eventId: string,
+    @Body() purchaseTicketDto: PurchaseTicketDto,
+    @Request() req: any,
+  ): Promise<PurchaseTicketResponseDto> {
+    const command = new PurchaseTicketCommand(eventId, purchaseTicketDto, req.user.id);
+    const result = await this.purchaseTicketUseCase.execute(command);
+    
+    return PurchaseTicketResponseDto.fromResult(result);
+  }
+}
+```
+
+### Arquivos .http para Testes
+Cada API criada deve ter um arquivo `.http` correspondente para facilitar os testes via REST Client.
+
+**Estrutura dos arquivos .http:**
+```
+src/
+├── modules/
+│   ├── events/
+│   │   ├── events.controller.ts
+│   │   └── events.http                  # Arquivo de testes da API
+│   ├── tickets/
+│   │   ├── tickets.controller.ts
+│   │   └── tickets.http                 # Arquivo de testes da API
+│   └── payments/
+│       ├── payments.controller.ts
+│       └── payments.http                # Arquivo de testes da API
+```
+
+**Exemplo de arquivo .http:**
+```http
+### Criar novo evento
+POST http://localhost:3001/api/events
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Festival de Música",
+  "description": "O maior festival da cidade",
+  "date": "2024-06-15T20:00:00Z",
+  "location": "Parque da Cidade",
+  "maxCapacity": 5000
+}
+
+### Listar eventos
+GET http://localhost:3001/api/events
+
+### Obter evento por ID
+GET http://localhost:3001/api/events/{{eventId}}
+
+### Comprar ingresso
+POST http://localhost:3001/api/events/{{eventId}}/tickets
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "categoryId": "1",
+  "quantity": 2
+}
+```
+
+## 🗄️ Padrões de Banco de Dados
+
+### Entities
+```typescript
+@Entity('events')
+export class Event {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ type: 'varchar', length: 255 })
+  title: string;
+
+  @Column({ type: 'text' })
+  description: string;
+
+  @Column({ type: 'timestamp' })
+  date: Date;
+
+  @Column({ type: 'varchar', length: 255 })
+  location: string;
+
+  @Column({ type: 'varchar', length: 50, default: 'ACTIVE' })
+  status: EventStatus;
+
+  @Column({ type: 'int', default: 0 })
+  maxCapacity: number;
+
+  @Column({ type: 'int', default: 0 })
+  soldTickets: number;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  // Métodos de domínio
+  public markAsSoldOut(): void {
+    this.status = EventStatus.SOLD_OUT;
+  }
+
+  public addSoldTickets(quantity: number): void {
+    this.soldTickets += quantity;
+    if (this.soldTickets >= this.maxCapacity) {
+      this.markAsSoldOut();
+    }
+  }
+}
+```
+
+## 🚀 Padrões de Configuração
+
+### Environment Variables
+```typescript
+// Sempre usar ConfigService
+@Injectable()
+export class AppConfig {
+  constructor(private configService: ConfigService) {}
+
+  get databaseUrl(): string {
+    return this.configService.get<string>('DATABASE_URL');
+  }
+
+  get jwtSecret(): string {
+    return this.configService.get<string>('JWT_SECRET');
+  }
+
+  get port(): number {
+    return this.configService.get<number>('PORT', 3001);
+  }
+}
+```
+
+### Dependency Injection
+```typescript
+// Sempre usar interfaces para dependências
+@Injectable()
+export class EventsService {
+  constructor(
+    @Inject(IEventRepository)
+    private readonly eventRepository: IEventRepository,
+    
+    @Inject(ITicketRepository)
+    private readonly ticketRepository: ITicketRepository,
+  ) {}
+}
+```
+
+## 📝 Padrões de Logging
+
+### Estrutura de Logs
+```typescript
+// Sempre usar logs estruturados
+@Injectable()
+export class EventsService {
+  constructor(private readonly logger: ILogger) {}
+
+  public async createEvent(eventData: CreateEventDto): Promise<Event> {
+    this.logger.info('Iniciando criação de evento', {
+      title: eventData.title,
+      date: eventData.date,
+      organizerId: eventData.organizerId,
+      timestamp: new Date().toISOString(),
+    });
+
+    try {
+      // Execução
+      const event = await this.processEventCreation(eventData);
+      this.logger.info('Evento criado com sucesso', { eventId: event.id });
+      return event;
+    } catch (error) {
+      this.logger.error('Erro ao criar evento', {
+        title: eventData.title,
+        error: error.message,
+        stack: error.stack,
+      });
+      throw error;
+    }
+  }
+}
+```
+
+## 🧪 Padrões de Testes (Futuro)
+
+### Estrutura de Testes
+```typescript
+// Testes unitários para use cases
+describe('CreateEventUseCase', () => {
+  let useCase: CreateEventUseCase;
+  let mockRepository: jest.Mocked<IEventRepository>;
+
+  beforeEach(() => {
+    mockRepository = createMockRepository();
+    useCase = new CreateEventUseCase(mockRepository);
+  });
+
+  it('should create event successfully', async () => {
+    // Arrange
+    const command = new CreateEventCommand({ title: 'Festival de Música' });
+    
+    // Act
+    const result = await useCase.execute(command);
+    
+    // Assert
+    expect(result).toBeDefined();
+    expect(mockRepository.save).toHaveBeenCalled();
+  });
+});
+```
+
+## 🔒 Padrões de Segurança
+
+### Validação de Entrada
+- Sempre validar DTOs com class-validator
+- Usar transformadores para sanitização
+- Implementar rate limiting
+- Validar tipos de dados
+
+### Tratamento de Erros
+```typescript
+// Sempre usar custom exceptions
+export class EventCreationError extends Error {
+  constructor(message: string, public readonly code: string) {
+    super(message);
+    this.name = 'EventCreationError';
+  }
+}
+
+// E filtros de exceção
+@Catch(EventCreationError)
+export class EventCreationFilter implements ExceptionFilter {
+  catch(exception: EventCreationError, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    
+    response.status(400).json({
+      statusCode: 400,
+      message: exception.message,
+      code: exception.code,
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+```
+
+## 📊 Padrões de Performance
+
+### Otimizações
+- Usar lazy loading quando apropriado
+- Implementar cache para dados frequentemente acessados
+- Usar paginação para grandes conjuntos de dados
+- Implementar timeouts para operações externas
+
+### Monitoramento
+```typescript
+// Sempre medir performance de operações críticas
+@Injectable()
+export class EventsService {
+  public async createEvent(eventData: CreateEventDto): Promise<Event> {
+    const startTime = Date.now();
+    
+    try {
+      const result = await this.performEventCreation(eventData);
+      
+      const duration = Date.now() - startTime;
+      this.logger.info('Evento criado', {
+        title: eventData.title,
+        duration,
+        eventId: result.id,
+      });
+      
+      return result;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.logger.error('Criação de evento falhou', {
+        title: eventData.title,
+        duration,
+        error: error.message,
+      });
+      throw error;
+    }
+  }
+}
+```
+
+## 🚫 O que NÃO fazer
+
+- ❌ Não usar `any` type
+- ❌ Não fazer console.log (usar logger estruturado)
+- ❌ Não deixar métodos públicos sem necessidade
+- ❌ Não misturar lógica de negócio com controllers
+- ❌ Não usar singletons desnecessários
+- ❌ Não fazer operações síncronas bloqueantes
+- ❌ Não esquecer de tratar erros
+- ❌ Não usar variáveis globais
+- ❌ **NUNCA desabilitar funcionalidades essenciais (banco, validações, etc.)**
+
+## ✅ O que SEMPRE fazer
+
+- ✅ Usar TypeScript strict mode
+- ✅ Implementar interfaces para dependências
+- ✅ Usar decorators do NestJS apropriadamente
+- ✅ Validar entrada de dados
+- ✅ Tratar erros adequadamente
+- ✅ Usar logs estruturados
+- ✅ Seguir princípios SOLID
+- ✅ Implementar Clean Architecture
+- ✅ Usar injeção de dependência
+- ✅ Documentar APIs com Swagger
+- ✅ Criar arquivo .http para cada API (testes via REST Client)
+- ✅ **SEMPRE corrigir problemas de configuração ao invés de desabilitar funcionalidades**
+
+## 📚 Documentação Automática
+
+### Sistema de Documentação Automática
+O projeto inclui um sistema completo de documentação automática que gera, valida e mantém a documentação atualizada.
+
+### Scripts de Documentação
+```bash
+# Gerar toda a documentação
+npm run docs:generate
+
+# Validar documentação existente
+npm run docs:validate
+
+# Servir documentação localmente
+npm run docs:serve
+
+# Monitorar mudanças e regenerar automaticamente
+npm run docs:watch
+
+# Limpar arquivos gerados
+npm run docs:clean
+
+# Mostrar ajuda
+npm run docs:help
+```
+
+### Estrutura de Documentação
+```
+docs/
+├── README.md                    # Índice principal
+├── architecture/               # Documentação de arquitetura
+├── development/                # Guias de desenvolvimento
+├── api/                        # Documentação de APIs
+├── mcp/                        # Documentação MCP
+├── deployment/                 # Guias de deploy
+├── diagrams/                   # Diagramas Mermaid
+└── generated/                  # Arquivos gerados automaticamente
+    ├── api-*.md               # Documentação de APIs por módulo
+    ├── *-generated.md        # Documentação geral
+    ├── *.md                   # Diagramas Mermaid
+    └── cache/                 # Cache de geração
+```
+
+### Geradores Disponíveis
+- **Gerador de APIs** - Baseado na especificação OpenAPI
+- **Gerador de Diagramas** - Diagramas Mermaid automáticos
+- **Gerador Geral** - Análise de controllers e serviços
+- **Validador** - Validação de estrutura e conteúdo
+
+### Configuração
+- **Arquivo:** `docs.config.js` - Configurações centralizadas
+- **Variáveis:** `API_BASE_URL`, `DOCS_PORT`, `LOG_LEVEL`
+- **Monitoramento:** Watch automático de arquivos
+- **Cache:** Sistema de cache para performance
+
+### Padrões de Documentação
+- ✅ **SEMPRE** gerar documentação automática após mudanças
+- ✅ **SEMPRE** validar documentação antes do commit
+- ✅ **SEMPRE** usar diagramas Mermaid para arquitetura
+- ✅ **SEMPRE** manter documentação atualizada
+- ✅ **SEMPRE** seguir padrões de Markdown
+- ❌ **NUNCA** commitar documentação desatualizada
+- ❌ **NUNCA** ignorar validações de documentação
+
+## 🚀 Deploy e Produção
+
+### Fluxo de Deploy Automático
+1. **Desenvolvimento** - Código e documentação
+2. **Validação** - Testes e validação de documentação
+3. **Build** - Compilação e preparação
+4. **Deploy** - Deploy automático para produção
+5. **Monitoramento** - Acompanhamento em produção
+
+### Scripts de Deploy
+```bash
+# Preparar para deploy
+npm run build
+npm run docs:generate
+npm run docs:validate
+
+# Deploy para produção
+npm run deploy:prod
+
+# Rollback se necessário
+npm run deploy:rollback
+```
+
+### Configurações de Produção
+- **Environment Variables** - Configurações específicas de produção
+- **Database Migrations** - Execução automática de migrações
+- **Health Checks** - Verificação de saúde da aplicação
+- **Monitoring** - Logs e métricas em produção
+- **Backup** - Estratégias de backup automático
+
+### CI/CD Pipeline
+- **GitHub Actions** - Pipeline automático de deploy
+- **Validação** - Testes e linting automáticos
+- **Documentação** - Geração e validação automática
+- **Deploy** - Deploy automático após validação
+- **Notificações** - Alertas de sucesso/falha
+
+## 🔄 Fluxo de Desenvolvimento Completo
+
+1. **Definir Use Case** - O que a funcionalidade deve fazer
+2. **Criar Interface** - Como a funcionalidade se comunica
+3. **Implementar** - Código seguindo os padrões
+4. **Validar** - Verificar se segue as regras
+5. **Testar** - Funcionalidade funciona corretamente
+6. **Documentar** - API e código bem documentados
+7. **Gerar Documentação** - Documentação automática atualizada
+8. **Validar Documentação** - Verificar consistência e qualidade
+9. **Commit** - Commit com documentação atualizada
+10. **Deploy** - Deploy automático para produção
+
+### Comandos Essenciais para Deploy
+```bash
+# Fluxo completo de desenvolvimento
+npm run start:dev                    # Desenvolvimento
+npm run docs:watch                   # Monitorar documentação
+npm run test                         # Testes
+npm run lint                         # Linting
+npm run docs:generate               # Gerar documentação
+npm run docs:validate               # Validar documentação
+npm run build                        # Build para produção
+git add .                           # Adicionar mudanças
+git commit -m "feat: nova funcionalidade"  # Commit
+git push origin main                 # Push para repositório
+# Deploy automático via CI/CD
+```
+
+---
+
+**Lembre-se**: Este arquivo define os padrões do projeto. Sempre consulte antes de implementar novas funcionalidades para garantir consistência e qualidade do código. **NUNCA desabilite funcionalidades essenciais - sempre corrija os problemas de configuração!**
+
+**Importante**: Sempre gerar e validar a documentação antes de fazer commit e deploy para produção!
+

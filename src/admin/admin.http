@@ -1,0 +1,15 @@
+### Variáveis
+@baseUrl = http://localhost:3001/api
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGd3YW5zaG9wLmNvbSIsInN1YiI6IjEiLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3Mjg1OTU2MDB9.example
+
+### Obter estatísticas do dashboard
+GET {{baseUrl}}/admin/dashboard
+Authorization: Bearer {{token}}
+
+### Obter analytics do evento
+GET {{baseUrl}}/admin/events/1/analytics
+Authorization: Bearer {{token}}
+
+### Obter analytics do usuário
+GET {{baseUrl}}/admin/users/2/analytics
+Authorization: Bearer {{token}}

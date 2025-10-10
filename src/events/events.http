@@ -1,0 +1,88 @@
+### Variáveis
+@baseUrl = http://localhost:3001/api
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGd3YW5zaG9wLmNvbSIsInN1YiI6IjEiLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3Mjg1OTU2MDB9.example
+
+### Listar todos os eventos
+GET {{baseUrl}}/events
+
+### Listar eventos por categoria
+GET {{baseUrl}}/events?category=Música
+
+### Listar eventos por cidade
+GET {{baseUrl}}/events?city=São Paulo
+
+### Obter evento por ID
+GET {{baseUrl}}/events/1
+
+### Criar novo evento
+POST {{baseUrl}}/events
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Festival de Rock",
+  "description": "O maior festival de rock do Brasil",
+  "date": "2024-07-20T19:00:00Z",
+  "location": "Estádio do Maracanã",
+  "address": "Av. Maracanã, 200",
+  "city": "Rio de Janeiro",
+  "state": "RJ",
+  "image": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800",
+  "category": "Música",
+  "maxCapacity": 80000
+}
+
+### Atualizar evento
+PUT {{baseUrl}}/events/1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Festival de Música Eletrônica - Edição Especial",
+  "description": "O maior festival de música eletrônica da cidade com os melhores DJs nacionais e internacionais. Edição especial com novos artistas!",
+  "maxCapacity": 6000
+}
+
+### Deletar evento
+DELETE {{baseUrl}}/events/1
+Authorization: Bearer {{token}}
+
+### Obter categorias de ingressos do evento
+GET {{baseUrl}}/events/1/ticket-categories
+
+### Criar categoria de ingresso
+POST {{baseUrl}}/events/1/ticket-categories
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Camarote",
+  "description": "Área VIP com vista privilegiada e open bar",
+  "price": 500.00,
+  "maxQuantity": 200,
+  "benefits": [
+    "Área VIP",
+    "Open bar",
+    "Banheiros exclusivos",
+    "Estacionamento",
+    "Acesso ao backstage"
+  ]
+}
+
+### Atualizar categoria de ingresso
+PUT {{baseUrl}}/events/ticket-categories/1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Pista Premium",
+  "description": "Acesso à área principal do evento com benefícios especiais",
+  "price": 200.00,
+  "maxQuantity": 2500,
+  "benefits": [
+    "Acesso à pista principal",
+    "Banheiros exclusivos",
+    "Área de alimentação premium",
+    "Bebidas inclusas"
+  ]
+}

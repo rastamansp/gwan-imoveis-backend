@@ -1,0 +1,26 @@
+### Variáveis
+@baseUrl = http://localhost:3001/api
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGd3YW5zaG9wLmNvbSIsInN1YiI6IjEiLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3Mjg1OTU2MDB9.example
+
+### Listar todos os usuários
+GET {{baseUrl}}/users
+Authorization: Bearer {{token}}
+
+### Obter usuário por ID
+GET {{baseUrl}}/users/1
+Authorization: Bearer {{token}}
+
+### Atualizar usuário
+PUT {{baseUrl}}/users/2
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "João Silva Santos",
+  "phone": "11999999999",
+  "role": "ORGANIZER"
+}
+
+### Deletar usuário
+DELETE {{baseUrl}}/users/2
+Authorization: Bearer {{token}}

@@ -1,0 +1,54 @@
+### Variáveis
+@baseUrl = http://localhost:3001/api
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGd3YW5zaG9wLmNvbSIsInN1YiI6IjEiLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3Mjg1OTU2MDB9.example
+
+### Listar todos os pagamentos
+GET {{baseUrl}}/payments
+Authorization: Bearer {{token}}
+
+### Obter pagamento por ID
+GET {{baseUrl}}/payments/1
+Authorization: Bearer {{token}}
+
+### Obter pagamentos do usuário
+GET {{baseUrl}}/payments/user/2
+Authorization: Bearer {{token}}
+
+### Criar pagamento PIX
+POST {{baseUrl}}/payments
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "ticketId": "1",
+  "method": "PIX",
+  "amount": 150.00
+}
+
+### Criar pagamento Cartão de Crédito
+POST {{baseUrl}}/payments
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "ticketId": "1",
+  "method": "CREDIT_CARD",
+  "amount": 150.00,
+  "installments": 3
+}
+
+### Aprovar pagamento
+PUT {{baseUrl}}/payments/1/approve
+Authorization: Bearer {{token}}
+
+### Rejeitar pagamento
+PUT {{baseUrl}}/payments/1/reject
+Authorization: Bearer {{token}}
+
+### Estornar pagamento
+PUT {{baseUrl}}/payments/1/refund
+Authorization: Bearer {{token}}
+
+### Obter estatísticas de pagamentos
+GET {{baseUrl}}/payments/stats
+Authorization: Bearer {{token}}
