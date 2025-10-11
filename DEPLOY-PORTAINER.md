@@ -51,7 +51,7 @@ Após o deploy, verifique:
 
 - **Container rodando:** `docker ps | grep gwan-events-backend`
 - **Logs:** `docker logs gwan-events-backend`
-- **Health check:** `curl -f http://localhost:3001/health`
+- **Health check:** `docker exec gwan-events-backend curl -f http://localhost:3001/health`
 - **HTTPS:** `https://api-events.gwan.com.br/api`
 
 ## Configuração do Traefik

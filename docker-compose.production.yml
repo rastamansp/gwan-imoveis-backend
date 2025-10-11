@@ -5,8 +5,6 @@ services:
       dockerfile: Dockerfile
     container_name: gwan-events-backend-prod
     restart: unless-stopped
-    ports:
-      - "3001:3001"
     environment:
       # Configurações básicas
       - NODE_ENV=production
