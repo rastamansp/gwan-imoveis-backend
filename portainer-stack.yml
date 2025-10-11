@@ -14,47 +14,16 @@ services:
       
       # JWT
       - JWT_SECRET=${JWT_SECRET}
-      - JWT_EXPIRES_IN=24h
       
-      # Database e Redis removidos - não utilizados no projeto atual
-      
-      # CORS
-      - CORS_ORIGINS=${CORS_ORIGINS}
+      # CORS para frontend
+      - CORS_ORIGINS=https://events.gwan.com.br,https://www.events.gwan.com.br,https://api-events.gwan.com.br
       
       # MCP Server
       - MCP_BASE_URL=https://api-events.gwan.com.br
       - MCP_PORT_SSE=3002
       - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN}
       
-      # Email
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_PORT=587
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASS=${SMTP_PASS}
-      - SMTP_FROM=${SMTP_FROM}
-      
-      # Payment Gateway
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
-      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
-      - MERCADO_PAGO_ACCESS_TOKEN=${MERCADO_PAGO_ACCESS_TOKEN}
-      - MERCADO_PAGO_PUBLIC_KEY=${MERCADO_PAGO_PUBLIC_KEY}
-      
-      # File Upload
-      - UPLOAD_PATH=/app/uploads
-      - MAX_FILE_SIZE=5242880
-      
-      # AWS S3
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION}
-      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
-      
-      # Logging
-      - LOG_LEVEL=info
-      
     volumes:
-      - uploads_data:/app/uploads
       - logs_data:/app/logs
       
     networks:
@@ -81,9 +50,6 @@ services:
   # PostgreSQL e Redis removidos - não utilizados no projeto atual
 
 volumes:
-  # postgres_data e redis_data removidos - não utilizados
-  uploads_data:
-    driver: local
   logs_data:
     driver: local
 

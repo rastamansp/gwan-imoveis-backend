@@ -288,5 +288,5 @@ docker run --rm -v gwan-events-backend_uploads_data:/data -v $(pwd):/backup alpi
 1. [Deploy Automático](./deploy-automation.md) - Deploy automático
 2. [Deploy com Docker](./docker.md) - Deploy com Docker
 3. [Configuração de Ambiente](./environment.md) - Configuração detalhada
-4. [Monitoramento](./monitoring.md) - Sistema de monitoramento
-5. [Backup](./backup.md) - Estratégias de backup
+4. [Monitoramento](../monitoring/overview.md) - Sistema de monitoramento
+5. [Backup](../backup/overview.md) - Estratégias de backup

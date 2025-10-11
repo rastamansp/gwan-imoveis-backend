@@ -4,11 +4,13 @@
 
 ### 1. Configurar Variáveis de Ambiente
 ```bash
-# Copiar arquivo de exemplo
-cp env.example .env
+# Configurar variáveis de ambiente necessárias
+export JWT_SECRET=pazdedeus
+export MCP_AUTH_TOKEN=pazdedeus2025
 
-# Editar variáveis de ambiente
-nano .env
+# Ou criar arquivo .env com as variáveis
+echo "JWT_SECRET=pazdedeus" > .env
+echo "MCP_AUTH_TOKEN=pazdedeus2025" >> .env
 ```
 
 ### 2. Criar Rede Docker

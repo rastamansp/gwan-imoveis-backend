@@ -348,5 +348,5 @@ deploy:
 
 1. [Deploy Automático](./deploy-automation.md) - Deploy automático
 2. [Configuração de Ambiente](./environment.md) - Configuração detalhada
-3. [Monitoramento](./monitoring.md) - Sistema de monitoramento
-4. [Backup](./backup.md) - Estratégias de backup
+3. [Monitoramento](../monitoring/overview.md) - Sistema de monitoramento
+4. [Backup](../backup/overview.md) - Estratégias de backup

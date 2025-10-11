@@ -1,5 +1,5 @@
 import { Controller, Post, Body, UseGuards, Request, Get, HttpCode, Inject } from '@nestjs/common';
-import { LocalAuthGuard } from './guards/local-auth.guard';
+// import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { LoginDto } from './dto/login.dto';
@@ -9,7 +9,7 @@ import { LoginUserUseCase } from '../shared/application/use-cases/login-user.use
 import { UserResponseDto } from '../shared/presentation/dtos/user-response.dto';
 import { IUserRepository } from '../shared/domain/interfaces/user-repository.interface';
 import { ILogger } from '../shared/application/interfaces/logger.interface';
-import { User } from '../shared/domain/entities/user.entity';
+// import { User } from '../shared/domain/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 
 @ApiTags('Autenticação')
