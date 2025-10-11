@@ -144,7 +144,7 @@ docker-compose down -v --rmi all
 
 ## Health Checks
 
-- **Backend**: `docker exec gwan-events-backend-prod curl -f http://localhost:3001/health`
+- **Backend**: `docker exec gwan-events-backend-prod curl -f http://localhost:3001/api/health`
 
 ## Domínios
 
