@@ -1,4 +1,4 @@
-import { request } from 'undici';
+import axios from 'axios';
 import { ToolWithMetadata, HttpToolOptions, HttpToolResult } from '../types/mcp-types';
 import { McpAuthMiddleware } from '../middleware/auth.middleware';
 
@@ -74,39 +74,40 @@ export async function executeHttpTool(
       url += `?${queryParams.toString()}`;
     }
 
-    // Fazer a requisição
-    const response = await request(url, {
-      method: tool.httpMethod,
+    // Fazer a requisição com axios
+    const response = await axios({
+      method: tool.httpMethod.toLowerCase(),
+      url,
       headers,
-      body: body ? JSON.stringify(body) : undefined,
+      data: body,
+      timeout: options.timeout || 10000,
     });
 
-    const responseBody = await response.body.text();
-    let data: any;
-
-    try {
-      data = JSON.parse(responseBody);
-    } catch {
-      data = responseBody;
-    }
-
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return {
-        success: true,
-        data,
-        statusCode: response.statusCode,
-      };
-    } else {
+    return {
+      success: true,
+      data: response.data,
+      statusCode: response.status,
+    };
+  } catch (error: any) {
+    if (error.response) {
+      // Erro de resposta HTTP
       return {
         success: false,
-        error: `HTTP ${response.statusCode}: ${data.message || data}`,
-        statusCode: response.statusCode,
+        error: `HTTP ${error.response.status}: ${error.response.data?.message || error.response.statusText}`,
+        statusCode: error.response.status,
+      };
+    } else if (error.request) {
+      // Erro de rede
+      return {
+        success: false,
+        error: 'Erro de rede - servidor não respondeu',
+      };
+    } else {
+      // Outros erros
+      return {
+        success: false,
+        error: error.message || 'Erro desconhecido na requisição HTTP',
       };
     }
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || 'Erro desconhecido na requisição HTTP',
-    };
   }
 }
