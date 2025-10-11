@@ -18,20 +18,7 @@ services:
       - JWT_SECRET=dev-jwt-secret-key
       - JWT_EXPIRES_IN=24h
       
-      # Database
-      - DATABASE_URL=postgresql://postgres:password@postgres:5432/gwan_events_dev
-      - DATABASE_HOST=postgres
-      - DATABASE_PORT=5432
-      - DATABASE_USERNAME=postgres
-      - DATABASE_PASSWORD=password
-      - DATABASE_NAME=gwan_events_dev
-      
-      # Redis
-      - REDIS_URL=redis://redis:6379
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=
-      - REDIS_DB=0
+      # Database e Redis removidos - não utilizados no projeto atual
       
       # CORS
       - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
@@ -61,54 +48,12 @@ services:
       retries: 3
       start_period: 40s
       
-    depends_on:
-      - postgres
-      - redis
+    # depends_on removido - PostgreSQL e Redis não utilizados
       
     labels:
       - "traefik.enable=false"
 
-  postgres:
-    image: postgres:15-alpine
-    container_name: gwan-events-postgres-dev
-    restart: unless-stopped
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_DB=gwan_events_dev
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
-    volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
-    networks:
-      - gwan
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d gwan_events_dev"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    labels:
-      - "traefik.enable=false"
-
-  redis:
-    image: redis:7-alpine
-    container_name: gwan-events-redis-dev
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    command: redis-server --appendonly yes
-    volumes:
-      - redis_dev_data:/data
-    networks:
-      - gwan
-    healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-    labels:
-      - "traefik.enable=false"
+  # PostgreSQL e Redis removidos - não utilizados no projeto atual
 
   # MCP Server SSE para desenvolvimento
   gwan-events-mcp:
@@ -145,10 +90,7 @@ services:
       - "traefik.enable=false"
 
 volumes:
-  postgres_dev_data:
-    driver: local
-  redis_dev_data:
-    driver: local
+  # postgres_dev_data e redis_dev_data removidos - não utilizados
   uploads_data:
     driver: local
   logs_data:

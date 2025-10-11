@@ -21,8 +21,6 @@ Configuração para desenvolvimento com hot reload e debug.
 graph TB
     subgraph "Rede Gwan"
         APP[gwan-events-backend]
-        DB[(PostgreSQL)]
-        REDIS[(Redis)]
         MCP[gwan-events-mcp]
     end
     
@@ -31,19 +29,13 @@ graph TB
     end
     
     subgraph "Volumes"
-        POSTGRES_DATA[postgres_data]
-        REDIS_DATA[redis_data]
         UPLOADS_DATA[uploads_data]
         LOGS_DATA[logs_data]
     end
     
     TRAEFIK --> APP
-    APP --> DB
-    APP --> REDIS
     MCP --> APP
     
-    DB --> POSTGRES_DATA
-    REDIS --> REDIS_DATA
     APP --> UPLOADS_DATA
     APP --> LOGS_DATA
 ```
@@ -211,18 +203,16 @@ export class HealthController {
 ## Volumes Persistentes
 
 ### Volumes Configurados
-- `postgres_data` - Dados do PostgreSQL
-- `redis_data` - Dados do Redis
 - `uploads_data` - Arquivos enviados
 - `logs_data` - Logs da aplicação
 
 ### Backup de Volumes
 ```bash
-# Backup do PostgreSQL
-docker run --rm -v gwan-events-backend_postgres_data:/data -v $(pwd):/backup alpine tar czf /backup/postgres-backup.tar.gz -C /data .
+# Backup dos uploads
+docker run --rm -v gwan-events-backend_uploads_data:/data -v $(pwd):/backup alpine tar czf /backup/uploads-backup.tar.gz -C /data .
 
-# Backup do Redis
-docker run --rm -v gwan-events-backend_redis_data:/data -v $(pwd):/backup alpine tar czf /backup/redis-backup.tar.gz -C /data .
+# Backup dos logs
+docker run --rm -v gwan-events-backend_logs_data:/data -v $(pwd):/backup alpine tar czf /backup/logs-backup.tar.gz -C /data .
 ```
 
 ## Monitoramento
@@ -231,12 +221,6 @@ docker run --rm -v gwan-events-backend_redis_data:/data -v $(pwd):/backup alpine
 ```bash
 # Logs da aplicação
 docker-compose logs -f gwan-events-backend
-
-# Logs do banco
-docker-compose logs -f postgres
-
-# Logs do Redis
-docker-compose logs -f redis
 
 # Logs do MCP
 docker-compose logs -f gwan-events-mcp
@@ -272,11 +256,8 @@ docker-compose restart gwan-events-backend
 
 #### Erro de conexão com banco
 ```bash
-# Verificar se PostgreSQL está rodando
-docker-compose ps postgres
-
-# Testar conexão
-docker-compose exec postgres psql -U postgres -d gwan_events -c "SELECT 1;"
+# Banco de dados não utilizado no projeto atual
+# Repositórios in-memory são utilizados
 ```
 
 #### Erro de rede

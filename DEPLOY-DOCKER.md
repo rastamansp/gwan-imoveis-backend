@@ -129,14 +129,10 @@ docker-compose down -v --rmi all
 ## Estrutura dos Containers
 
 - **gwan-events-backend**: Aplicação principal
-- **gwan-events-postgres**: Banco de dados PostgreSQL
-- **gwan-events-redis**: Cache Redis
 - **gwan-events-mcp**: Servidor MCP (opcional)
 
 ## Volumes Persistentes
 
-- `postgres_data`: Dados do PostgreSQL
-- `redis_data`: Dados do Redis
 - `uploads_data`: Arquivos enviados
 - `logs_data`: Logs da aplicação
 
@@ -147,8 +143,6 @@ docker-compose down -v --rmi all
 ## Health Checks
 
 - **Backend**: `http://localhost:3001/health`
-- **PostgreSQL**: `pg_isready`
-- **Redis**: `redis-cli ping`
 
 ## Domínios
 
@@ -164,14 +158,11 @@ docker-compose down -v --rmi all
 
 ### Backup de Volumes
 ```bash
-# Backup PostgreSQL
-docker run --rm -v gwan-events-backend_postgres_data:/data -v $(pwd):/backup alpine tar czf /backup/postgres-backup.tar.gz -C /data .
-
-# Backup Redis
-docker run --rm -v gwan-events-backend_redis_data:/data -v $(pwd):/backup alpine tar czf /backup/redis-backup.tar.gz -C /data .
-
 # Backup Uploads
 docker run --rm -v gwan-events-backend_uploads_data:/data -v $(pwd):/backup alpine tar czf /backup/uploads-backup.tar.gz -C /data .
+
+# Backup Logs
+docker run --rm -v gwan-events-backend_logs_data:/data -v $(pwd):/backup alpine tar czf /backup/logs-backup.tar.gz -C /data .
 ```
 
 ## Próximos Passos
