@@ -68,7 +68,7 @@ CORS_ORIGINS=https://events.gwan.com.br,https://www.events.gwan.com.br
 
 #### MCP Server
 ```env
-MCP_BASE_URL=https://api.gwan.com.br
+MCP_BASE_URL=https://api-events.gwan.com.br
 MCP_PORT_SSE=3002
 MCP_AUTH_TOKEN=token-mcp-super-seguro-aqui
 ```
@@ -159,7 +159,7 @@ docker logs gwan-events-redis
 
 ### Labels Traefik
 O stack inclui labels Traefik para:
-- **API**: `api.gwan.com.br`
+- **API**: `api-events.gwan.com.br`
 - **SSL**: Certificados Let's Encrypt
 - **Proxy**: Load balancing
 
@@ -167,7 +167,7 @@ O stack inclui labels Traefik para:
 ```yaml
 labels:
   - "traefik.enable=true"
-  - "traefik.http.routers.gwan-events-backend.rule=Host(`api.gwan.com.br`)"
+  - "traefik.http.routers.gwan-events-backend.rule=Host(`api-events.gwan.com.br`)"
   - "traefik.http.routers.gwan-events-backend.tls=true"
   - "traefik.http.routers.gwan-events-backend.tls.certresolver=letsencrypt"
   - "traefik.http.services.gwan-events-backend.loadbalancer.server.port=3001"

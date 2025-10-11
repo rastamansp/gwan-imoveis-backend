@@ -152,7 +152,7 @@ docker-compose down -v --rmi all
 
 ## Domínios
 
-- **API**: `api.gwan.com.br`
+- **API**: `api-events.gwan.com.br`
 - **MCP**: `mcp.gwan.com.br` (opcional)
 
 ## SSL

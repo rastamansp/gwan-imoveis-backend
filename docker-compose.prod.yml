@@ -37,7 +37,7 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS}
       
       # MCP Server
-      - MCP_BASE_URL=https://api.gwan.com.br
+      - MCP_BASE_URL=https://api-events.gwan.com.br
       - MCP_PORT_SSE=3002
       - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN}
       

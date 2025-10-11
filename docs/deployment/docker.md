@@ -93,7 +93,7 @@ REDIS_DB=0
 CORS_ORIGINS=https://events.gwan.com.br,https://www.events.gwan.com.br
 
 # MCP Server
-MCP_BASE_URL=https://api.gwan.com.br
+MCP_BASE_URL=https://api-events.gwan.com.br
 MCP_PORT_SSE=3002
 MCP_AUTH_TOKEN=token-mcp-super-seguro
 
@@ -172,14 +172,14 @@ docker-compose up -d --build
 ```yaml
 labels:
   - "traefik.enable=true"
-  - "traefik.http.routers.gwan-events-backend.rule=Host(`api.gwan.com.br`)"
+  - "traefik.http.routers.gwan-events-backend.rule=Host(`api-events.gwan.com.br`)"
   - "traefik.http.routers.gwan-events-backend.tls=true"
   - "traefik.http.routers.gwan-events-backend.tls.certresolver=letsencrypt"
   - "traefik.http.services.gwan-events-backend.loadbalancer.server.port=3001"
 ```
 
 ### Domínios Configurados
-- **API**: `api.gwan.com.br`
+- **API**: `api-events.gwan.com.br`
 - **MCP**: `mcp.gwan.com.br` (opcional)
 
 ## Health Checks

@@ -168,7 +168,7 @@ MINIO_BUCKET=gwan-events-uploads
 
 ```env
 # MCP Configuration
-MCP_BASE_URL=https://api.gwan.com.br
+MCP_BASE_URL=https://api-events.gwan.com.br
 MCP_PORT_SSE=3002
 MCP_AUTH_TOKEN=token-mcp-super-seguro
 ```
@@ -250,17 +250,17 @@ upstream gwan_backend {
 
 server {
     listen 80;
-    server_name api.gwan.com.br;
+    server_name api-events.gwan.com.br;
     return 301 https://$server_name$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name api.gwan.com.br;
+    server_name api-events.gwan.com.br;
 
     # SSL Configuration
-    ssl_certificate /etc/letsencrypt/live/api.gwan.com.br/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/api.gwan.com.br/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/api-events.gwan.com.br/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api-events.gwan.com.br/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512;
     ssl_prefer_server_ciphers off;
@@ -511,7 +511,7 @@ ufw enable
 
 ```bash
 # Certbot para Let's Encrypt
-certbot --nginx -d api.gwan.com.br
+certbot --nginx -d api-events.gwan.com.br
 
 # Renovação automática
 echo "0 12 * * * /usr/bin/certbot renew --quiet" | crontab -

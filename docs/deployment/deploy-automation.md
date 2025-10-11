@@ -198,7 +198,7 @@ JWT_SECRET=super-secret-jwt-key-production
 CORS_ORIGINS=https://events.gwan.com.br,https://www.events.gwan.com.br
 
 # MCP
-MCP_BASE_URL=https://api.gwan.com.br
+MCP_BASE_URL=https://api-events.gwan.com.br
 MCP_AUTH_TOKEN=production-mcp-token
 ```
 

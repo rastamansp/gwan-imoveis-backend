@@ -37,7 +37,7 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS}
       
       # MCP Server
-      - MCP_BASE_URL=${MCP_BASE_URL:-http://localhost:3001}
+      - MCP_BASE_URL=${MCP_BASE_URL:-https://api-events.gwan.com.br}
       - MCP_PORT_SSE=${MCP_PORT_SSE:-3002}
       - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN}
       
@@ -95,7 +95,7 @@ services:
       
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.gwan-events-backend.rule=Host(`api.gwan.com.br`)"
+      - "traefik.http.routers.gwan-events-backend.rule=Host(`api-events.gwan.com.br`)"
       - "traefik.http.routers.gwan-events-backend.tls=true"
       - "traefik.http.routers.gwan-events-backend.tls.certresolver=letsencrypt"
       - "traefik.http.services.gwan-events-backend.loadbalancer.server.port=3001"
