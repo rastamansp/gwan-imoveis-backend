@@ -41,7 +41,7 @@ export class CreateEventUseCase {
       }
 
       // Criar evento
-      const event = new Event(
+      const event = Event.create(
         uuidv4(),
         createEventDto.title,
         createEventDto.description,

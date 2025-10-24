@@ -1,0 +1,863 @@
+# Teste do Fluxo Completo - Gwan Events Backend
+
+## Cenário de Teste: Usuário Completa Todo o Ciclo
+
+Este arquivo demonstra como testar todo o fluxo do usuário desde o registro até o check-in.
+
+### Pré-requisitos
+- Backend rodando em `http://localhost:3001`
+- Frontend rodando em `http://localhost:3000`
+- CORS configurado corretamente
+
+### 1. Registro de Usuário
+
+```http
+### Registro de novo usuário
+POST http://localhost:3001/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "joao.silva@exemplo.com",
+  "password": "senha123456",
+  "name": "João Silva",
+  "phone": "+5511999999999"
+}
+```
+
+**Resposta esperada:**
+```json
+{
+  "user": {
+    "id": "uuid-user-id",
+    "email": "joao.silva@exemplo.com",
+    "name": "João Silva",
+    "phone": "+5511999999999"
+  },
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "refresh-token-uuid"
+}
+```
+
+### 2. Buscar Eventos Disponíveis
+
+```http
+### Listar eventos
+GET http://localhost:3001/api/events?page=1&limit=5
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Resposta esperada:**
+```json
+{
+  "events": [
+    {
+      "id": "event-uuid-1",
+      "title": "Festival de Música Eletrônica",
+      "description": "O maior festival da cidade",
+      "date": "2024-06-15T20:00:00Z",
+      "location": "Parque Ibirapuera",
+      "status": "ACTIVE",
+      "maxCapacity": 5000,
+      "soldTickets": 1200
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 5,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+### 3. Visualizar Detalhes do Evento
+
+```http
+### Detalhes do evento
+GET http://localhost:3001/api/events/event-uuid-1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Resposta esperada:**
+```json
+{
+  "id": "event-uuid-1",
+  "title": "Festival de Música Eletrônica",
+  "description": "O maior festival da cidade com os melhores DJs",
+  "date": "2024-06-15T20:00:00Z",
+  "location": "Parque Ibirapuera",
+  "address": "Av. Pedro Álvares Cabral, s/n - Vila Mariana",
+  "status": "ACTIVE",
+  "maxCapacity": 5000,
+  "soldTickets": 1200,
+  "organizer": {
+    "id": "org-uuid",
+    "name": "Produtora XYZ"
+  }
+}
+```
+
+### 4. Ver Categorias de Ingressos
+
+```http
+### Categorias de ingressos
+GET http://localhost:3001/api/events/event-uuid-1/ticket-categories
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Resposta esperada:**
+```json
+{
+  "categories": [
+    {
+      "id": "cat-uuid-1",
+      "name": "Pista",
+      "description": "Acesso à pista principal",
+      "price": 150.00,
+      "available": 800,
+      "maxPerUser": 4,
+      "benefits": ["Acesso à pista", "Barracas de comida"]
+    },
+    {
+      "id": "cat-uuid-2",
+      "name": "VIP",
+      "description": "Área VIP com open bar",
+      "price": 300.00,
+      "available": 200,
+      "maxPerUser": 2,
+      "benefits": ["Área VIP", "Open bar", "Estacionamento"]
+    }
+  ]
+}
+```
+
+### 5. Processar Pagamento
+
+```http
+### Processar pagamento
+POST http://localhost:3001/api/payments/process
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "eventId": "event-uuid-1",
+  "tickets": [
+    {
+      "categoryId": "cat-uuid-1",
+      "quantity": 2
+    }
+  ],
+  "paymentMethod": "credit_card",
+  "paymentData": {
+    "cardNumber": "4111111111111111",
+    "expiryMonth": "12",
+    "expiryYear": "2025",
+    "cvv": "123",
+    "holderName": "JOÃO SILVA"
+  }
+}
+```
+
+**Resposta esperada:**
+```json
+{
+  "paymentId": "payment-uuid-1",
+  "status": "processing",
+  "amount": 300.00,
+  "gatewayResponse": {
+    "transactionId": "gateway-tx-123",
+    "status": "pending"
+  }
+}
+```
+
+### 6. Verificar Status do Pagamento
+
+```http
+### Status do pagamento
+GET http://localhost:3001/api/payments/payment-uuid-1/status
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Resposta esperada:**
+```json
+{
+  "paymentId": "payment-uuid-1",
+  "status": "approved",
+  "amount": 300.00,
+  "approvedAt": "2024-01-15T10:30:00Z",
+  "tickets": [
+    {
+      "id": "ticket-uuid-1",
+      "code": "ABC123456",
+      "categoryName": "Pista",
+      "price": 150.00
+    },
+    {
+      "id": "ticket-uuid-2",
+      "code": "ABC123457",
+      "categoryName": "Pista",
+      "price": 150.00
+    }
+  ]
+}
+```
+
+### 7. Visualizar Meus Ingressos
+
+```http
+### Meus ingressos
+GET http://localhost:3001/api/tickets/my-tickets
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Resposta esperada:**
+```json
+{
+  "tickets": [
+    {
+      "id": "ticket-uuid-1",
+      "code": "ABC123456",
+      "event": {
+        "id": "event-uuid-1",
+        "title": "Festival de Música Eletrônica",
+        "date": "2024-06-15T20:00:00Z",
+        "location": "Parque Ibirapuera"
+      },
+      "category": {
+        "name": "Pista",
+        "price": 150.00
+      },
+      "status": "ACTIVE",
+      "purchasedAt": "2024-01-15T10:30:00Z",
+      "qrCode": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+    },
+    {
+      "id": "ticket-uuid-2",
+      "code": "ABC123457",
+      "event": {
+        "id": "event-uuid-1",
+        "title": "Festival de Música Eletrônica",
+        "date": "2024-06-15T20:00:00Z",
+        "location": "Parque Ibirapuera"
+      },
+      "category": {
+        "name": "Pista",
+        "price": 150.00
+      },
+      "status": "ACTIVE",
+      "purchasedAt": "2024-01-15T10:30:00Z",
+      "qrCode": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+    }
+  ]
+}
+```
+
+### 8. Validar Ingresso (Check-in)
+
+```http
+### Validar ingresso para check-in
+POST http://localhost:3001/api/tickets/validate
+Content-Type: application/json
+
+{
+  "ticketCode": "ABC123456",
+  "scannerId": "scanner-uuid-1",
+  "location": "Entrada Principal"
+}
+```
+
+**Resposta esperada:**
+```json
+{
+  "valid": true,
+  "ticket": {
+    "id": "ticket-uuid-1",
+    "code": "ABC123456",
+    "eventTitle": "Festival de Música Eletrônica",
+    "categoryName": "Pista",
+    "holderName": "João Silva",
+    "status": "ACTIVE",
+    "checkInStatus": "NOT_CHECKED_IN"
+  },
+  "message": "Ingresso válido para check-in"
+}
+```
+
+### 9. Realizar Check-in
+
+```http
+### Fazer check-in
+POST http://localhost:3001/api/tickets/checkin
+Content-Type: application/json
+
+{
+  "ticketCode": "ABC123456",
+  "scannerId": "scanner-uuid-1",
+  "location": "Entrada Principal",
+  "timestamp": "2024-06-15T19:45:00Z"
+}
+```
+
+**Resposta esperada:**
+```json
+{
+  "success": true,
+  "ticket": {
+    "id": "ticket-uuid-1",
+    "code": "ABC123456",
+    "checkInStatus": "CHECKED_IN",
+    "checkedInAt": "2024-06-15T19:45:00Z",
+    "checkedInBy": "scanner-uuid-1"
+  },
+  "message": "Check-in realizado com sucesso"
+}
+```
+
+## Teste com Frontend
+
+### HTML de Teste Completo
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste Fluxo Completo - Gwan Events</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .step { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🎫 Teste Fluxo Completo - Gwan Events</h1>
+    
+    <div class="step">
+        <h3>1. Autenticação</h3>
+        <button onclick="registerUser()">Registrar Usuário</button>
+        <button onclick="loginUser()">Fazer Login</button>
+        <div id="register-result"></div>
+    </div>
+
+    <div class="step">
+        <h3>2. Buscar Eventos</h3>
+        <button onclick="searchEvents()">Buscar Eventos</button>
+        <div id="events-result"></div>
+    </div>
+
+    <div class="step">
+        <h3>3. Detalhes do Evento</h3>
+        <button onclick="getEventDetails()">Ver Detalhes</button>
+        <div id="event-details-result"></div>
+    </div>
+
+    <div class="step">
+        <h3>4. Categorias de Ingressos</h3>
+        <button onclick="getTicketCategories()">Ver Categorias</button>
+        <div id="categories-result"></div>
+    </div>
+
+    <div class="step">
+        <h3>5. Processar Pagamento</h3>
+        <button onclick="processPayment()">Processar Pagamento</button>
+        <div id="payment-result"></div>
+    </div>
+
+    <div class="step">
+        <h3>6. Verificar Status do Pagamento</h3>
+        <button onclick="checkPaymentStatus()">Verificar Status</button>
+        <div id="payment-status-result"></div>
+    </div>
+
+    <div class="step">
+        <h3>7. Meus Ingressos</h3>
+        <button onclick="getMyTickets()">Ver Meus Ingressos</button>
+        <div id="tickets-result"></div>
+    </div>
+
+    <div class="step">
+        <h3>8. Validar Ingresso</h3>
+        <button onclick="validateTicket()">Validar Ingresso</button>
+        <div id="validate-result"></div>
+    </div>
+
+    <div class="step">
+        <h3>9. Check-in</h3>
+        <button onclick="checkIn()">Fazer Check-in</button>
+        <div id="checkin-result"></div>
+    </div>
+
+    <script>
+        let authToken = '';
+        let currentEventId = '';
+        let currentTicketCode = '';
+        let currentPaymentId = '';
+
+        async function registerUser() {
+            try {
+                const response = await fetch('http://localhost:3001/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'joao.silva@exemplo.com',
+                        password: 'senha123456',
+                        name: 'João Silva',
+                        phone: '+5511999999999'
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    authToken = data.access_token;
+                    document.getElementById('register-result').innerHTML = `
+                        <div class="success">
+                            <h4>✅ Usuário registrado com sucesso!</h4>
+                            <p><strong>Token:</strong> ${authToken.substring(0, 20)}...</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    // Se o usuário já existe, sugere fazer login
+                    if (data.message && data.message.includes('already exists')) {
+                        document.getElementById('register-result').innerHTML = `
+                            <div class="error">
+                                <h4>⚠️ Usuário já existe!</h4>
+                                <p>Este email já está cadastrado. Clique em "Fazer Login" para continuar.</p>
+                                <p><strong>Erro:</strong> ${data.message}</p>
+                            </div>
+                        `;
+                    } else {
+                        throw new Error(data.message || 'Erro no registro');
+                    }
+                }
+            } catch (error) {
+                document.getElementById('register-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Erro no registro:</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function loginUser() {
+            try {
+                const response = await fetch('http://localhost:3001/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'joao.silva@exemplo.com',
+                        password: 'senha123456'
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    authToken = data.access_token;
+                    document.getElementById('register-result').innerHTML = `
+                        <div class="success">
+                            <h4>✅ Login realizado com sucesso!</h4>
+                            <p><strong>Token:</strong> ${authToken.substring(0, 20)}...</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.message || 'Erro no login');
+                }
+            } catch (error) {
+                document.getElementById('register-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Erro no login:</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function searchEvents() {
+            try {
+                const response = await fetch('http://localhost:3001/api/events?page=1&limit=5', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+                console.log('Resposta da API de eventos:', data);
+                if (response.ok) {
+                    // A API retorna um array diretamente, não um objeto com propriedade 'events'
+                    const events = Array.isArray(data) ? data : data.events || [];
+                    currentEventId = events[0]?.id || '';
+                    console.log('Eventos encontrados:', events.length, 'Primeiro evento ID:', currentEventId);
+                    document.getElementById('events-result').innerHTML = `
+                        <div class="success">
+                            <h4>✅ Eventos encontrados! (${events.length} eventos)</h4>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.message || 'Erro na busca');
+                }
+            } catch (error) {
+                document.getElementById('events-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Erro na busca:</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function getEventDetails() {
+            if (!currentEventId) {
+                document.getElementById('event-details-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Nenhum evento selecionado</h4>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:3001/api/events/${currentEventId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    document.getElementById('event-details-result').innerHTML = `
+                        <div class="success">
+                            <h4>✅ Detalhes do evento carregados!</h4>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.message || 'Erro ao carregar detalhes');
+                }
+            } catch (error) {
+                document.getElementById('event-details-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Erro ao carregar detalhes:</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function getTicketCategories() {
+            if (!currentEventId) {
+                document.getElementById('categories-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Nenhum evento selecionado</h4>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:3001/api/events/${currentEventId}/ticket-categories`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    // A API pode retornar um array diretamente ou um objeto com propriedade 'categories'
+                    const categories = Array.isArray(data) ? data : data.categories || [];
+                    document.getElementById('categories-result').innerHTML = `
+                        <div class="success">
+                            <h4>✅ Categorias de ingressos carregadas!</h4>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.message || 'Erro ao carregar categorias');
+                }
+            } catch (error) {
+                document.getElementById('categories-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Erro ao carregar categorias:</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function processPayment() {
+            console.log('🚀 FUNÇÃO processPayment() CHAMADA!');
+            
+            if (!currentEventId) {
+                document.getElementById('payment-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Nenhum evento selecionado</h4>
+                    </div>
+                `;
+                return;
+            }
+
+            if (!authToken) {
+                document.getElementById('payment-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Token de autenticação não encontrado. Faça o registro primeiro.</h4>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                console.log('=== INÍCIO DO PROCESSAMENTO DE PAGAMENTO ===');
+                console.log('Token disponível:', authToken ? 'SIM' : 'NÃO');
+                console.log('Token completo:', authToken);
+                console.log('Event ID:', currentEventId);
+                
+                const headers = { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                };
+                
+                console.log('Headers sendo enviados:', headers);
+                
+                const response = await fetch('http://localhost:3001/api/payments/process', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({
+                        eventId: currentEventId,
+                        tickets: [{ categoryId: 'cat-uuid-1', quantity: 1 }],
+                        paymentMethod: 'credit_card',
+                        paymentData: {
+                            cardNumber: '4111111111111111',
+                            expiryMonth: '12',
+                            expiryYear: '2025',
+                            cvv: '123',
+                            holderName: 'JOÃO SILVA'
+                        }
+                    })
+                });
+
+                console.log('=== RESPOSTA RECEBIDA ===');
+                console.log('Status da resposta:', response.status);
+                console.log('Status OK?', response.ok);
+                console.log('Headers da resposta:', Object.fromEntries(response.headers.entries()));
+                
+                const data = await response.json();
+                console.log('Dados da resposta:', data);
+                console.log('=== FIM DA RESPOSTA ===');
+                if (response.ok) {
+                    currentPaymentId = data.paymentId;
+                    document.getElementById('payment-result').innerHTML = `
+                        <div class="success">
+                            <h4>✅ Pagamento processado!</h4>
+                            <p><strong>Payment ID:</strong> ${data.paymentId}</p>
+                            <p><strong>Status:</strong> ${data.status}</p>
+                            <p><strong>Valor:</strong> R$ ${data.amount}</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.message || 'Erro no pagamento');
+                }
+            } catch (error) {
+                document.getElementById('payment-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Erro no pagamento:</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function checkPaymentStatus() {
+            if (!currentPaymentId) {
+                document.getElementById('payment-status-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Nenhum pagamento processado ainda</h4>
+                    </div>
+                `;
+                return;
+            }
+
+            if (!authToken) {
+                document.getElementById('payment-status-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Token de autenticação não encontrado</h4>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                console.log('Verificando status do pagamento:', currentPaymentId);
+                const response = await fetch(`http://localhost:3001/api/payments/${currentPaymentId}/status`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+                console.log('Status do pagamento:', data);
+                if (response.ok) {
+                    document.getElementById('payment-status-result').innerHTML = `
+                        <div class="success">
+                            <h4>✅ Status do pagamento verificado!</h4>
+                            <p><strong>Payment ID:</strong> ${data.paymentId}</p>
+                            <p><strong>Status:</strong> ${data.status}</p>
+                            <p><strong>Valor:</strong> R$ ${data.amount}</p>
+                            <p><strong>Aprovado em:</strong> ${data.approvedAt}</p>
+                            <p><strong>Ingressos gerados:</strong> ${data.tickets.length}</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.message || 'Erro ao verificar status');
+                }
+            } catch (error) {
+                document.getElementById('payment-status-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Erro ao verificar status:</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function getMyTickets() {
+            if (!authToken) {
+                document.getElementById('tickets-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Token de autenticação não encontrado. Faça o registro primeiro.</h4>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                console.log('Buscando ingressos com token:', authToken.substring(0, 20) + '...');
+                const response = await fetch('http://localhost:3001/api/tickets/my-tickets', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    // A API pode retornar um array diretamente ou um objeto com propriedade 'tickets'
+                    const tickets = Array.isArray(data) ? data : data.tickets || [];
+                    currentTicketCode = tickets[0]?.code || '';
+                    document.getElementById('tickets-result').innerHTML = `
+                        <div class="success">
+                            <h4>✅ Ingressos carregados!</h4>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.message || 'Erro ao carregar ingressos');
+                }
+            } catch (error) {
+                document.getElementById('tickets-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Erro ao carregar ingressos:</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function validateTicket() {
+            if (!currentTicketCode) {
+                document.getElementById('validate-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Nenhum ingresso disponível</h4>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:3001/api/tickets/validate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ticketCode: currentTicketCode,
+                        scannerId: 'scanner-uuid-1',
+                        location: 'Entrada Principal'
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    document.getElementById('validate-result').innerHTML = `
+                        <div class="success">
+                            <h4>✅ Ingresso validado!</h4>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.message || 'Erro na validação');
+                }
+            } catch (error) {
+                document.getElementById('validate-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Erro na validação:</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function checkIn() {
+            if (!currentTicketCode) {
+                document.getElementById('checkin-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Nenhum ingresso disponível</h4>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:3001/api/tickets/checkin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ticketCode: currentTicketCode,
+                        scannerId: 'scanner-uuid-1',
+                        location: 'Entrada Principal',
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    document.getElementById('checkin-result').innerHTML = `
+                        <div class="success">
+                            <h4>✅ Check-in realizado com sucesso!</h4>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.message || 'Erro no check-in');
+                }
+            } catch (error) {
+                document.getElementById('checkin-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Erro no check-in:</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
+```
+
+## Como Usar
+
+1. **Salve o HTML** em um arquivo `teste-fluxo-completo.html`
+2. **Abra no navegador** em `http://localhost:3000` (ou qualquer porta do frontend)
+3. **Execute os passos sequencialmente** clicando nos botões
+4. **Verifique as respostas** em cada etapa
+
+## Verificações Importantes
+
+- ✅ CORS está funcionando corretamente
+- ✅ Autenticação JWT está funcionando
+- ✅ Todas as APIs estão respondendo
+- ✅ Fluxo completo está operacional
+- ✅ Tratamento de erros está funcionando

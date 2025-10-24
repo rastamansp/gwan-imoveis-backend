@@ -1,16 +1,57 @@
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { UserRole } from '../value-objects/user-role.enum';
 
+@Entity('users')
 export class User {
-  constructor(
-    public readonly id: string,
-    public readonly name: string,
-    public readonly email: string,
-    public readonly password: string,
-    public readonly phone?: string,
-    public readonly role: UserRole = UserRole.USER,
-    public readonly createdAt: Date = new Date(),
-    public readonly updatedAt: Date = new Date(),
-  ) {}
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ type: 'varchar', length: 255 })
+  name: string;
+
+  @Column({ type: 'varchar', length: 255, unique: true })
+  email: string;
+
+  @Column({ type: 'varchar', length: 255 })
+  password: string;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  phone?: string;
+
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
+  role: UserRole;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  // Constructor vazio para TypeORM
+  constructor() {}
+
+  // Constructor com parâmetros para criação manual
+  static create(
+    id: string,
+    name: string,
+    email: string,
+    password: string,
+    phone?: string,
+    role: UserRole = UserRole.USER,
+    createdAt: Date = new Date(),
+    updatedAt: Date = new Date(),
+  ): User {
+    const user = new User();
+    user.id = id;
+    user.name = name;
+    user.email = email;
+    user.password = password;
+    user.phone = phone;
+    user.role = role;
+    user.createdAt = createdAt;
+    user.updatedAt = updatedAt;
+    return user;
+  }
 
   // Métodos de domínio
   public isAdmin(): boolean {
@@ -30,29 +71,16 @@ export class User {
   }
 
   public updateProfile(name: string, phone?: string): User {
-    return new User(
-      this.id,
-      name,
-      this.email,
-      this.password,
-      phone,
-      this.role,
-      this.createdAt,
-      new Date(),
-    );
+    this.name = name;
+    this.phone = phone;
+    this.updatedAt = new Date();
+    return this;
   }
 
   public changeRole(newRole: UserRole): User {
-    return new User(
-      this.id,
-      this.name,
-      this.email,
-      this.password,
-      this.phone,
-      newRole,
-      this.createdAt,
-      new Date(),
-    );
+    this.role = newRole;
+    this.updatedAt = new Date();
+    return this;
   }
 
   public toPublic() {

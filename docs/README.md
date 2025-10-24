@@ -13,6 +13,7 @@ Bem-vindo à documentação completa do Gwan Events Backend, uma plataforma comp
 
 ### 🚀 APIs
 - [Documentação da API](./api/overview.md)
+- [Fluxo Completo do Usuário](./api/user-journey-api-calls.md)
 
 ### 🔌 MCP (Model Context Protocol)
 - [Visão Geral do MCP](./mcp/overview.md)
@@ -25,6 +26,7 @@ Bem-vindo à documentação completa do Gwan Events Backend, uma plataforma comp
 
 ### 📊 Diagramas
 - [Arquitetura do Sistema](./diagrams/system-architecture.md)
+- [Fluxo do Usuário](./diagrams/user-journey-flow.md)
 
 ## 🎯 Início Rápido
 

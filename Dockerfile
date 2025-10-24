@@ -3,6 +3,9 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Instalar wget para health check
+RUN apk add --no-cache wget
+
 # Debug: mostrar versão do npm
 RUN npm --version
 
@@ -27,6 +30,9 @@ RUN ls -la
 # Build da aplicação
 RUN npm run build
 
+# Executar migrations
+RUN npm run typeorm:migration:run
+
 # Criar usuário não-root
 RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
 
@@ -36,10 +42,6 @@ USER nestjs
 
 # Expor porta
 EXPOSE 3001
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD ["node", "-e", "require('http').get('http://localhost:3001/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"]
 
 # Comando de inicialização
 CMD ["node", "dist/main.js"]

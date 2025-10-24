@@ -36,7 +36,7 @@ export class RegisterUserUseCase {
       const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
       // Criar usuário
-      const user = new User(
+      const user = User.create(
         uuidv4(),
         registerDto.name,
         registerDto.email,

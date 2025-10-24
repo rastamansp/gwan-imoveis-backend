@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: gwan-events-backend-prod
+    container_name: gwan-events-backend
     restart: unless-stopped
     environment:
       # Configurações básicas
@@ -27,20 +27,34 @@ services:
     networks:
       - gwan
       
-    # Health check definido no Dockerfile
-      
-    # depends_on removido - PostgreSQL e Redis não utilizados
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
       
     labels:
+      # Traefik configuration for api-events.gwan.com.br
       - "traefik.enable=true"
+      
+      # HTTP Router (redireciona para HTTPS)
+      - "traefik.http.routers.gwan-events-backend-http.rule=Host(`api-events.gwan.com.br`)"
+      - "traefik.http.routers.gwan-events-backend-http.entrypoints=web"
+      - "traefik.http.routers.gwan-events-backend-http.middlewares=redirect-to-https"
+      
+      # HTTPS Router
       - "traefik.http.routers.gwan-events-backend.rule=Host(`api-events.gwan.com.br`)"
+      - "traefik.http.routers.gwan-events-backend.entrypoints=websecure"
       - "traefik.http.routers.gwan-events-backend.tls=true"
       - "traefik.http.routers.gwan-events-backend.tls.certresolver=letsencrypt"
+      
+      # Service configuration
       - "traefik.http.services.gwan-events-backend.loadbalancer.server.port=3001"
-      - "traefik.http.middlewares.gwan-events-backend-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
-      - "traefik.http.routers.gwan-events-backend.middlewares=gwan-events-backend-headers"
-
-  # PostgreSQL e Redis removidos - não utilizados no projeto atual
+      - "traefik.docker.network=gwan"
+      
+      # Middleware para redirecionamento HTTP -> HTTPS
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
 volumes:
   logs_data:

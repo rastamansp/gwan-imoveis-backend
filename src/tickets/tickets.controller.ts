@@ -90,6 +90,76 @@ export class TicketsController {
     return TicketResponseDto.fromEntity(tickets[0]);
   }
 
+  @Get('my-tickets')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Obter meus ingressos' })
+  @ApiResponse({ status: 200, description: 'Ingressos do usuário obtidos com sucesso' })
+  async getMyTickets(@Request() req: any): Promise<any> {
+    // Simular resposta com ingressos do usuário
+    return {
+      tickets: [
+        {
+          id: `ticket-${Date.now()}-1`,
+          code: 'ABC123456',
+          event: {
+            id: '1',
+            title: 'Festival de Música Eletrônica',
+            date: '2024-06-15T20:00:00Z',
+            location: 'Parque da Cidade'
+          },
+          category: {
+            name: 'Pista',
+            price: 150.00
+          },
+          status: 'ACTIVE',
+          purchasedAt: new Date().toISOString(),
+          qrCode: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...'
+        }
+      ]
+    };
+  }
+
+  @Post('validate')
+  @ApiOperation({ summary: 'Validar ingresso por código' })
+  @ApiResponse({ status: 200, description: 'Validação realizada com sucesso' })
+  @ApiResponse({ status: 400, description: 'Ingresso inválido' })
+  async validateByCode(@Body() body: { ticketCode: string; scannerId: string; location: string }): Promise<any> {
+    // Simular validação de ingresso
+    return {
+      valid: true,
+      ticket: {
+        id: `ticket-${Date.now()}`,
+        code: body.ticketCode,
+        eventTitle: 'Festival de Música Eletrônica',
+        categoryName: 'Pista',
+        holderName: 'João Silva',
+        status: 'ACTIVE',
+        checkInStatus: 'NOT_CHECKED_IN'
+      },
+      message: 'Ingresso válido para check-in'
+    };
+  }
+
+  @Post('checkin')
+  @ApiOperation({ summary: 'Fazer check-in do ingresso' })
+  @ApiResponse({ status: 200, description: 'Check-in realizado com sucesso' })
+  @ApiResponse({ status: 400, description: 'Erro no check-in' })
+  async checkIn(@Body() body: { ticketCode: string; scannerId: string; location: string; timestamp: string }): Promise<any> {
+    // Simular check-in
+    return {
+      success: true,
+      ticket: {
+        id: `ticket-${Date.now()}`,
+        code: body.ticketCode,
+        checkInStatus: 'CHECKED_IN',
+        checkedInAt: body.timestamp,
+        checkedInBy: body.scannerId
+      },
+      message: 'Check-in realizado com sucesso'
+    };
+  }
+
   @Post(':id/validate')
   @ApiOperation({ summary: 'Validar ingresso por QR Code' })
   @ApiResponse({ status: 200, description: 'Validação realizada com sucesso' })

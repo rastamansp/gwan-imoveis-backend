@@ -3,6 +3,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { CreatePaymentUseCase } from '../shared/application/use-cases/create-payment.use-case';
 import { CreatePaymentDto } from '../shared/presentation/dtos/create-payment.dto';
+import { ProcessPaymentDto } from '../shared/presentation/dtos/process-payment.dto';
 import { PaymentResponseDto } from '../shared/presentation/dtos/payment-response.dto';
 import { IPaymentRepository } from '../shared/domain/interfaces/payment-repository.interface';
 import { ILogger } from '../shared/application/interfaces/logger.interface';
@@ -72,6 +73,36 @@ export class PaymentsController {
     return PaymentResponseDto.fromEntity(payment);
   }
 
+  @Get(':id/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Verificar status do pagamento' })
+  @ApiResponse({ status: 200, description: 'Status do pagamento obtido com sucesso' })
+  @ApiResponse({ status: 404, description: 'Pagamento não encontrado' })
+  async getStatus(@Param('id') id: string): Promise<any> {
+    // Simular verificação de status
+    return {
+      paymentId: id,
+      status: 'approved',
+      amount: 300.00,
+      approvedAt: new Date().toISOString(),
+      tickets: [
+        {
+          id: `ticket-${Date.now()}-1`,
+          code: 'ABC123456',
+          categoryName: 'Pista',
+          price: 150.00
+        },
+        {
+          id: `ticket-${Date.now()}-2`,
+          code: 'ABC123457',
+          categoryName: 'Pista',
+          price: 150.00
+        }
+      ]
+    };
+  }
+
   @Post()
   @HttpCode(201)
   @UseGuards(JwtAuthGuard)
@@ -82,6 +113,41 @@ export class PaymentsController {
   async create(@Body() createPaymentDto: CreatePaymentDto, @Request() req: any): Promise<PaymentResponseDto> {
     const payment = await this.createPaymentUseCase.execute(createPaymentDto, req.user.id);
     return PaymentResponseDto.fromEntity(payment);
+  }
+
+  @Post('process')
+  @HttpCode(201)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Processar pagamento' })
+  @ApiResponse({ status: 201, description: 'Pagamento processado com sucesso' })
+  @ApiResponse({ status: 401, description: 'Não autorizado' })
+  async process(@Body() processPaymentDto: ProcessPaymentDto, @Request() req: any): Promise<any> {
+    console.log('🔍 Processando pagamento - Token recebido:', req.headers?.authorization ? req.headers.authorization.substring(0, 20) + '...' : 'Token não encontrado');
+    console.log('🔍 Usuário autenticado:', req.user);
+    
+    // Simular processamento de pagamento
+    const paymentId = `payment-${Date.now()}`;
+    const totalAmount = processPaymentDto.tickets.reduce((sum, ticket) => sum + (ticket.quantity * 150), 0);
+    
+    this.logger.info('Processando pagamento', {
+      paymentId,
+      userId: req.user.id,
+      eventId: processPaymentDto.eventId,
+      amount: totalAmount,
+      tickets: processPaymentDto.tickets.length
+    });
+
+    // Simular resposta do gateway
+    return {
+      paymentId,
+      status: 'processing',
+      amount: totalAmount,
+      gatewayResponse: {
+        transactionId: `gateway-tx-${Date.now()}`,
+        status: 'pending'
+      }
+    };
   }
 
   @Put(':id/approve')

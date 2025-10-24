@@ -23,13 +23,27 @@ export async function bootstrap() {
         'http://api-events.gwan.com.br',
         'http://www.api-events.gwan.com.br'
       ]
-    : ['http://localhost:3000', 'http://localhost:5173'];
+    : [
+        'http://localhost:3000',
+        'http://localhost:3001', 
+        'http://localhost:5173',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001',
+        'http://127.0.0.1:5173',
+        'file://',
+        'null'
+      ];
 
   app.enableCors({
     origin: corsOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
+
+  // Log das configurações de CORS para debug
+  console.log('🔧 Configuração de CORS:');
+  console.log('NODE_ENV:', process.env.NODE_ENV);
+  console.log('CORS Origins permitidos:', corsOrigins);
 
   // Configuração de prefixo global
   app.setGlobalPrefix('api');

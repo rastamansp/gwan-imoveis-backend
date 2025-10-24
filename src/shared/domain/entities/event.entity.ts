@@ -1,25 +1,104 @@
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
 import { EventStatus } from '../value-objects/event-status.enum';
 
+@Entity('events')
+@Index(['organizerId'])
+@Index(['status'])
 export class Event {
-  constructor(
-    public readonly id: string,
-    public readonly title: string,
-    public readonly description: string,
-    public readonly date: Date,
-    public readonly location: string,
-    public readonly address: string,
-    public readonly city: string,
-    public readonly state: string,
-    public readonly image: string,
-    public readonly category: string,
-    public readonly organizerId: string,
-    public readonly organizerName: string,
-    public readonly status: EventStatus = EventStatus.ACTIVE,
-    public readonly maxCapacity: number = 0,
-    public readonly soldTickets: number = 0,
-    public readonly createdAt: Date = new Date(),
-    public readonly updatedAt: Date = new Date(),
-  ) {}
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ type: 'varchar', length: 255 })
+  title: string;
+
+  @Column({ type: 'text' })
+  description: string;
+
+  @Column({ type: 'timestamp' })
+  date: Date;
+
+  @Column({ type: 'varchar', length: 255 })
+  location: string;
+
+  @Column({ type: 'varchar', length: 255 })
+  address: string;
+
+  @Column({ type: 'varchar', length: 100 })
+  city: string;
+
+  @Column({ type: 'varchar', length: 2 })
+  state: string;
+
+  @Column({ type: 'varchar', length: 500 })
+  image: string;
+
+  @Column({ type: 'varchar', length: 100 })
+  category: string;
+
+  @Column({ type: 'uuid' })
+  organizerId: string;
+
+  @Column({ type: 'varchar', length: 255 })
+  organizerName: string;
+
+  @Column({ type: 'enum', enum: EventStatus, default: EventStatus.ACTIVE })
+  status: EventStatus;
+
+  @Column({ type: 'int', default: 0 })
+  maxCapacity: number;
+
+  @Column({ type: 'int', default: 0 })
+  soldTickets: number;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  // Constructor vazio para TypeORM
+  constructor() {}
+
+  // Constructor com parâmetros para criação manual
+  static create(
+    id: string,
+    title: string,
+    description: string,
+    date: Date,
+    location: string,
+    address: string,
+    city: string,
+    state: string,
+    image: string,
+    category: string,
+    organizerId: string,
+    organizerName: string,
+    status: EventStatus = EventStatus.ACTIVE,
+    maxCapacity: number = 0,
+    soldTickets: number = 0,
+    createdAt: Date = new Date(),
+    updatedAt: Date = new Date(),
+  ): Event {
+    const event = new Event();
+    event.id = id;
+    event.title = title;
+    event.description = description;
+    event.date = date;
+    event.location = location;
+    event.address = address;
+    event.city = city;
+    event.state = state;
+    event.image = image;
+    event.category = category;
+    event.organizerId = organizerId;
+    event.organizerName = organizerName;
+    event.status = status;
+    event.maxCapacity = maxCapacity;
+    event.soldTickets = soldTickets;
+    event.createdAt = createdAt;
+    event.updatedAt = updatedAt;
+    return event;
+  }
 
   // Métodos de domínio
   public isActive(): boolean {
@@ -47,74 +126,24 @@ export class Event {
   }
 
   public markAsSoldOut(): Event {
-    return new Event(
-      this.id,
-      this.title,
-      this.description,
-      this.date,
-      this.location,
-      this.address,
-      this.city,
-      this.state,
-      this.image,
-      this.category,
-      this.organizerId,
-      this.organizerName,
-      EventStatus.SOLD_OUT,
-      this.maxCapacity,
-      this.soldTickets,
-      this.createdAt,
-      new Date(),
-    );
+    this.status = EventStatus.SOLD_OUT;
+    this.updatedAt = new Date();
+    return this;
   }
 
   public addSoldTickets(quantity: number): Event {
-    const newSoldTickets = this.soldTickets + quantity;
-    const newStatus = newSoldTickets >= this.maxCapacity 
-      ? EventStatus.SOLD_OUT 
-      : this.status;
-
-    return new Event(
-      this.id,
-      this.title,
-      this.description,
-      this.date,
-      this.location,
-      this.address,
-      this.city,
-      this.state,
-      this.image,
-      this.category,
-      this.organizerId,
-      this.organizerName,
-      newStatus,
-      this.maxCapacity,
-      newSoldTickets,
-      this.createdAt,
-      new Date(),
-    );
+    this.soldTickets += quantity;
+    if (this.soldTickets >= this.maxCapacity) {
+      this.status = EventStatus.SOLD_OUT;
+    }
+    this.updatedAt = new Date();
+    return this;
   }
 
   public cancel(): Event {
-    return new Event(
-      this.id,
-      this.title,
-      this.description,
-      this.date,
-      this.location,
-      this.address,
-      this.city,
-      this.state,
-      this.image,
-      this.category,
-      this.organizerId,
-      this.organizerName,
-      EventStatus.CANCELLED,
-      this.maxCapacity,
-      this.soldTickets,
-      this.createdAt,
-      new Date(),
-    );
+    this.status = EventStatus.CANCELLED;
+    this.updatedAt = new Date();
+    return this;
   }
 
   public updateDetails(
@@ -129,25 +158,18 @@ export class Event {
     category: string,
     maxCapacity: number,
   ): Event {
-    return new Event(
-      this.id,
-      title,
-      description,
-      date,
-      location,
-      address,
-      city,
-      state,
-      image,
-      category,
-      this.organizerId,
-      this.organizerName,
-      this.status,
-      maxCapacity,
-      this.soldTickets,
-      this.createdAt,
-      new Date(),
-    );
+    this.title = title;
+    this.description = description;
+    this.date = date;
+    this.location = location;
+    this.address = address;
+    this.city = city;
+    this.state = state;
+    this.image = image;
+    this.category = category;
+    this.maxCapacity = maxCapacity;
+    this.updatedAt = new Date();
+    return this;
   }
 
   public belongsTo(organizerId: string): boolean {

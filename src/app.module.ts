@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { getTypeOrmConfig } from './config/typeorm.config';
 import { SharedModule } from './shared/shared.module';
 import { AuthModule } from './auth/auth.module';
 import { EventsModule } from './events/events.module';
@@ -13,6 +15,11 @@ import { HealthModule } from './health/health.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: getTypeOrmConfig,
+      inject: [ConfigService],
     }),
     SharedModule,
     AuthModule,

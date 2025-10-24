@@ -1,7 +1,10 @@
 import { Module, Global } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from './domain/entities/user.entity';
+import { Event } from './domain/entities/event.entity';
 import { ConsoleLoggerService } from './infrastructure/logger/console-logger.service';
-import { UserInMemoryRepository } from './infrastructure/repositories/user-in-memory.repository';
-import { EventInMemoryRepository } from './infrastructure/repositories/event-in-memory.repository';
+import { UserTypeOrmRepository } from './infrastructure/repositories/user-typeorm.repository';
+import { EventTypeOrmRepository } from './infrastructure/repositories/event-typeorm.repository';
 import { TicketInMemoryRepository } from './infrastructure/repositories/ticket-in-memory.repository';
 import { PaymentInMemoryRepository } from './infrastructure/repositories/payment-in-memory.repository';
 import { TicketCategoryInMemoryRepository } from './infrastructure/repositories/ticket-category-in-memory.repository';
@@ -22,6 +25,9 @@ import { CreatePaymentUseCase } from './application/use-cases/create-payment.use
 
 @Global()
 @Module({
+  imports: [
+    TypeOrmModule.forFeature([User, Event]),
+  ],
   providers: [
     // Logger
     {
@@ -32,11 +38,11 @@ import { CreatePaymentUseCase } from './application/use-cases/create-payment.use
     // Repositories
     {
       provide: 'IUserRepository',
-      useClass: UserInMemoryRepository,
+      useClass: UserTypeOrmRepository,
     },
     {
       provide: 'IEventRepository',
-      useClass: EventInMemoryRepository,
+      useClass: EventTypeOrmRepository,
     },
     {
       provide: 'ITicketRepository',

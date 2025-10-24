@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste CORS - Gwan Events Backend</title>
+</head>
+<body>
+    <h1>Teste de CORS</h1>
+    <button onclick="testCors()">Testar CORS</button>
+    <div id="result"></div>
+
+    <script>
+        async function testCors() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/events', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <h3>✅ CORS funcionando!</h3>
+                        <p>Status: ${response.status}</p>
+                        <p>Eventos encontrados: ${data.length}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<h3>❌ Erro: ${response.status}</h3>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro de CORS:</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
