@@ -1,25 +1,43 @@
-import { IsString, IsOptional, IsEmail, IsEnum } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsString, IsOptional, IsEmail, IsEnum, MaxLength } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole } from '../../domain/value-objects/user-role.enum';
 
 export class UpdateUserDto {
-  @ApiProperty({ example: 'Nome do Usuário', required: false })
+  @ApiPropertyOptional({ 
+    description: 'Nome completo do usuário',
+    example: 'João Silva Santos',
+    maxLength: 255
+  })
   @IsOptional()
   @IsString()
+  @MaxLength(255)
   name?: string;
 
-  @ApiProperty({ example: 'usuario@email.com', required: false })
+  @ApiPropertyOptional({ 
+    description: 'Endereço de email do usuário',
+    example: 'joao.silva@email.com',
+    format: 'email'
+  })
   @IsOptional()
-  @IsEmail()
+  @IsEmail({}, { message: 'Email deve ser um endereço de email válido' })
   email?: string;
 
-  @ApiProperty({ example: '11999999999', required: false })
+  @ApiPropertyOptional({ 
+    description: 'Telefone do usuário',
+    example: '11999999999',
+    pattern: '^[0-9]{10,11}$'
+  })
   @IsOptional()
   @IsString()
   phone?: string;
 
-  @ApiProperty({ example: UserRole.USER, enum: UserRole, required: false })
+  @ApiPropertyOptional({ 
+    description: 'Role/permissão do usuário. Apenas ADMIN pode alterar roles.',
+    enum: UserRole,
+    example: UserRole.ORGANIZER,
+    enumName: 'UserRole'
+  })
   @IsOptional()
-  @IsEnum(UserRole)
+  @IsEnum(UserRole, { message: 'Role deve ser USER, ORGANIZER ou ADMIN' })
   role?: UserRole;
 }

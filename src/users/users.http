@@ -1,26 +1,71 @@
 ### Variáveis
 @baseUrl = http://localhost:3001/api
 @token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGd3YW5zaG9wLmNvbSIsInN1YiI6IjEiLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3Mjg1OTU2MDB9.example
+@userId = d4da01e3-2f5a-4edf-8fa3-71f262e04eb5
 
-### Listar todos os usuários
+### 1. Listar todos os usuários
 GET {{baseUrl}}/users
 Authorization: Bearer {{token}}
 
-### Obter usuário por ID
-GET {{baseUrl}}/users/1
+### 2. Obter usuário por ID
+GET {{baseUrl}}/users/{{userId}}
 Authorization: Bearer {{token}}
 
-### Atualizar usuário
-PUT {{baseUrl}}/users/2
+### 3. Atualizar usuário - Apenas nome
+PUT {{baseUrl}}/users/{{userId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "João Silva Santos"
+}
+
+### 3.1. Atualizar usuário - Apenas telefone
+PUT {{baseUrl}}/users/{{userId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "phone": "11987654321"
+}
+
+### 3.2. Atualizar usuário - Atualização completa
+PUT {{baseUrl}}/users/{{userId}}
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
   "name": "João Silva Santos",
-  "phone": "11999999999",
+  "email": "joao.santos@email.com",
+  "phone": "11987654321",
   "role": "ORGANIZER"
 }
 
-### Deletar usuário
-DELETE {{baseUrl}}/users/2
+### 4. Promover usuário para Organizador (padrão)
+PUT {{baseUrl}}/users/{{userId}}/promote
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "targetRole": "ORGANIZER"
+}
+
+### 4.1. Promover usuário para Administrador
+PUT {{baseUrl}}/users/{{userId}}/promote
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "targetRole": "ADMIN"
+}
+
+### 4.2. Promover usuário (sem especificar role - usa ORGANIZER por padrão)
+PUT {{baseUrl}}/users/{{userId}}/promote
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{}
+
+### 5. Deletar usuário (apenas ADMIN)
+DELETE {{baseUrl}}/users/{{userId}}
 Authorization: Bearer {{token}}
