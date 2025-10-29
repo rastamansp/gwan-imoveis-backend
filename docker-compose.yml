@@ -121,7 +121,7 @@ services:
       start_period: 40s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.gwan-events-mcp.rule=Host(`mcp.gwan.com.br`)"
+      - "traefik.http.routers.gwan-events-mcp.rule=Host(`mcp-events.gwan.com.br`)"
       - "traefik.http.routers.gwan-events-mcp.tls=true"
       - "traefik.http.routers.gwan-events-mcp.tls.certresolver=letsencrypt"
       - "traefik.http.services.gwan-events-mcp.loadbalancer.server.port=3002"
