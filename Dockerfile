@@ -9,14 +9,17 @@ RUN apk add --no-cache wget netcat-openbsd
 # Copiar arquivos de dependências
 COPY package*.json ./
 
-# Instalar dependências de produção
-RUN npm ci --only=production && npm cache clean --force
+# Instalar todas as dependências (incluindo dev para build)
+RUN npm ci && npm cache clean --force
 
 # Copiar código-fonte
 COPY . .
 
 # Compilar TypeScript para JavaScript
 RUN npm run build
+
+# Remover dependências de desenvolvimento após build
+RUN npm prune --production
 
 # Criar usuário não-root
 RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
