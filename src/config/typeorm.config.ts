@@ -8,5 +8,11 @@ export const getTypeOrmConfig = (configService: ConfigService): TypeOrmModuleOpt
   migrations: ['dist/migrations/*.js'],
   synchronize: configService.get<string>('NODE_ENV') !== 'production',
   logging: configService.get<string>('NODE_ENV') === 'development',
-  ssl: configService.get<string>('NODE_ENV') === 'production' ? { rejectUnauthorized: false } : false,
+  // SSL configurado via variável de ambiente ou desabilitado por padrão
+  ssl: false,
+  extra: {
+    ssl: {
+      rejectUnauthorized: false,
+    },
+  },
 });

@@ -44,18 +44,10 @@ services:
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
       - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
-      - MERCADO_PAGO_ACCESS_TOKEN=${MERCADO_PAGO_ACCESS_TOKEN}
-      - MERCADO_PAGO_PUBLIC_KEY=${MERCADO_PAGO_PUBLIC_KEY}
       
       # File Upload
       - UPLOAD_PATH=${UPLOAD_PATH:-/app/uploads}
       - MAX_FILE_SIZE=${MAX_FILE_SIZE:-5242880}
-      
-      # AWS S3 (opcional)
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION}
-      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
       
       # MinIO (opcional)
       - MINIO_ENDPOINT=${MINIO_ENDPOINT}
@@ -110,6 +102,11 @@ services:
       - MCP_PORT_SSE=${MCP_PORT_SSE:-3002}
       - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      # Database
+      - DATABASE_URL=${DATABASE_URL}
+      # OpenAI (para chatbot)
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
     volumes:
       - logs_data:/app/logs
     networks:
