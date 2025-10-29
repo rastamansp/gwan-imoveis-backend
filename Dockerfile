@@ -45,9 +45,10 @@ RUN npm ci --only=production && \
 # Copiar código buildado do stage builder
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
 
-# Copiar arquivos TypeScript necessários para MCP (antes de mudar usuário)
-COPY --from=builder --chown=nestjs:nodejs /app/src/mcp ./src/mcp
+# Copiar toda a estrutura src/ para MCP poder executar (bootstrap precisa de toda a estrutura)
+COPY --from=builder --chown=nestjs:nodejs /app/src ./src
 COPY --from=builder --chown=nestjs:nodejs /app/tsconfig.json ./tsconfig.json
+COPY --from=builder --chown=nestjs:nodejs /app/nest-cli.json ./nest-cli.json
 
 # Mudar para usuário não-root
 USER nestjs
