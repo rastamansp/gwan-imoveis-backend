@@ -77,12 +77,24 @@ services:
       
     labels:
       - "traefik.enable=true"
+      
+      # HTTP Router (redireciona para HTTPS)
+      - "traefik.http.routers.gwan-events-backend-http.rule=Host(`api-events.gwan.com.br`)"
+      - "traefik.http.routers.gwan-events-backend-http.entrypoints=web"
+      - "traefik.http.routers.gwan-events-backend-http.middlewares=redirect-to-https"
+      
+      # HTTPS Router
       - "traefik.http.routers.gwan-events-backend.rule=Host(`api-events.gwan.com.br`)"
+      - "traefik.http.routers.gwan-events-backend.entrypoints=websecure"
       - "traefik.http.routers.gwan-events-backend.tls=true"
       - "traefik.http.routers.gwan-events-backend.tls.certresolver=letsencrypt"
+      
+      # Service configuration
       - "traefik.http.services.gwan-events-backend.loadbalancer.server.port=3001"
-      - "traefik.http.middlewares.gwan-events-backend-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
-      - "traefik.http.routers.gwan-events-backend.middlewares=gwan-events-backend-headers"
+      - "traefik.docker.network=gwan"
+      
+      # Middleware para redirecionamento HTTP -> HTTPS
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
   # PostgreSQL e Redis removidos - não utilizados no projeto atual
 
