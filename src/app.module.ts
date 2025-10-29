@@ -10,7 +10,6 @@ import { UsersModule } from './users/users.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
 import { ScannersModule } from './scanners/scanners.module';
-import { TestModule } from './test/test.module';
 import { DatabaseModule } from './database/database.module';
 import { McpModule } from './mcp/mcp.module';
 import { ChatModule } from './chat/chat.module';
@@ -34,7 +33,6 @@ import { HealthModule } from './health/health.module';
     PaymentsModule,
     AdminModule,
     ScannersModule,
-    TestModule,
     DatabaseModule,
     McpModule,
     ChatModule,
