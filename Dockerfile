@@ -37,11 +37,17 @@ RUN adduser -S nestjs -u 1001
 # Copiar arquivos de dependências
 COPY package*.json ./
 
-# Instalar apenas dependências de produção
-RUN npm ci --only=production && npm cache clean --force
+# Instalar dependências de produção + devDependencies necessárias para MCP
+RUN npm ci --only=production && \
+    npm install --save-dev ts-node typescript @types/node && \
+    npm cache clean --force
 
 # Copiar código buildado do stage builder
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
+
+# Copiar arquivos TypeScript necessários para MCP (antes de mudar usuário)
+COPY --from=builder --chown=nestjs:nodejs /app/src/mcp ./src/mcp
+COPY --from=builder --chown=nestjs:nodejs /app/tsconfig.json ./tsconfig.json
 
 # Mudar para usuário não-root
 USER nestjs
