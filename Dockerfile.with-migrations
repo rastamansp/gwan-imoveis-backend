@@ -1,4 +1,4 @@
-# Dockerfile para Produção
+# Dockerfile para Produção com Migrations
 FROM node:18-alpine
 
 WORKDIR /app
@@ -9,14 +9,18 @@ RUN apk add --no-cache wget netcat-openbsd
 # Copiar arquivos de dependências
 COPY package*.json ./
 
-# Instalar dependências de produção
-RUN npm ci --only=production && npm cache clean --force
+# Instalar todas as dependências (incluindo dev para build e migrations)
+RUN npm ci && npm cache clean --force
 
 # Copiar código-fonte
 COPY . .
 
 # Compilar TypeScript para JavaScript
 RUN npm run build
+
+# Copiar entrypoint script
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
 
 # Criar usuário não-root
 RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
@@ -30,5 +34,6 @@ USER nestjs
 # Expor porta
 EXPOSE 3001
 
-# Comando de inicialização (sem migrations por enquanto)
-CMD ["node", "dist/main.js"]
+# Usar entrypoint para executar migrations antes de iniciar
+ENTRYPOINT ["./docker-entrypoint.sh"]
+

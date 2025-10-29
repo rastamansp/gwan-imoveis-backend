@@ -2,6 +2,8 @@ services:
   gwan-events-backend:
     build:
       context: .
+      # Dockerfile padrão - sem migrations (para produção com banco existente)
+      # Use Dockerfile.with-migrations se precisar executar migrations automaticamente
       dockerfile: Dockerfile
     container_name: gwan-events-backend
     restart: unless-stopped
