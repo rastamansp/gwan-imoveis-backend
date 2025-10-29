@@ -17,6 +17,7 @@ Bem-vindo à documentação completa do Gwan Events Backend, uma plataforma comp
 
 ### 🔌 MCP (Model Context Protocol)
 - [Visão Geral do MCP](./mcp/overview.md)
+- [Guia de Integração MCP](./mcp/integration.md)
 
 ### 🚀 Deploy e Produção
 - [Deploy Automático](./deployment/deploy-automation.md)

@@ -7,6 +7,8 @@ export interface IEventRepository {
   findByOrganizer(organizerId: string): Promise<Event[]>;
   findByCategory(category: string): Promise<Event[]>;
   findByCity(city: string): Promise<Event[]>;
+  findByCode(code: string): Promise<Event | null>;
+  searchByNameOrCode(query: string): Promise<Event[]>;
   update(id: string, event: Event): Promise<Event | null>;
   delete(id: string): Promise<boolean>;
 }

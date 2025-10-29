@@ -49,8 +49,8 @@ export async function bootstrap() {
   app.setGlobalPrefix('api');
 
   // Middleware de logging de requests
-  const loggingMiddleware = new LoggingMiddleware();
-  app.use(loggingMiddleware.use);
+  // const loggingMiddleware = new LoggingMiddleware();
+  // app.use(loggingMiddleware.use);
 
   // Configuração de validação global
   app.useGlobalPipes(new ValidationPipe({

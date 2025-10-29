@@ -1,131 +1,104 @@
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { User } from './user.entity';
+import { Ticket } from './ticket.entity';
 import { PaymentStatus } from '../value-objects/payment-status.enum';
 import { PaymentMethod } from '../value-objects/payment-method.enum';
 
+@Entity('payments')
 export class Payment {
-  constructor(
-    public readonly id: string,
-    public readonly ticketId: string,
-    public readonly userId: string,
-    public readonly amount: number,
-    public readonly method: PaymentMethod,
-    public readonly status: PaymentStatus = PaymentStatus.PENDING,
-    public readonly pixCode?: string,
-    public readonly pixQrCode?: string,
-    public readonly installments?: number,
-    public readonly transactionId?: string,
-    public readonly createdAt: Date = new Date(),
-    public readonly approvedAt?: Date,
-    public readonly refundedAt?: Date,
-  ) {}
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ type: 'uuid' })
+  userId: string;
+
+  @Column({ type: 'uuid' })
+  ticketId: string;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  amount: number;
+
+  @Column({ type: 'enum', enum: PaymentMethod })
+  method: PaymentMethod;
+
+  @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
+  status: PaymentStatus;
+
+  @Column({ type: 'text', nullable: true })
+  pixCode: string;
+
+  @Column({ type: 'text', nullable: true })
+  qrCodeImage: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  transactionId: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  externalTransactionId: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  // Relacionamentos
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'userId' })
+  user: User;
+
+  @ManyToOne(() => Ticket)
+  @JoinColumn({ name: 'ticketId' })
+  ticket: Ticket;
+
+  // Métodos estáticos
+  public static create(
+    userId: string,
+    ticketId: string,
+    amount: number,
+    method: PaymentMethod,
+    pixCode?: string,
+    qrCodeImage?: string,
+    transactionId?: string,
+    externalTransactionId?: string,
+  ): Payment {
+    const payment = new Payment();
+    payment.userId = userId;
+    payment.ticketId = ticketId;
+    payment.amount = amount;
+    payment.method = method;
+    payment.status = PaymentStatus.PENDING;
+    payment.pixCode = pixCode;
+    payment.qrCodeImage = qrCodeImage;
+    payment.transactionId = transactionId;
+    payment.externalTransactionId = externalTransactionId;
+    payment.createdAt = new Date();
+    payment.updatedAt = new Date();
+    return payment;
+  }
 
   // Métodos de domínio
-  public isPending(): boolean {
-    return this.status === PaymentStatus.PENDING;
-  }
-
-  public isApproved(): boolean {
-    return this.status === PaymentStatus.APPROVED;
-  }
-
-  public isRejected(): boolean {
-    return this.status === PaymentStatus.REJECTED;
-  }
-
-  public isRefunded(): boolean {
-    return this.status === PaymentStatus.REFUNDED;
-  }
-
-  public canBeApproved(): boolean {
-    return this.isPending();
-  }
-
-  public canBeRejected(): boolean {
-    return this.isPending();
-  }
-
-  public canBeRefunded(): boolean {
-    return this.isApproved();
-  }
-
-  public approve(transactionId?: string): Payment {
-    if (!this.canBeApproved()) {
+  public approve(): Payment {
+    if (this.status !== PaymentStatus.PENDING) {
       throw new Error('Payment cannot be approved');
     }
-
-    return new Payment(
-      this.id,
-      this.ticketId,
-      this.userId,
-      this.amount,
-      this.method,
-      PaymentStatus.APPROVED,
-      this.pixCode,
-      this.pixQrCode,
-      this.installments,
-      transactionId || this.transactionId,
-      this.createdAt,
-      new Date(),
-      this.refundedAt,
-    );
+    this.status = PaymentStatus.APPROVED;
+    return this;
   }
 
   public reject(): Payment {
-    if (!this.canBeRejected()) {
+    if (this.status !== PaymentStatus.PENDING) {
       throw new Error('Payment cannot be rejected');
     }
-
-    return new Payment(
-      this.id,
-      this.ticketId,
-      this.userId,
-      this.amount,
-      this.method,
-      PaymentStatus.REJECTED,
-      this.pixCode,
-      this.pixQrCode,
-      this.installments,
-      this.transactionId,
-      this.createdAt,
-      this.approvedAt,
-      this.refundedAt,
-    );
+    this.status = PaymentStatus.REJECTED;
+    return this;
   }
 
   public refund(): Payment {
-    if (!this.canBeRefunded()) {
+    if (this.status !== PaymentStatus.APPROVED) {
       throw new Error('Payment cannot be refunded');
     }
-
-    return new Payment(
-      this.id,
-      this.ticketId,
-      this.userId,
-      this.amount,
-      this.method,
-      PaymentStatus.REFUNDED,
-      this.pixCode,
-      this.pixQrCode,
-      this.installments,
-      this.transactionId,
-      this.createdAt,
-      this.approvedAt,
-      new Date(),
-    );
-  }
-
-  public belongsTo(userId: string): boolean {
-    return this.userId === userId;
-  }
-
-  public isForTicket(ticketId: string): boolean {
-    return this.ticketId === ticketId;
-  }
-
-  public isPix(): boolean {
-    return this.method === PaymentMethod.PIX;
-  }
-
-  public isCreditCard(): boolean {
-    return this.method === PaymentMethod.CREDIT_CARD;
+    this.status = PaymentStatus.REFUNDED;
+    return this;
   }
 }

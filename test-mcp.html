@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teste MCP - Gwan Events</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background: #f5f6fa; }
+    .container { max-width: 1100px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 8px 28px rgba(0,0,0,0.06); }
+    h1 { margin: 0 0 8px 0; color: #333; }
+    p.desc { color: #666; margin-top: 0; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; background: #fafafa; }
+    .card h3 { margin-top: 0; color: #374151; }
+    label { font-weight: 600; display: block; margin-top: 10px; }
+    input[type="text"], input[type="password"], select, textarea { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-family: inherit; font-size: 14px; }
+    textarea { min-height: 90px; resize: vertical; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    button { padding: 10px 16px; border: 0; border-radius: 8px; background: #4f46e5; color: white; font-weight: 600; cursor: pointer; box-shadow: 0 2px 10px rgba(79,70,229,0.25); }
+    button.secondary { background: #111827; }
+    button.outline { background: white; color: #4f46e5; border: 2px solid #4f46e5; }
+    .muted { color: #6b7280; font-size: 12px; }
+    .help { background: #eef2ff; border: 1px solid #c7d2fe; padding: 12px; border-radius: 8px; color: #1f2937; }
+    .result { background: #0b1020; color: #e5e7eb; padding: 12px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+    .ok { background: #ecfdf5; border: 1px solid #10b981; color: #065f46; padding: 8px 10px; border-radius: 8px; }
+    .warn { background: #fff7ed; border: 1px solid #fb923c; color: #7c2d12; padding: 8px 10px; border-radius: 8px; }
+    @media (max-width: 900px) { .grid, .row { grid-template-columns: 1fr; } }
+  </style>
+  <script>
+    function setText(id, text) { const el = document.getElementById(id); if (el) el.value = text; }
+    function getVal(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+    async function copy(text) {
+      try { await navigator.clipboard.writeText(text); toast('Copiado para a área de transferência'); }
+      catch { alert('Falha ao copiar. Selecione e copie manualmente.'); }
+    }
+    let toastTimer;
+    function toast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg; el.style.display = 'inline-block';
+      clearTimeout(toastTimer); toastTimer = setTimeout(()=> el.style.display='none', 2200);
+    }
+
+    function buildCmd(payload) {
+      return 'cmd /c "echo ' + payload.replace(/"/g, '\\"') + ' | npm run -s start:mcp:stdio"';
+    }
+    function buildCmdWithToken(payload, envVar) {
+      // Usa expansão atrasada para preservar o valor do token
+      return 'cmd /v:on /c "setlocal & set TOKEN=' + envVar + ' & echo ' + payload.replace(/"/g, '\\"') + ' | npm run -s start:mcp:stdio"';
+    }
+    function buildPwsh(payload) {
+      const escaped = payload.replace(/`/g,'``').replace(/"/g,'\"');
+      return 'powershell -NoLogo -NoProfile -Command "$payload = \"' + escaped + '\"; $payload | npm run -s start:mcp:stdio"';
+    }
+
+    function makeJsonRpc(id, method, params) {
+      return JSON.stringify({ jsonrpc: '2.0', id, method, params });
+    }
+
+    // Ações prontas
+    function actionListToolsCmd() {
+      const payload = makeJsonRpc(1, 'tools/list', {});
+      const cmd = buildCmd(payload);
+      setText('output', cmd); copy(cmd);
+    }
+    function actionListToolsPwsh() {
+      const payload = makeJsonRpc(1, 'tools/list', {});
+      const cmd = buildPwsh(payload);
+      setText('output', cmd); copy(cmd);
+    }
+
+    function actionCallListEvents() {
+      const token = getVal('token');
+      const city = getVal('city');
+      const category = getVal('category');
+      const args = {};
+      if (city) args.city = city;
+      if (category) args.category = category;
+      if (token) args.authToken = token;
+      const payload = makeJsonRpc(2, 'tools/call', { name: 'list_events', arguments: args });
+      const cmd = token
+        ? buildCmd(payload)
+        : buildCmd(payload);
+      setText('output', cmd); copy(cmd);
+    }
+
+    function actionCallGetEventById() {
+      const token = getVal('token');
+      const eventId = getVal('eventId');
+      if (!eventId) { alert('Informe o Event ID'); return; }
+      const args = { id: eventId };
+      if (token) args.authToken = token;
+      const payload = makeJsonRpc(3, 'tools/call', { name: 'get_event_by_id', arguments: args });
+      const cmd = buildCmd(payload);
+      setText('output', cmd); copy(cmd);
+    }
+
+    function actionCallGetCategories() {
+      const token = getVal('token');
+      const eventId = getVal('eventId');
+      if (!eventId) { alert('Informe o Event ID'); return; }
+      const args = { id: eventId };
+      if (token) args.authToken = token;
+      const payload = makeJsonRpc(4, 'tools/call', { name: 'get_event_ticket_categories', arguments: args });
+      const cmd = buildCmd(payload);
+      setText('output', cmd); copy(cmd);
+    }
+
+    function fillExamples() {
+      setText('city', 'São Paulo');
+      setText('category', 'Música');
+      setText('eventId', 'ab1eb579-9fde-4a9b-b596-f0bc83649ac0');
+      toast('Campos preenchidos com exemplos');
+    }
+  </script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Teste MCP – Gwan Events</h1>
+      <p class="desc">Gere comandos prontos para testar o servidor MCP (stdio) a partir do seu terminal (cmd/PowerShell). Esta página não executa MCP no navegador; ela auxilia na construção das chamadas JSON‑RPC.</p>
+      <div class="warn">Requisitos: API ativa em <code>MCP_BASE_URL</code> (padrão http://localhost:3001) e servidor MCP via <code>npm run start:mcp:stdio</code>. Se usar autenticação, defina <code>MCP_AUTH_TOKEN</code> e informe o token abaixo.</div>
+
+      <div class="grid" style="margin-top:16px;">
+        <div class="card">
+          <h3>Configuração</h3>
+          <label for="token">MCP Auth Token (opcional)</label>
+          <input id="token" type="password" placeholder="seu-token-secreto-aqui" />
+
+          <div class="row">
+            <div>
+              <label for="city">city (opcional)</label>
+              <input id="city" type="text" placeholder="Ex.: São Paulo" />
+            </div>
+            <div>
+              <label for="category">category (opcional)</label>
+              <input id="category" type="text" placeholder="Ex.: Música" />
+            </div>
+          </div>
+
+          <label for="eventId">Event ID (para detalhes/categorias)</label>
+          <input id="eventId" type="text" placeholder="Ex.: ab1e...9ac0" />
+
+          <div style="margin-top:10px; display:flex; gap:8px;">
+            <button class="outline" onclick="fillExamples()">Preencher exemplos</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Ações rápidas</h3>
+          <div style="display:flex; gap:8px; flex-wrap: wrap;">
+            <button onclick="actionListToolsCmd()">Listar Tools (cmd)</button>
+            <button class="secondary" onclick="actionListToolsPwsh()">Listar Tools (PowerShell)</button>
+          </div>
+          <div style="height:8px"></div>
+          <div style="display:flex; gap:8px; flex-wrap: wrap;">
+            <button onclick="actionCallListEvents()">Chamar list_events</button>
+            <button onclick="actionCallGetEventById()">get_event_by_id</button>
+            <button onclick="actionCallGetCategories()">get_event_ticket_categories</button>
+          </div>
+          <p class="muted">Os comandos serão copiados para sua área de transferência.</p>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+          <h3>Comando gerado</h3>
+          <textarea id="output" class="result" placeholder="O comando aparecerá aqui e será copiado automaticamente."></textarea>
+          <div style="margin-top:8px; display:flex; gap:8px;">
+            <button onclick="copy(document.getElementById('output').value)">Copiar novamente</button>
+            <span id="toast" class="ok" style="display:none">Copiado!</span>
+          </div>
+          <div style="height:10px"></div>
+          <div class="help">
+            <strong>Dica:</strong> Execute o comando em um terminal na raiz do projeto. Para chamadas autenticadas, garanta que o servidor MCP foi iniciado com a variável <code>MCP_AUTH_TOKEN</code> definida, e passe o mesmo token em <code>authToken</code> nos argumentos.
+          </div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+          <h3>O que está por trás</h3>
+          <ul>
+            <li>O servidor MCP é iniciado via <code>npm run start:mcp:stdio</code> e converte operações anotadas com <code>x-mcp.enabled=true</code> (Swagger) em tools.</li>
+            <li>Os métodos expostos atuais: <code>list_events</code>, <code>get_event_by_id</code>, <code>get_event_ticket_categories</code>.</li>
+            <li>Esta página apenas monta a mensagem JSON‑RPC para <code>tools/list</code> e <code>tools/call</code> e a injeta em um comando de terminal.</li>
+            <li>Para integração detalhada com clientes (Claude, VS Code), consulte <code>docs/mcp/integration.md</code>.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </body>
+  </html>
+
+

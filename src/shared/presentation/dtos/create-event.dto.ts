@@ -2,7 +2,7 @@ import { IsString, IsNotEmpty, IsDateString, IsOptional, IsNumber, Min, Max, Max
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateEventDto {
-  @ApiProperty({ example: 'Festival de Música Eletrônica' })
+  @ApiProperty({ example: 'Nome do Evento' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
@@ -18,7 +18,7 @@ export class CreateEventDto {
   @IsDateString()
   date: string;
 
-  @ApiProperty({ example: 'Parque da Cidade' })
+  @ApiProperty({ example: 'Local do Evento' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)

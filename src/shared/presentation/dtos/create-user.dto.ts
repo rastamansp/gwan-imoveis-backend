@@ -3,12 +3,12 @@ import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from '../../domain/value-objects/user-role.enum';
 
 export class CreateUserDto {
-  @ApiProperty({ example: 'João Silva' })
+  @ApiProperty({ example: 'Nome do Usuário' })
   @IsString()
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ example: 'joao@email.com' })
+  @ApiProperty({ example: 'usuario@email.com' })
   @IsEmail()
   email: string;
 

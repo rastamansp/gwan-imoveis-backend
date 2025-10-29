@@ -1,137 +1,463 @@
 # 🎉 Gwan Events Backend
 
-Backend da plataforma de eventos e venda de ingressos construído com NestJS e TypeScript, seguindo os princípios de Clean Architecture e SOLID.
+Backend da plataforma de eventos e venda de ingressos construído com NestJS e TypeScript, seguindo os princípios de **Clean Architecture** e **SOLID**.
 
 ## 🚀 Funcionalidades
 
-- **Gestão de Eventos**: Criar, listar, atualizar e deletar eventos
-- **Sistema de Ingressos**: Comprar, validar e transferir ingressos
-- **Pagamentos**: Integração com Stripe e Mercado Pago
-- **Autenticação**: JWT com Passport
-- **Administração**: Dashboard administrativo com analytics
+- **Gestão de Eventos**: Criar, listar, atualizar e deletar eventos com categorias de ingressos
+- **Sistema de Ingressos**: Comprar, validar, transferir e cancelar ingressos com QR Code
+- **Pagamentos**: Sistema completo de pagamentos com múltiplos métodos
+- **Autenticação**: JWT com Passport e roles (USER, ORGANIZER, ADMIN)
+- **Chatbot Inteligente**: Agente conversacional via OpenAI integrado com MCP
 - **MCP Server**: Model Context Protocol para integração com IA
+- **Administração**: Dashboard administrativo com analytics
 - **Logging Estruturado**: Sistema de logs no formato NestJS
 - **Documentação Completa**: Swagger + Mermaid + Markdown
+- **Migrações Automáticas**: TypeORM migrations para versionamento do banco
 
-## 🛠️ Tecnologias
+## 🛠️ Stack Tecnológica
 
-- **NestJS** - Framework Node.js
-- **TypeScript** - Linguagem principal
-- **TypeORM** - ORM para banco de dados
-- **PostgreSQL** - Banco de dados principal
-- **Redis** - Cache e sessões
-- **JWT** - Autenticação
-- **Swagger** - Documentação da API
-- **MCP** - Model Context Protocol
-- **Mermaid** - Diagramas de arquitetura
+### Core
+- **NestJS** v10 - Framework Node.js para aplicações escaláveis
+- **TypeScript** v5 - Tipagem estática e modernas features ES6+
+- **TypeORM** v0.3 - ORM para PostgreSQL com migrations
+
+### Banco de Dados
+- **PostgreSQL** - Banco de dados relacional principal
+- Migrations automáticas com TypeORM
+
+### Autenticação e Segurança
+- **JWT** com Passport para autenticação stateless
+- **bcryptjs** para hash de senhas
+- Roles: USER, ORGANIZER, ADMIN
+
+### IA e Conversational Agents
+- **OpenAI API** - GPT para chatbot inteligente
+- **MCP (Model Context Protocol)** - Expor APIs como tools
+- **axios** - Cliente HTTP para APIs externas
+
+### Documentação e Validação
+- **Swagger/OpenAPI** - Documentação interativa da API
+- **class-validator** - Validação de DTOs
+- **class-transformer** - Transformação de objetos
+
+### Utilitários
+- **QRCode** - Geração de QR Codes para ingressos
+- **uuid** - Geração de identificadores únicos
+
+### Testes e Qualidade
+- **Jest** - Framework de testes
+- **ESLint** - Linting de código
+- **Prettier** - Formatação automática
 
 ## 📋 Pré-requisitos
 
-- Node.js v20+
-- PostgreSQL v14+
-- Redis v6+
+- **Node.js** v20+
+- **PostgreSQL** v14+
+- **npm** ou **yarn**
+- **Git**
 
 ## 🚀 Início Rápido
 
-### Desenvolvimento Local
+### 1. Clone o Repositório
 
-1. **Clone o repositório**:
 ```bash
 git clone https://github.com/seu-usuario/gwan-events-backend.git
 cd gwan-events-backend
 ```
 
-2. **Instale as dependências**:
+### 2. Instale as Dependências
+
 ```bash
 npm install
 ```
 
-3. **Configure as variáveis de ambiente**:
+### 3. Configure as Variáveis de Ambiente
+
 ```bash
 cp env.example .env
-# Edite o arquivo .env com suas configurações
 ```
 
-### Deploy com Docker
+Edite o arquivo `.env` com suas configurações:
 
-1. **Configure as variáveis de ambiente**:
-```bash
-cp env.example .env
-# Edite o arquivo .env com suas configurações de produção
+```env
+# Servidor
+NODE_ENV=development
+PORT=3001
+
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=gwan_events
+
+# JWT
+JWT_SECRET=your-super-secret-jwt-key-change-in-production
+JWT_EXPIRATION=24h
+
+# OpenAI (para chatbot)
+OPENAI_API_KEY=sk-proj-...
+OPENAI_MODEL=gpt-4o-mini
+
+# MCP (opcional)
+MCP_BASE_URL=http://localhost:3001
+MCP_AUTH_TOKEN=your-mcp-token
 ```
 
-2. **Crie a rede Docker**:
+### 4. Execute as Migrações
+
 ```bash
-docker network create gwan
+npm run typeorm:migration:run
 ```
 
-3. **Deploy para produção**:
-```bash
-# Via script automatizado
-npm run portainer:deploy:prod
+### 5. Crie um Usuário Admin
 
-# Ou manualmente
-docker-compose -f docker-compose.prod.yml up -d --build
+```bash
+npm run admin:create
 ```
 
-### Deploy com Portainer
+### 6. Seed o Banco (opcional)
 
-1. **Configure o Portainer** com o arquivo `docker-compose.prod.yml`
-2. **Configure as variáveis de ambiente** no Portainer
-3. **Deploy automático** via GitHub Actions
-
-4. **Execute as migrações**:
 ```bash
-npm run migration:run
+npm run db:seed:simple
 ```
 
-5. **Inicie o servidor**:
+### 7. Inicie o Servidor
+
 ```bash
+# Desenvolvimento com hot reload
 npm run start:dev
+
+# Produção
+npm run start:prod
 ```
 
-6. **Acesse a documentação**:
-- **API**: http://localhost:3001/api (Swagger UI)
-- **Documentação**: [docs/README.md](./docs/README.md)
+### 8. Acesse a Documentação
 
-## 📚 Documentação Completa
+- **Swagger UI**: http://localhost:3001/api
+- **Health Check**: http://localhost:3001/api/health
 
-### 🏗️ Arquitetura
-- [Visão Geral da Arquitetura](./docs/architecture/overview.md)
+## 📁 Estrutura do Projeto
 
-### 🔧 Desenvolvimento
-- [Guia de Configuração](./docs/development/setup.md)
-- [Documentação Automática](./docs/development/auto-documentation.md)
+```
+src/
+├── main.ts                           # Ponto de entrada
+├── app.module.ts                     # Módulo principal
+├── shared/                           # Código compartilhado
+│   ├── domain/                       # Entidades e regras de negócio
+│   │   ├── entities/                 # Event, User, Ticket, Payment
+│   │   ├── value-objects/            # Enums e value objects
+│   │   ├── exceptions/                # Custom exceptions
+│   │   └── interfaces/               # Repository interfaces
+│   ├── infrastructure/               # Implementações externas
+│   │   └── repositories/             # TypeORM repositories
+│   ├── application/                  # Casos de uso
+│   │   ├── use-cases/                # Use cases da aplicação
+│   │   └── interfaces/               # Service interfaces
+│   └── presentation/                 # Controllers e DTOs
+│       ├── dtos/                     # Data Transfer Objects
+│       └── filters/                  # Exception filters
+├── modules/                          # Módulos da aplicação
+│   ├── auth/                         # Autenticação e autorização
+│   ├── users/                        # Gestão de usuários
+│   ├── events/                       # Gestão de eventos
+│   ├── tickets/                      # Gestão de ingressos
+│   ├── payments/                     # Sistema de pagamentos
+│   ├── admin/                        # Painel administrativo
+│   ├── scanners/                     # Scanner de ingressos
+│   ├── chat/                         # Chatbot inteligente
+│   └── mcp/                          # Servidor MCP
+├── config/                           # Configurações
+│   ├── typeorm.config.ts             # Config TypeORM
+│   └── data-source.ts               # Data Source migrations
+├── database/                         # Database utilities
+└── migrations/                        # TypeORM migrations
+```
 
-### 🚀 APIs
-- [Documentação da API](./docs/api/overview.md)
+## 🏗️ Arquitetura
 
-### 🔌 MCP (Model Context Protocol)
-- [Visão Geral do MCP](./docs/mcp/overview.md)
+### Clean Architecture
 
-### 🚀 Deploy e Produção
-- [Deploy Automático](./docs/deployment/deploy-automation.md)
-- [Deploy com Docker](./docs/deployment/docker.md)
-- [Deploy com Portainer](./docs/deployment/portainer.md)
-- [Configuração de Ambiente](./docs/deployment/environment.md)
+O projeto segue **Clean Architecture** com 3 camadas principais:
 
-### 📊 Diagramas
-- [Arquitetura do Sistema](./docs/diagrams/system-architecture.md)
+```
+┌─────────────────────────────────────────┐
+│  Presentation Layer (Controllers, DTOs) │
+├─────────────────────────────────────────┤
+│  Application Layer (Use Cases, Services) │
+├─────────────────────────────────────────┤
+│  Domain Layer (Entities, Interfaces)    │
+├─────────────────────────────────────────┤
+│  Infrastructure Layer (Repositories, DB) │
+└─────────────────────────────────────────┘
+```
 
-## 🧪 Testes
+### Fluxo de Dados
 
+```mermaid
+graph TB
+    Client[Cliente Frontend]
+    Controller[Controller NestJS]
+    UseCase[Use Case]
+    Repository[Repository Interface]
+    Entity[Entity/Domain Logic]
+    DB[(PostgreSQL)]
+    
+    Client --> Controller
+    Controller --> UseCase
+    UseCase --> Repository
+    Repository --> Entity
+    Entity --> DB
+    
+    style Client fill:#e1f5e1
+    style Controller fill:#fff4e1
+    style UseCase fill:#ffe1f5
+    style Repository fill:#e1f5ff
+    style Entity fill:#f5e1ff
+    style DB fill:#ffe1e1
+```
+
+### Módulos e Dependências
+
+```mermaid
+graph LR
+    App[AppModule]
+    
+    Auth[AuthModule]
+    Users[UsersModule]
+    Events[EventsModule]
+    Tickets[TicketsModule]
+    Payments[PaymentsModule]
+    Admin[AdminModule]
+    MCP[McpModule]
+    Chat[ChatModule]
+    Shared[SharedModule]
+    
+    App --> Auth
+    App --> Users
+    App --> Events
+    App --> Tickets
+    App --> Payments
+    App --> Admin
+    App --> MCP
+    App --> Chat
+    App --> Shared
+    
+    Events -.-> Shared
+    Tickets -.-> Shared
+    Payments -.-> Shared
+    Users -.-> Shared
+    Auth -.-> Shared
+    
+    style App fill:#f5e1ff
+    style Shared fill:#fff4e1
+```
+
+## 🔌 APIs Expostas
+
+### Arquivos .http para Testes
+
+Cada módulo possui um arquivo `.http` para facilitar testes via REST Client:
+
+#### 1. Eventos (`src/events/events.http`)
+**Endpoints disponíveis:**
+- `GET /api/events` - Listar eventos
+- `GET /api/events/:id` - Obter evento por ID
+- `GET /api/events/search?query=...` - Buscar por nome/código
+- `POST /api/events` - Criar evento (auth)
+- `PUT /api/events/:id` - Atualizar evento (auth)
+- `DELETE /api/events/:id` - Deletar evento (auth)
+- `GET /api/events/:id/ticket-categories` - Listar categorias
+- `POST /api/events/:id/ticket-categories` - Criar categoria (auth)
+- `PUT /api/events/ticket-categories/:id` - Atualizar categoria (auth)
+- `DELETE /api/events/ticket-categories/:id` - Deletar categoria (auth)
+
+**Uso:**
+```http
+### Listar eventos
+GET http://localhost:3001/api/events
+
+### Buscar evento por código
+GET http://localhost:3001/api/events/search?query=EVT-AMA3RU
+```
+
+#### 2. Ingressos (`src/tickets/tickets.http`)
+**Endpoints disponíveis:**
+- `GET /api/tickets` - Listar ingressos (auth)
+- `GET /api/tickets/:id` - Obter ingresso por ID (auth)
+- `GET /api/tickets/user/:userId` - Ingressos do usuário (auth)
+- `GET /api/tickets/event/:eventId` - Ingressos do evento (auth)
+- `POST /api/tickets` - Comprar ingresso (auth)
+- `POST /api/tickets/validate` - Validar ingresso (auth)
+- `PUT /api/tickets/:id/use` - Marcar como usado (auth)
+- `PUT /api/tickets/:id/transfer` - Transferir ingresso (auth)
+- `PUT /api/tickets/:id/cancel` - Cancelar ingresso (auth)
+- `GET /api/tickets/stats` - Estatísticas (auth)
+
+**Uso:**
+```http
+### Comprar ingresso
+POST http://localhost:3001/api/tickets
+Authorization: Bearer {{token}}
+{
+  "eventId": "1",
+  "categoryId": "1",
+  "quantity": 2
+}
+```
+
+#### 3. Autenticação (`src/auth/auth.http`)
+**Endpoints disponíveis:**
+- `POST /api/auth/login` - Fazer login
+- `POST /api/auth/register` - Registrar usuário
+- `GET /api/auth/profile` - Obter perfil (auth)
+
+**Uso:**
+```http
+### Login
+POST http://localhost:3001/api/auth/login
+{
+  "email": "admin@gwanshop.com",
+  "password": "password"
+}
+```
+
+#### 4. Usuários (`src/users/users.http`)
+**Endpoints disponíveis:**
+- `GET /api/users` - Listar usuários (auth)
+- `GET /api/users/:id` - Obter usuário por ID (auth)
+- `PUT /api/users/:id` - Atualizar usuário (auth)
+- `DELETE /api/users/:id` - Deletar usuário (auth)
+
+#### 5. Pagamentos (`src/payments/payments.http`)
+**Endpoints disponíveis:**
+- `GET /api/payments` - Listar pagamentos (auth)
+- `GET /api/payments/:id` - Obter pagamento por ID (auth)
+- `GET /api/payments/user/:userId` - Pagamentos do usuário (auth)
+- `POST /api/payments` - Criar pagamento (auth)
+- `PUT /api/payments/:id/approve` - Aprovar pagamento (auth)
+- `PUT /api/payments/:id/reject` - Rejeitar pagamento (auth)
+- `PUT /api/payments/:id/refund` - Estornar pagamento (auth)
+- `GET /api/payments/stats` - Estatísticas (auth)
+
+#### 6. Admin (`src/admin/admin.http`)
+**Endpoints disponíveis:**
+- `GET /api/admin/dashboard` - Dashboard geral (auth)
+- `GET /api/admin/events/:id/analytics` - Analytics do evento (auth)
+- `GET /api/admin/users/:id/analytics` - Analytics do usuário (auth)
+
+#### 7. Chat (`src/chat/chat.http`)
+**Endpoints disponíveis:**
+- `POST /api/chat` - Chatbot inteligente
+
+**Uso:**
+```http
+### Chat - Listar eventos
+POST http://localhost:3001/api/chat
+{
+  "message": "Liste eventos de Música em São Paulo"
+}
+
+### Chat - Buscar por nome
+POST http://localhost:3001/api/chat
+{
+  "message": "Busque eventos com o nome Culto"
+}
+
+### Chat - Detalhes de evento
+POST http://localhost:3001/api/chat
+{
+  "message": "Mostre os detalhes do evento ab1eb579-9fde-4a9b-b596-f0bc83649ac0"
+}
+
+### Chat - Preços de ingressos
+POST http://localhost:3001/api/chat
+{
+  "message": "Quais os preços dos ingressos do evento ab1eb579-9fde-4a9b-b596-f0bc83649ac0?"
+}
+```
+
+#### 8. Health (`src/health/health.http`)
+**Endpoints disponíveis:**
+- `GET /api/health` - Health check
+
+#### 9. MCP Tools (`src/mcp/`)
+**APIs MCP expostas:**
+- `list_events` - Listar eventos
+- `get_event_by_id` - Obter evento por ID
+- `get_event_ticket_categories` - Categorias de ingressos
+- `search_events_by_query` - Buscar eventos por nome/código
+
+**Uso:**
 ```bash
-# Testes unitários
-npm run test
+# Via stdio
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | npm run start:mcp:stdio
 
-# Testes e2e
-npm run test:e2e
+# Via HTTP bridge
+GET http://localhost:3001/api/mcp/tools
+POST http://localhost:3001/api/mcp/tools/call
+{
+  "name": "list_events",
+  "arguments": {
+    "category": "Música",
+    "city": "São Paulo"
+  }
+}
+```
 
-# Coverage
-npm run test:cov
+## 🤖 Chatbot Inteligente
 
-# Testes com watch
-npm run test:watch
+### Funcionalidades
+
+O chatbot utiliza **OpenAI GPT** com integração **MCP** para:
+- Buscar eventos por nome, categoria ou cidade
+- Fornecer detalhes completos de eventos
+- Listar preços de ingressos
+- Sugerir eventos com contexto do usuário
+
+### Uso
+
+```http
+POST http://localhost:3001/api/chat
+Content-Type: application/json
+
+{
+  "message": "Liste eventos de Música em São Paulo",
+  "userCtx": {
+    "city": "São Paulo",
+    "date": "2025-10-29",
+    "language": "pt-BR"
+  }
+}
+```
+
+### Fluxo
+
+```mermaid
+sequenceDiagram
+    participant U as Usuário
+    participant C as ChatController
+    participant S as ChatService
+    participant O as OpenAI
+    participant M as MCP Bridge
+    participant A as APIs
+    participant D as Database
+    
+    U->>C: POST /api/chat {message}
+    C->>S: processMessage(message)
+    S->>O: Enviar prompt com tools
+    O->>S: tool_calls: ["search_events"]
+    S->>M: callTool("search_events", args)
+    M->>A: GET /api/events/search?query=...
+    A->>D: SELECT ... WHERE ...
+    D->>A: eventos[]
+    A->>M: resultados
+    M->>S: dados do evento
+    S->>O: Enviar resultados
+    O->>S: resposta estruturada
+    S->>C: resposta final
+    C->>U: resposta completa
 ```
 
 ## 📝 Scripts Disponíveis
@@ -151,6 +477,14 @@ npm run test:watch
 - `npm run lint` - ESLint
 - `npm run format` - Prettier
 
+### Database
+- `npm run typeorm:migration:run` - Executar migrações
+- `npm run typeorm:migration:revert` - Reverter última migração
+- `npm run typeorm:migration:generate` - Gerar nova migração
+- `npm run admin:create` - Criar usuário admin
+- `npm run db:seed` - Executar seeder
+- `npm run db:seed:simple` - Executar seeder simples
+
 ### Documentação Automática
 - `npm run docs:generate` - Gerar toda a documentação
 - `npm run docs:validate` - Validar documentação
@@ -159,248 +493,131 @@ npm run test:watch
 - `npm run docs:clean` - Limpar arquivos gerados
 - `npm run docs:help` - Mostrar ajuda
 
-### Deploy e Produção
+### Deploy
 - `npm run deploy:prepare` - Preparar para deploy (build + docs)
 - `npm run deploy:prod` - Deploy para produção
-- `npm run deploy:rollback` - Rollback em caso de problemas
+- `npm run deploy:rollback` - Rollback
 
-### Docker e Portainer
-- `npm run docker:build` - Build das imagens Docker
+### Docker
+- `npm run docker:build` - Build das imagens
 - `npm run docker:up` - Subir containers
 - `npm run docker:down` - Parar containers
-- `npm run docker:logs` - Ver logs dos containers
+- `npm run docker:logs` - Ver logs
 - `npm run docker:restart` - Reiniciar containers
-- `npm run docker:prod` - Deploy para produção com Docker
-- `npm run docker:dev` - Deploy para desenvolvimento com Docker
-- `npm run docker:clean` - Limpar containers e volumes
-- `npm run portainer:deploy` - Deploy via Portainer (Linux/Mac)
-- `npm run portainer:deploy:prod` - Deploy para produção via Portainer (Linux/Mac)
-- `npm run portainer:deploy:dev` - Deploy para desenvolvimento via Portainer (Linux/Mac)
-- `npm run portainer:status` - Status dos containers via Portainer (Linux/Mac)
-- `npm run portainer:logs` - Logs dos containers via Portainer (Linux/Mac)
-- `npm run portainer:rollback` - Rollback via Portainer (Linux/Mac)
-- `npm run portainer:deploy:win` - Deploy via Portainer (Windows)
-- `npm run portainer:deploy:prod:win` - Deploy para produção via Portainer (Windows)
-- `npm run portainer:deploy:dev:win` - Deploy para desenvolvimento via Portainer (Windows)
-- `npm run portainer:status:win` - Status dos containers via Portainer (Windows)
-- `npm run portainer:logs:win` - Logs dos containers via Portainer (Windows)
-- `npm run portainer:rollback:win` - Rollback via Portainer (Windows)
 
-## 🔌 MCP Server
+## 🚢 Deploy
 
-O projeto inclui um servidor MCP (Model Context Protocol) que expõe as APIs como tools para clientes MCP como Claude Desktop.
+### Deploy Local com Docker
 
-### Tools Disponíveis
-- `list_events` - Lista todos os eventos
-- `get_event_by_id` - Obter evento por ID
-- `get_event_ticket_categories` - Listar categorias de ingressos
-
-### Uso Rápido
 ```bash
-# Testar MCP Server
-echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | npm run start:mcp:stdio
+# 1. Configurar variáveis de ambiente
+cp env.example .env
 
-# Executar tool
-echo '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "list_events", "arguments": {}}}' | npm run start:mcp:stdio
+# 2. Subir containers
+docker-compose up -d
+
+# 3. Executar migrações
+docker exec -it gwan-events-backend npm run typeorm:migration:run
+
+# 4. Criar admin
+docker exec -it gwan-events-backend npm run admin:create
 ```
 
-## 🏗️ Arquitetura
+### Deploy com Portainer
 
-O projeto segue os princípios de **Clean Architecture** com as seguintes camadas:
-
-```
-src/
-├── shared/                   # Código compartilhado
-│   ├── domain/              # Entidades e regras de negócio
-│   ├── infrastructure/      # Implementações externas
-│   ├── application/         # Casos de uso
-│   └── presentation/        # Controllers e DTOs
-├── modules/                 # Módulos da aplicação
-│   ├── auth/               # Autenticação
-│   ├── users/              # Usuários
-│   ├── events/             # Eventos
-│   ├── tickets/            # Ingressos
-│   ├── payments/           # Pagamentos
-│   └── admin/              # Administração
-└── mcp/                    # Servidor MCP
-```
-
-## 🛠️ Comandos Úteis para Desenvolvimento
-
-### Verificar se o servidor está rodando
 ```bash
-curl http://localhost:3001
+# Via script (Windows)
+npm run portainer:deploy:prod:win
+
+# Via script (Linux/Mac)
+npm run portainer:deploy:prod
 ```
 
-### Verificar processos usando a porta 3001
+Ver documentação completa em `docs/deployment/`.
+
+## 🧪 Testes
+
 ```bash
-netstat -ano | findstr :3001
+# Testes unitários
+npm run test
+
+# Testes e2e
+npm run test:e2e
+
+# Coverage
+npm run test:cov
+
+# Testes com watch
+npm run test:watch
 ```
 
-### Parar todos os processos Node.js
+## 📚 Documentação
+
+### Documentação Completa
+- [Arquitetura](./docs/architecture/overview.md)
+- [Desenvolvimento](./docs/development/setup.md)
+- [APIs](./docs/api/overview.md)
+- [MCP](./docs/mcp/overview.md)
+- [Deploy](./docs/deployment/deploy-automation.md)
+- [Diagramas](./docs/diagrams/system-architecture.md)
+
+### Gerar Documentação
+
 ```bash
-taskkill /IM node.exe /F
+# Gerar toda documentação
+npm run docs:generate
+
+# Validar documentação
+npm run docs:validate
 ```
 
-### Limpar cache do npm (se houver problemas)
-```bash
-npm cache clean --force
-```
+## 🛡️ Segurança
 
-## 🌐 Endpoints Principais
-
-### Autenticação
-- `POST /api/auth/login` - Fazer login
-- `POST /api/auth/register` - Registrar usuário
-- `GET /api/auth/profile` - Perfil do usuário
-
-### Eventos
-- `GET /api/events` - Listar eventos
-- `GET /api/events/:id` - Detalhes do evento
-- `POST /api/events` - Criar evento (autenticado)
-- `GET /api/events/:id/ticket-categories` - Categorias de ingressos
-
-### Ingressos
-- `GET /api/tickets` - Listar ingressos
-- `POST /api/tickets` - Criar ingresso
-- `POST /api/tickets/:id/validate` - Validar ingresso
-- `PUT /api/tickets/:id/use` - Marcar como usado
-
-### Pagamentos
-- `GET /api/payments` - Listar pagamentos
-- `POST /api/payments` - Criar pagamento
-- `PUT /api/payments/:id/approve` - Aprovar pagamento
-
-### Admin
-- `GET /api/admin/dashboard` - Estatísticas gerais
-- `GET /api/admin/events/:id/analytics` - Analytics do evento
-
-## 📚 Documentação da API
-
-A documentação interativa está disponível em:
-- **Swagger UI**: http://localhost:3001/api
-
-## 🔐 Variáveis de Ambiente
-
-Crie um arquivo `.env` baseado no `.env.example`:
-
-```env
-NODE_ENV=development
-PORT=3001
-JWT_SECRET=your-super-secret-jwt-key-change-in-production
-```
-
-## 🐳 Docker
-
-### Build da imagem
-```bash
-docker build -t gwan-events-backend .
-```
-
-### Executar container
-```bash
-docker run -p 3001:3001 gwan-events-backend
-```
-
-## 🏗️ Estrutura do Projeto
-
-```
-src/
-├── admin/           # Módulo administrativo
-├── auth/            # Autenticação e autorização
-├── events/          # Gestão de eventos
-├── payments/        # Sistema de pagamentos
-├── tickets/         # Gestão de ingressos
-├── users/           # Gestão de usuários
-├── app.module.ts    # Módulo principal
-└── main.ts          # Arquivo de entrada
-```
-
-## 🔗 Links Relacionados
-
-- **Frontend**: [gwan-events](https://github.com/rastamansp/gwan-events)
-- **Documentação de Deploy**: Ver repositório principal
+- **JWT Authentication** com Passport
+- **Rate Limiting** para prevenir abuso
+- **CORS** configurado para domínios específicos
+- **Validação** de entrada com class-validator
+- **Autenticação MCP** via token
+- **bcryptjs** para hash de senhas
 
 ## 🐛 Solução de Problemas
 
 ### Erro: "EADDRINUSE: address already in use :::3001"
 
-Este erro indica que a porta 3001 já está sendo usada por outro processo. Siga estes passos para resolver:
-
-#### Opção 1: Parar o processo que está usando a porta (Recomendado)
-
-1. **Identificar o processo:**
-   ```bash
-   netstat -ano | findstr :3001
-   ```
-
-2. **Parar o processo (substitua XXXX pelo PID encontrado):**
-   ```bash
-   taskkill /PID XXXX /F
-   ```
-
-3. **Reiniciar o servidor:**
-   ```bash
-   npm run start:dev
-   ```
-
-#### Opção 2: Usar uma porta diferente
-
-1. **Editar o arquivo `.env`:**
-   ```env
-   PORT=3002
-   ```
-
-2. **Reiniciar o servidor:**
-   ```bash
-   npm run start:dev
-   ```
-
-#### Opção 3: Parar todos os processos Node.js
-
 ```bash
-taskkill /IM node.exe /F
+# Windows
+netstat -ano | findstr :3001
+taskkill /PID <PID> /F
+
+# Linux/Mac
+lsof -ti:3001 | xargs kill
 ```
 
-### Erro de dependências
-Execute `npm install` para instalar todas as dependências
+### Erro de Dependências
 
-### Erro de build
-Execute `npm run build` para verificar se há erros de compilação
+```bash
+npm cache clean --force
+npm install
+```
 
-### Dicas de Prevenção
-- Sempre use `Ctrl+C` para parar o servidor antes de reiniciar
-- Verifique se não há outros processos Node.js rodando em background
-- Use `npm run start:dev` apenas uma vez por terminal
+### Erro de Build
 
-## 🔒 Segurança
-
-- **JWT Authentication** com Passport
-- **Rate Limiting** para prevenir abuso
-- **CORS** configurado para domínios específicos
-- **Helmet** para headers de segurança
-- **Validação** de entrada com class-validator
-- **Autenticação MCP** via token
-
-## 📊 Monitoramento
-
-- **Logs estruturados** no formato NestJS
-- **Métricas** com Prometheus
-- **Dashboards** com Grafana
-- **Health checks** para monitoramento
+```bash
+npm run build
+```
 
 ## 🤝 Contribuindo
 
 1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+2. Crie sua branch (`git checkout -b feature/AmazingFeature`)
 3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
 4. Push para a branch (`git push origin feature/AmazingFeature`)
 5. Abra um Pull Request
 
-### Padrões de Contribuição
-- Siga os [padrões de código](./docs/development/coding-standards.md)
+### Padrões
+- Siga os [padrões de código](./.cursorrules)
 - Escreva testes para novas funcionalidades
-- Atualize a documentação quando necessário
+- Atualize a documentação
 - Use commits semânticos
 
 ## 📄 Licença

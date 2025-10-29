@@ -6,6 +6,7 @@ import { ILogger } from '../interfaces/logger.interface';
 import { CreateEventDto } from '../../presentation/dtos/create-event.dto';
 import { EventStatus } from '../../domain/value-objects/event-status.enum';
 import { UserNotFoundException } from '../../domain/exceptions/user-not-found.exception';
+import { InsufficientPermissionsException } from '../../domain/exceptions/insufficient-permissions.exception';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -37,7 +38,12 @@ export class CreateEventUseCase {
 
       // Verificar se o organizador pode criar eventos
       if (!organizer.canCreateEvents()) {
-        throw new Error('User does not have permission to create events');
+        this.logger.warn('Usuário tentou criar evento sem permissão', {
+          organizerId,
+          organizerRole: organizer.role,
+          organizerEmail: organizer.email,
+        });
+        throw new InsufficientPermissionsException('User does not have permission to create events');
       }
 
       // Criar evento
@@ -61,6 +67,9 @@ export class CreateEventUseCase {
         new Date(),
       );
 
+      // Gerar código amigável único (ex.: EVT-A1B2C3)
+      event.code = await this.generateUniqueEventCode();
+
       // Salvar evento
       const savedEvent = await this.eventRepository.save(event);
 
@@ -83,5 +92,25 @@ export class CreateEventUseCase {
       });
       throw error;
     }
+  }
+  
+  private async generateUniqueEventCode(): Promise<string> {
+    for (let i = 0; i < 10; i++) {
+      const code = this.generateEventCode();
+      const exists = await this.eventRepository.findByCode(code);
+      if (!exists) return code;
+    }
+    // Em caso improvável de colisões sucessivas, acrescenta sufixo
+    return `${this.generateEventCode()}${Math.floor(Math.random()*10)}`.slice(0, 16);
+  }
+
+  private generateEventCode(): string {
+    const prefix = 'EVT-';
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let rand = '';
+    for (let i = 0; i < 6; i++) {
+      rand += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    return prefix + rand;
   }
 }

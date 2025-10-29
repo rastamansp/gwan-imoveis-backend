@@ -1,8 +1,8 @@
-# 🚀 Cursor Rules - Plataforma de Eventos e Venda de Ingressos
+# 🚀 Cursor Rules - NestJS Clean Architecture Template
 
-## 📋 Visão Geral do Projeto
+## 📋 Visão Geral
 
-Este é um projeto NestJS com TypeScript que implementa uma plataforma completa de eventos e venda de ingressos. O projeto segue os princípios de Clean Architecture, SOLID e Use Cases, oferecendo funcionalidades de gestão de eventos, usuários, ingressos, pagamentos e analytics administrativos.
+Este é um template reutilizável para projetos NestJS seguindo os princípios de **Clean Architecture**, **SOLID** e **Use Cases**. A estrutura pode ser adaptada para qualquer domínio de negócio, oferecendo uma base sólida para desenvolvimento escalável e manutenível.
 
 ## 🚫 **REGRAS CRÍTICAS - NUNCA VIOLAR**
 
@@ -46,57 +46,102 @@ Este é um projeto NestJS com TypeScript que implementa uma plataforma completa 
 
 ## 📁 Estrutura de Pastas
 
+**Template padronizado para projetos NestJS:**
+
 ```
 src/
 ├── main.ts                           # Ponto de entrada
 ├── app.module.ts                     # Módulo principal
-├── shared/                           # Código compartilhado
+├── shared/                           # Código compartilhado (Core)
 │   ├── domain/                       # Entidades e regras de negócio
+│   │   ├── entities/                 # Entidades de domínio
+│   │   ├── value-objects/           # Value Objects e Enums
+│   │   ├── exceptions/               # Custom Exceptions
+│   │   └── interfaces/               # Repository/Service interfaces
 │   ├── infrastructure/               # Implementações externas
-│   ├── application/                  # Casos de uso
-│   └── presentation/                 # Controllers e DTOs
-├── modules/                          # Módulos da aplicação
+│   │   ├── repositories/             # Implementações de repositories
+│   │   └── services/                 # Serviços externos
+│   ├── application/                  # Camada de aplicação
+│   │   ├── use-cases/                # Use cases da aplicação
+│   │   └── interfaces/               # Service interfaces
+│   └── presentation/                 # Camada de apresentação
+│       ├── dtos/                     # Data Transfer Objects
+│       └── filters/                   # Exception filters
+├── modules/                          # Módulos de domínio
 │   ├── auth/                         # Autenticação e autorização
-│   ├── users/                        # Gestão de usuários
-│   ├── events/                       # Gestão de eventos
-│   ├── tickets/                      # Gestão de ingressos
-│   ├── payments/                     # Sistema de pagamentos
-│   └── admin/                        # Painel administrativo
-├── config/                           # Configurações
-└── common/                           # Utilitários e decorators
+│   ├── users/                        # Gestão de usuários (exemplo)
+│   ├── events/                       # Gestão de eventos (exemplo)
+│   ├── tickets/                      # Gestão de ingressos (exemplo)
+│   └── ...                           # Outros módulos de negócio
+├── config/                           # Configurações globais
+├── database/                         # Database utilities
+└── migrations/                        # TypeORM migrations
 ```
+
+**Nota:** Os módulos específicos (`users`, `events`, `tickets`, etc.) são exemplos. Adapte para o domínio do seu projeto.
 
 ## 🔧 Padrões de Código
 
 ### Nomenclatura
-- **Classes**: PascalCase (ex: `EventsService`, `TicketsService`)
-- **Interfaces**: PascalCase com prefixo I (ex: `IEventRepository`)
-- **Métodos**: camelCase (ex: `createEvent`, `validateTicket`)
-- **Variáveis**: camelCase (ex: `eventData`, `ticketInfo`)
-- **Constantes**: UPPER_SNAKE_CASE (ex: `MAX_TICKETS_PER_USER`)
-- **Arquivos**: kebab-case (ex: `events.service.ts`, `tickets.controller.ts`)
+
+**Padrões universais para qualquer domínio:**
+
+- **Classes**: PascalCase (ex: `UserService`, `OrderRepository`, `PaymentProcessor`)
+- **Interfaces**: PascalCase com prefixo I (ex: `IUserRepository`, `IOrderService`)
+- **Métodos**: camelCase (ex: `createUser`, `validateOrder`, `processPayment`)
+- **Variáveis**: camelCase (ex: `userData`, `orderInfo`, `paymentDetails`)
+- **Constantes**: UPPER_SNAKE_CASE (ex: `MAX_RETRY_ATTEMPTS`, `DEFAULT_TIMEOUT`)
+- **Arquivos**: kebab-case (ex: `user.service.ts`, `order.controller.ts`)
+- **Módulos**: kebab-case plural (ex: `users.module.ts`, `orders.module.ts`)
+
+**Glossário de Comum:**
+- `Repository` - Camada de acesso a dados
+- `Service` - Lógica de negócio
+- `UseCase` - Caso de uso específico
+- `DTO` - Data Transfer Object
+- `Entity` - Entidade de domínio
+- `Guard` - Guard de autenticação/autorização
+- `Filter` - Filtro de exceção
 
 ### Estrutura de Classes
+
+**Padrão universal para Services, Repositories e Use Cases:**
+
 ```typescript
 // Sempre usar decorators do NestJS
 @Injectable()
-export class EventsService {
+export class DomainService {
   constructor(
-    private readonly eventRepository: IEventRepository,
+    private readonly repository: IRepository,
     private readonly logger: ILogger,
   ) {}
 
-  // Métodos públicos primeiro
-  public async createEvent(eventData: CreateEventDto): Promise<Event> {
+  // 1. Métodos públicos primeiro (exposição externa)
+  public async createEntity(data: CreateDto): Promise<Entity> {
     // Implementação
   }
 
-  // Métodos privados depois
-  private async validateEventData(data: CreateEventDto): Promise<void> {
+  public async getEntity(id: string): Promise<Entity> {
+    // Implementação
+  }
+
+  // 2. Métodos protegidos (uso interno estendido)
+  protected async validateData(data: CreateDto): Promise<void> {
     // Validação
+  }
+
+  // 3. Métodos privados (uso interno)
+  private async processEntity(data: CreateDto): Promise<Entity> {
+    // Lógica privada
   }
 }
 ```
+
+**Ordem de métodos:**
+1. Públicos (API pública)
+2. Protegidos (herança)
+3. Privados (uso interno)
+4. Estáticos (utilitários)
 
 ### DTOs e Validação
 ```typescript
@@ -529,31 +574,40 @@ export class EventsService {
 }
 ```
 
-## 🚫 O que NÃO fazer
+## 🚫 O que NÃO fazer (Anti-patterns)
 
-- ❌ Não usar `any` type
-- ❌ Não fazer console.log (usar logger estruturado)
+**Padrões universais de NÃO fazer:**
+
+- ❌ Não usar `any` type (sempre tipar)
+- ❌ Não fazer `console.log` (usar logger estruturado)
 - ❌ Não deixar métodos públicos sem necessidade
 - ❌ Não misturar lógica de negócio com controllers
 - ❌ Não usar singletons desnecessários
 - ❌ Não fazer operações síncronas bloqueantes
 - ❌ Não esquecer de tratar erros
 - ❌ Não usar variáveis globais
+- ❌ Não hardcodear valores (usar env vars)
+- ❌ Não acoplar camadas (respeitar Clean Architecture)
 - ❌ **NUNCA desabilitar funcionalidades essenciais (banco, validações, etc.)**
 
-## ✅ O que SEMPRE fazer
+## ✅ O que SEMPRE fazer (Best Practices)
+
+**Padrões universais de SEMPRE fazer:**
 
 - ✅ Usar TypeScript strict mode
 - ✅ Implementar interfaces para dependências
 - ✅ Usar decorators do NestJS apropriadamente
-- ✅ Validar entrada de dados
-- ✅ Tratar erros adequadamente
-- ✅ Usar logs estruturados
+- ✅ Validar entrada de dados (DTOs com class-validator)
+- ✅ Tratar erros adequadamente (custom exceptions)
+- ✅ Usar logs estruturados (NestJS logger)
 - ✅ Seguir princípios SOLID
-- ✅ Implementar Clean Architecture
-- ✅ Usar injeção de dependência
-- ✅ Documentar APIs com Swagger
-- ✅ Criar arquivo .http para cada API (testes via REST Client)
+- ✅ Implementar Clean Architecture (camadas separadas)
+- ✅ Usar injeção de dependência (constructor injection)
+- ✅ Documentar APIs com Swagger (@nestjs/swagger)
+- ✅ Criar arquivo `.http` para cada API (testes REST Client)
+- ✅ Criar migrations para mudanças de schema
+- ✅ Implementar use cases para lógica de negócio
+- ✅ Usar repositories para acesso a dados
 - ✅ **SEMPRE corrigir problemas de configuração ao invés de desabilitar funcionalidades**
 
 ## 📚 Documentação Automática

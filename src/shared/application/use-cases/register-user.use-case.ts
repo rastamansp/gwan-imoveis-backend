@@ -4,6 +4,7 @@ import { IUserRepository } from '../../domain/interfaces/user-repository.interfa
 import { ILogger } from '../interfaces/logger.interface';
 import { RegisterDto } from '../../../auth/dto/register.dto';
 import { UserRole } from '../../domain/value-objects/user-role.enum';
+import { UserAlreadyExistsException } from '../../domain/exceptions/user-already-exists.exception';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -29,7 +30,7 @@ export class RegisterUserUseCase {
       // Verificar se usuário já existe
       const existingUser = await this.userRepository.findByEmail(registerDto.email);
       if (existingUser) {
-        throw new Error('User already exists with this email');
+        throw new UserAlreadyExistsException(registerDto.email);
       }
 
       // Hash da senha

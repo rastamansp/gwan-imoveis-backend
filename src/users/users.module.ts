@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { UsersController } from './users.controller';
-import { UsersService } from './users.service';
+import { PromoteUserToOrganizerUseCase } from '../shared/application/use-cases/promote-user-to-organizer.use-case';
+import { SharedModule } from '../shared/shared.module';
 
 @Module({
+  imports: [SharedModule],
   controllers: [UsersController],
-  providers: [UsersService],
-  exports: [UsersService],
+  providers: [PromoteUserToOrganizerUseCase],
+  exports: [],
 })
 export class UsersModule {}

@@ -50,12 +50,12 @@ export class PaymentResponseDto {
     dto.method = payment.method;
     dto.status = payment.status;
     dto.pixCode = payment.pixCode;
-    dto.pixQrCode = payment.pixQrCode;
-    dto.installments = payment.installments;
+    dto.pixQrCode = payment.pixCode;
+    dto.installments = undefined; // Propriedade não existe na entidade
     dto.transactionId = payment.transactionId;
     dto.createdAt = payment.createdAt;
-    dto.approvedAt = payment.approvedAt;
-    dto.refundedAt = payment.refundedAt;
+    dto.approvedAt = undefined; // Propriedade não existe na entidade
+    dto.refundedAt = undefined; // Propriedade não existe na entidade
     return dto;
   }
 }

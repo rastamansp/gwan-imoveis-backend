@@ -1,37 +1,52 @@
-import { IsString, IsNotEmpty, IsNumber, Min, Max, IsArray, IsOptional, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, MaxLength, IsOptional, IsNumber, Min, IsInt, IsArray } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateTicketCategoryDto {
-  @ApiProperty({ example: 'Pista' })
+  @ApiProperty({
+    description: 'Nome da categoria de ingresso',
+    example: 'Pista',
+    maxLength: 255,
+  })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(100)
+  @MaxLength(255)
   name: string;
 
-  @ApiProperty({ example: 'Acesso à área principal do evento' })
+  @ApiProperty({
+    description: 'Descrição da categoria de ingresso',
+    example: 'Acesso à pista principal com barracas de comida',
+    required: false,
+  })
   @IsString()
-  @IsNotEmpty()
-  @MaxLength(500)
-  description: string;
+  @IsOptional()
+  description?: string;
 
-  @ApiProperty({ example: 150.00 })
-  @IsNumber()
+  @ApiProperty({
+    description: 'Preço da categoria de ingresso em reais',
+    example: 150.00,
+    minimum: 0,
+  })
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
-  @Max(10000)
   price: number;
 
-  @ApiProperty({ example: 3000 })
-  @IsNumber()
+  @ApiProperty({
+    description: 'Quantidade máxima de ingressos disponíveis para esta categoria',
+    example: 800,
+    minimum: 1,
+  })
+  @IsInt()
   @Min(1)
-  @Max(100000)
   maxQuantity: number;
 
-  @ApiProperty({ 
-    example: ['Acesso à pista principal', 'Banheiros', 'Área de alimentação'],
-    required: false 
+  @ApiProperty({
+    description: 'Lista de benefícios incluídos na categoria',
+    example: ['Acesso à pista', 'Barracas de comida', 'Estacionamento'],
+    required: false,
+    type: [String],
   })
-  @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  @IsOptional()
   benefits?: string[];
 }

@@ -50,7 +50,7 @@ export class CreatePaymentUseCase {
       }
 
       // Verificar se o ingresso pertence ao usuário
-      if (!ticket.belongsTo(userId)) {
+      if (ticket.userId !== userId) {
         throw new InvalidOperationException(
           'Create payment',
           'Ticket does not belong to this user'
@@ -75,18 +75,11 @@ export class CreatePaymentUseCase {
       }
 
       // Criar pagamento
-      let payment = new Payment(
-        uuidv4(),
-        createPaymentDto.ticketId,
+      let payment = Payment.create(
         userId,
+        createPaymentDto.ticketId,
         createPaymentDto.amount,
         createPaymentDto.method,
-        PaymentStatus.PENDING,
-        undefined,
-        undefined,
-        createPaymentDto.installments,
-        undefined,
-        new Date(),
       );
 
       // Gerar dados específicos do método de pagamento
@@ -94,18 +87,13 @@ export class CreatePaymentUseCase {
         const pixCode = this.generatePixCode(createPaymentDto.amount, user.name, user.email);
         const pixQrCode = await this.generatePixQrCode(pixCode);
         
-        payment = new Payment(
-          payment.id,
-          payment.ticketId,
-          payment.userId,
-          payment.amount,
-          payment.method,
-          payment.status,
+        payment = Payment.create(
+          userId,
+          createPaymentDto.ticketId,
+          createPaymentDto.amount,
+          createPaymentDto.method,
           pixCode,
           pixQrCode,
-          payment.installments,
-          payment.transactionId,
-          payment.createdAt,
         );
       }
 

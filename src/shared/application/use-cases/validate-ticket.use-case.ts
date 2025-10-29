@@ -5,6 +5,7 @@ import { ILogger } from '../interfaces/logger.interface';
 import { ValidateTicketDto } from '../../presentation/dtos/validate-ticket.dto';
 import { TicketNotFoundException } from '../../domain/exceptions/ticket-not-found.exception';
 import { InvalidOperationException } from '../../domain/exceptions/invalid-operation.exception';
+import { TicketStatus } from '../../domain/value-objects/ticket-status.enum';
 
 export interface ValidateTicketResult {
   valid: boolean;
@@ -56,12 +57,12 @@ export class ValidateTicketUseCase {
       }
 
       // Verificar se o ingresso pode ser usado
-      if (!ticket.canBeUsed()) {
+      if (ticket.status !== TicketStatus.ACTIVE) {
         let message = 'Ingresso inválido';
         
-        if (ticket.isUsed()) {
+        if (ticket.status === TicketStatus.USED) {
           message = 'Ingresso já foi utilizado';
-        } else if (ticket.isCancelled()) {
+        } else if (ticket.status === TicketStatus.CANCELLED) {
           message = 'Ingresso cancelado';
         } else if (new Date() < ticket.eventDate) {
           message = 'Evento ainda não começou';

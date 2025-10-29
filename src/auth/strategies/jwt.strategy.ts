@@ -9,19 +9,22 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
   ) {
+    const jwtSecret = process.env.JWT_SECRET || 'pazdedeus';
+    console.log('🔧 JWT Strategy - JWT_SECRET configurado:', jwtSecret ? 'SIM' : 'NÃO');
+    
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'gwan-shop-secret-key',
+      secretOrKey: jwtSecret,
     });
   }
 
   async validate(payload: any) {
-    console.log('🔍 JWT Strategy - Payload recebido:', payload);
-    console.log('🔍 JWT Strategy - Buscando usuário com ID:', payload.sub);
-    
     const user = await this.userRepository.findById(payload.sub);
-    console.log('🔍 JWT Strategy - Usuário encontrado:', user ? { id: user.id, email: user.email } : 'null');
+    
+    if (!user) {
+      return null;
+    }
     
     return user;
   }

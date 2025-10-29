@@ -1,5 +1,7 @@
 # 🔌 Model Context Protocol (MCP) - Visão Geral
 
+> Consulte também o [Guia de Integração MCP](./integration.md) para passos práticos de configuração e exemplos de uso em clientes MCP.
+
 ## Introdução
 
 O Model Context Protocol (MCP) é um protocolo que permite que modelos de IA acessem dados e ferramentas externas de forma padronizada. No Gwan Events Backend, implementamos um servidor MCP que expõe as APIs de eventos como tools para clientes MCP.

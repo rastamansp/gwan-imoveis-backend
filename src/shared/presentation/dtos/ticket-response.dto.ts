@@ -72,9 +72,9 @@ export class TicketResponseDto {
     dto.qrCode = ticket.qrCode;
     dto.qrCodeData = ticket.qrCodeData;
     dto.status = ticket.status;
-    dto.purchaseDate = ticket.purchaseDate;
-    dto.usedDate = ticket.usedDate;
-    dto.transferDate = ticket.transferDate;
+    dto.purchaseDate = ticket.purchasedAt;
+    dto.usedDate = ticket.usedAt;
+    dto.transferDate = ticket.transferredAt;
     dto.transferredTo = ticket.transferredTo;
     return dto;
   }

@@ -1,0 +1,81 @@
+### Chat API - Testes
+
+@baseUrl = http://localhost:3001
+
+### 1) Listar eventos (MCP via agente)
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Liste eventos de Música em São Paulo"
+}
+
+### 1.1) Buscar eventos por título/palavra-chave (via search_events_by_query)
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Busque eventos com o nome Culto"
+}
+
+### 1.2) Buscar evento por código amigável (via search_events_by_query)
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Encontre o evento com código EVT-AMA3RU"
+}
+
+### 2) Detalhes de evento por ID
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Mostre os detalhes do evento ab1eb579-9fde-4a9b-b596-f0bc83649ac0"
+}
+
+### 2.1) Preços de ingressos por evento (ID)
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Quais os preços dos ingressos do evento ab1eb579-9fde-4a9b-b596-f0bc83649ac0?"
+}
+
+### 2.2) Preços de ingressos por evento (placeholder <id>)
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Quais os preços dos ingressos do evento ab1eb579-9fde-4a9b-b596-f0bc83649ac0?"
+}
+
+### 3) Sugestão com contexto do usuário
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Sugira eventos para hoje",
+  "userCtx": {
+    "city": "São Paulo",
+    "date": "2025-10-29",
+    "language": "pt-BR"
+  }
+}
+
+### (Opcional) Verificar tools disponíveis no bridge MCP
+GET {{baseUrl}}/api/mcp/tools
+
+### (Opcional) Chamar list_events diretamente no bridge MCP
+POST {{baseUrl}}/api/mcp/tools/call
+Content-Type: application/json
+
+{
+  "name": "list_events",
+  "arguments": {
+    "category": "Música",
+    "city": "São Paulo"
+  }
+}
+
+

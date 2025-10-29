@@ -11,6 +11,10 @@ export class Event {
   @Column({ type: 'varchar', length: 255 })
   title: string;
 
+  @Index({ unique: true })
+  @Column({ type: 'varchar', length: 16, nullable: true })
+  code: string | null;
+
   @Column({ type: 'text' })
   description: string;
 

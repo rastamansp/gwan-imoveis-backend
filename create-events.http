@@ -1,0 +1,60 @@
+### Login e Criação de Eventos - Fluxo Rápido
+
+### IMPORTANTE: Para criar eventos, o usuário precisa ter role ORGANIZER ou ADMIN
+### Se você receber erro 403 "User does not have permission to create events", 
+### siga os passos de promoção em src/users/promote-user.http
+
+### 1. Login (EXECUTE PRIMEIRO)
+POST http://localhost:3001/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "joao.silva@exemplo.com",
+  "password": "senha123456"
+}
+
+### 2. Criar Festival de Música (SUBSTITUA {{token}} pelo token do login acima)
+POST http://localhost:3001/api/events
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Festival de Música Eletrônica",
+  "description": "O maior festival de música eletrônica da cidade com os melhores DJs nacionais e internacionais.",
+  "date": "2024-06-15T20:00:00.000Z",
+  "location": "Parque da Cidade",
+  "address": "Av. das Flores, 123",
+  "city": "São Paulo",
+  "state": "SP",
+  "image": "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800",
+  "category": "Música",
+  "maxCapacity": 5000
+}
+
+### 3. Criar Workshop de Programação
+POST http://localhost:3001/api/events
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Workshop de Programação",
+  "description": "Aprenda as melhores práticas de desenvolvimento web com especialistas da área.",
+  "date": "2024-05-20T09:00:00.000Z",
+  "location": "Centro de Convenções",
+  "address": "Rua da Tecnologia, 456",
+  "city": "Rio de Janeiro",
+  "state": "RJ",
+  "image": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800",
+  "category": "Educação",
+  "maxCapacity": 200
+}
+
+### 4. Verificar eventos criados
+GET http://localhost:3001/api/events
+Authorization: Bearer {{token}}
+
+### INSTRUÇÕES DE PROMOÇÃO:
+### Se você receber erro 403 ao tentar criar eventos:
+### 1. Execute primeiro: npm run admin:create (para criar usuário ADMIN)
+### 2. Use o arquivo src/users/promote-user.http para promover o usuário
+### 3. Depois execute este arquivo novamente

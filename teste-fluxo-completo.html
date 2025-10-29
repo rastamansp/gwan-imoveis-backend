@@ -1,338 +1,158 @@
-# Teste do Fluxo Completo - Gwan Events Backend
-
-## Cenário de Teste: Usuário Completa Todo o Ciclo
-
-Este arquivo demonstra como testar todo o fluxo do usuário desde o registro até o check-in.
-
-### Pré-requisitos
-- Backend rodando em `http://localhost:3001`
-- Frontend rodando em `http://localhost:3000`
-- CORS configurado corretamente
-
-### 1. Registro de Usuário
-
-```http
-### Registro de novo usuário
-POST http://localhost:3001/api/auth/register
-Content-Type: application/json
-
-{
-  "email": "joao.silva@exemplo.com",
-  "password": "senha123456",
-  "name": "João Silva",
-  "phone": "+5511999999999"
-}
-```
-
-**Resposta esperada:**
-```json
-{
-  "user": {
-    "id": "uuid-user-id",
-    "email": "joao.silva@exemplo.com",
-    "name": "João Silva",
-    "phone": "+5511999999999"
-  },
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "refresh-token-uuid"
-}
-```
-
-### 2. Buscar Eventos Disponíveis
-
-```http
-### Listar eventos
-GET http://localhost:3001/api/events?page=1&limit=5
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-**Resposta esperada:**
-```json
-{
-  "events": [
-    {
-      "id": "event-uuid-1",
-      "title": "Festival de Música Eletrônica",
-      "description": "O maior festival da cidade",
-      "date": "2024-06-15T20:00:00Z",
-      "location": "Parque Ibirapuera",
-      "status": "ACTIVE",
-      "maxCapacity": 5000,
-      "soldTickets": 1200
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 5,
-    "total": 1,
-    "totalPages": 1
-  }
-}
-```
-
-### 3. Visualizar Detalhes do Evento
-
-```http
-### Detalhes do evento
-GET http://localhost:3001/api/events/event-uuid-1
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-**Resposta esperada:**
-```json
-{
-  "id": "event-uuid-1",
-  "title": "Festival de Música Eletrônica",
-  "description": "O maior festival da cidade com os melhores DJs",
-  "date": "2024-06-15T20:00:00Z",
-  "location": "Parque Ibirapuera",
-  "address": "Av. Pedro Álvares Cabral, s/n - Vila Mariana",
-  "status": "ACTIVE",
-  "maxCapacity": 5000,
-  "soldTickets": 1200,
-  "organizer": {
-    "id": "org-uuid",
-    "name": "Produtora XYZ"
-  }
-}
-```
-
-### 4. Ver Categorias de Ingressos
-
-```http
-### Categorias de ingressos
-GET http://localhost:3001/api/events/event-uuid-1/ticket-categories
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-**Resposta esperada:**
-```json
-{
-  "categories": [
-    {
-      "id": "cat-uuid-1",
-      "name": "Pista",
-      "description": "Acesso à pista principal",
-      "price": 150.00,
-      "available": 800,
-      "maxPerUser": 4,
-      "benefits": ["Acesso à pista", "Barracas de comida"]
-    },
-    {
-      "id": "cat-uuid-2",
-      "name": "VIP",
-      "description": "Área VIP com open bar",
-      "price": 300.00,
-      "available": 200,
-      "maxPerUser": 2,
-      "benefits": ["Área VIP", "Open bar", "Estacionamento"]
-    }
-  ]
-}
-```
-
-### 5. Processar Pagamento
-
-```http
-### Processar pagamento
-POST http://localhost:3001/api/payments/process
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-Content-Type: application/json
-
-{
-  "eventId": "event-uuid-1",
-  "tickets": [
-    {
-      "categoryId": "cat-uuid-1",
-      "quantity": 2
-    }
-  ],
-  "paymentMethod": "credit_card",
-  "paymentData": {
-    "cardNumber": "4111111111111111",
-    "expiryMonth": "12",
-    "expiryYear": "2025",
-    "cvv": "123",
-    "holderName": "JOÃO SILVA"
-  }
-}
-```
-
-**Resposta esperada:**
-```json
-{
-  "paymentId": "payment-uuid-1",
-  "status": "processing",
-  "amount": 300.00,
-  "gatewayResponse": {
-    "transactionId": "gateway-tx-123",
-    "status": "pending"
-  }
-}
-```
-
-### 6. Verificar Status do Pagamento
-
-```http
-### Status do pagamento
-GET http://localhost:3001/api/payments/payment-uuid-1/status
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-**Resposta esperada:**
-```json
-{
-  "paymentId": "payment-uuid-1",
-  "status": "approved",
-  "amount": 300.00,
-  "approvedAt": "2024-01-15T10:30:00Z",
-  "tickets": [
-    {
-      "id": "ticket-uuid-1",
-      "code": "ABC123456",
-      "categoryName": "Pista",
-      "price": 150.00
-    },
-    {
-      "id": "ticket-uuid-2",
-      "code": "ABC123457",
-      "categoryName": "Pista",
-      "price": 150.00
-    }
-  ]
-}
-```
-
-### 7. Visualizar Meus Ingressos
-
-```http
-### Meus ingressos
-GET http://localhost:3001/api/tickets/my-tickets
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-**Resposta esperada:**
-```json
-{
-  "tickets": [
-    {
-      "id": "ticket-uuid-1",
-      "code": "ABC123456",
-      "event": {
-        "id": "event-uuid-1",
-        "title": "Festival de Música Eletrônica",
-        "date": "2024-06-15T20:00:00Z",
-        "location": "Parque Ibirapuera"
-      },
-      "category": {
-        "name": "Pista",
-        "price": 150.00
-      },
-      "status": "ACTIVE",
-      "purchasedAt": "2024-01-15T10:30:00Z",
-      "qrCode": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
-    },
-    {
-      "id": "ticket-uuid-2",
-      "code": "ABC123457",
-      "event": {
-        "id": "event-uuid-1",
-        "title": "Festival de Música Eletrônica",
-        "date": "2024-06-15T20:00:00Z",
-        "location": "Parque Ibirapuera"
-      },
-      "category": {
-        "name": "Pista",
-        "price": 150.00
-      },
-      "status": "ACTIVE",
-      "purchasedAt": "2024-01-15T10:30:00Z",
-      "qrCode": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
-    }
-  ]
-}
-```
-
-### 8. Validar Ingresso (Check-in)
-
-```http
-### Validar ingresso para check-in
-POST http://localhost:3001/api/tickets/validate
-Content-Type: application/json
-
-{
-  "ticketCode": "ABC123456",
-  "scannerId": "scanner-uuid-1",
-  "location": "Entrada Principal"
-}
-```
-
-**Resposta esperada:**
-```json
-{
-  "valid": true,
-  "ticket": {
-    "id": "ticket-uuid-1",
-    "code": "ABC123456",
-    "eventTitle": "Festival de Música Eletrônica",
-    "categoryName": "Pista",
-    "holderName": "João Silva",
-    "status": "ACTIVE",
-    "checkInStatus": "NOT_CHECKED_IN"
-  },
-  "message": "Ingresso válido para check-in"
-}
-```
-
-### 9. Realizar Check-in
-
-```http
-### Fazer check-in
-POST http://localhost:3001/api/tickets/checkin
-Content-Type: application/json
-
-{
-  "ticketCode": "ABC123456",
-  "scannerId": "scanner-uuid-1",
-  "location": "Entrada Principal",
-  "timestamp": "2024-06-15T19:45:00Z"
-}
-```
-
-**Resposta esperada:**
-```json
-{
-  "success": true,
-  "ticket": {
-    "id": "ticket-uuid-1",
-    "code": "ABC123456",
-    "checkInStatus": "CHECKED_IN",
-    "checkedInAt": "2024-06-15T19:45:00Z",
-    "checkedInBy": "scanner-uuid-1"
-  },
-  "message": "Check-in realizado com sucesso"
-}
-```
-
-## Teste com Frontend
-
-### HTML de Teste Completo
-
-```html
 <!DOCTYPE html>
 <html>
 <head>
     <title>Teste Fluxo Completo - Gwan Events</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .step { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
-        .success { background-color: #d4edda; border-color: #c3e6cb; }
-        .error { background-color: #f8d7da; border-color: #f5c6cb; }
-        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
-        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            margin-bottom: 30px;
+        }
+        .step { 
+            margin: 20px 0; 
+            padding: 20px; 
+            border: 2px solid #e0e0e0; 
+            border-radius: 10px;
+            background: #fafafa;
+            transition: all 0.3s ease;
+        }
+        .step:hover {
+            border-color: #667eea;
+            background: #f5f5ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+        .step h3 {
+            color: #667eea;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .success { 
+            background-color: #d4edda; 
+            border-color: #28a745;
+            border-width: 2px;
+        }
+        .error { 
+            background-color: #f8d7da; 
+            border-color: #dc3545;
+            border-width: 2px;
+        }
+        button { 
+            padding: 12px 24px; 
+            margin: 5px; 
+            cursor: pointer;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        pre { 
+            background: #f8f9fa; 
+            color: #333;
+            padding: 10px; 
+            border-radius: 4px; 
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            border: 1px solid #ddd;
+        }
+        pre * {
+            color: #333 !important;
+        }
+        code {
+            background: #f4f4f4;
+            color: #333;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .error pre,
+        .success pre {
+            background: #f8f9fa;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        .error pre *,
+        .success pre * {
+            color: #333 !important;
+        }
+        .ticket-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .qrcode-section {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .qrcode-section img {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+        select, input[type="number"] {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            cursor: pointer;
+        }
+        select:hover, input[type="number"]:hover {
+            border-color: #667eea;
+        }
+        select:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        option {
+            padding: 8px;
+        }
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { padding: 15px; }
+        }
     </style>
 </head>
 <body>
+    <div class="container">
     <h1>🎫 Teste Fluxo Completo - Gwan Events</h1>
     
     <div class="step">
@@ -343,6 +163,12 @@ Content-Type: application/json
     </div>
 
     <div class="step">
+        <h3>1.5. Promover para Organizador</h3>
+        <button onclick="promoteToOrganizer()">Promover Usuário para ORGANIZER</button>
+        <div id="promote-result"></div>
+    </div>
+
+    <div class="step">
         <h3>2. Buscar Eventos</h3>
         <button onclick="searchEvents()">Buscar Eventos</button>
         <div id="events-result"></div>
@@ -350,6 +176,15 @@ Content-Type: application/json
 
     <div class="step">
         <h3>3. Detalhes do Evento</h3>
+        <p><small>⚠️ Carregue os eventos no passo 2 e selecione abaixo</small></p>
+
+        <div style="margin: 15px 0;">
+            <label for="event-select" style="font-weight: 600; display: block; margin-bottom: 8px;">Selecione o evento:</label>
+            <select id="event-select" style="padding: 10px; width: 100%; max-width: 500px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                <option value="">Carregue os eventos primeiro (passo 2)</option>
+            </select>
+        </div>
+
         <button onclick="getEventDetails()">Ver Detalhes</button>
         <div id="event-details-result"></div>
     </div>
@@ -361,40 +196,84 @@ Content-Type: application/json
     </div>
 
     <div class="step">
-        <h3>5. Processar Pagamento</h3>
-        <button onclick="processPayment()">Processar Pagamento</button>
+        <h3>5. Comprar Ingresso</h3>
+        <p><small>⚠️ Certifique-se de ter carregado as categorias de ingressos primeiro (passo 4)</small></p>
+        
+        <div style="margin: 15px 0;">
+            <label for="category-select" style="font-weight: 600; display: block; margin-bottom: 8px;">Selecione a categoria de ingresso:</label>
+            <select id="category-select" style="padding: 10px; width: 100%; max-width: 500px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                <option value="">Carregue as categorias primeiro (passo 4)</option>
+            </select>
+        </div>
+        
+        <div style="margin: 10px 0;">
+            <label for="quantity-select" style="font-weight: 600; display: block; margin-bottom: 8px;">Quantidade:</label>
+            <input type="number" id="quantity-input" value="1" min="1" max="10" style="padding: 10px; width: 100%; max-width: 200px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+        </div>
+        
+        <button onclick="processPayment()">Comprar Ingresso</button>
         <div id="payment-result"></div>
     </div>
 
     <div class="step">
-        <h3>6. Verificar Status do Pagamento</h3>
-        <button onclick="checkPaymentStatus()">Verificar Status</button>
-        <div id="payment-status-result"></div>
-    </div>
-
-    <div class="step">
-        <h3>7. Meus Ingressos</h3>
+        <h3>6. Meus Ingressos</h3>
         <button onclick="getMyTickets()">Ver Meus Ingressos</button>
+        <button onclick="generateQRCode()">Gerar QR Code Individual</button>
         <div id="tickets-result"></div>
     </div>
 
     <div class="step">
+        <h3>7. Verificar Detalhes do Ingresso</h3>
+        <p><small>⚠️ Certifique-se de ter carregado "Meus Ingressos" primeiro (passo 6) para popular a lista</small></p>
+        
+        <div style="margin: 15px 0;">
+            <label for="detail-ticket-select" style="font-weight: 600; display: block; margin-bottom: 8px;">Selecione o ingresso para ver detalhes:</label>
+            <select id="detail-ticket-select" style="padding: 10px; width: 100%; max-width: 500px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                <option value="">Carregue 'Meus Ingressos' primeiro (passo 6)</option>
+            </select>
+        </div>
+        
+        <button onclick="checkPaymentStatus()">Verificar Detalhes</button>
+        <div id="payment-status-result"></div>
+    </div>
+
+    <div class="step">
         <h3>8. Validar Ingresso</h3>
+        <p><small>⚠️ Certifique-se de ter carregado "Meus Ingressos" primeiro (passo 6) para popular a lista</small></p>
+        
+        <div style="margin: 15px 0;">
+            <label for="ticket-select" style="font-weight: 600; display: block; margin-bottom: 8px;">Selecione o ingresso para validar:</label>
+            <select id="ticket-select" style="padding: 10px; width: 100%; max-width: 500px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                <option value="">Carregue 'Meus Ingressos' primeiro (passo 6)</option>
+            </select>
+        </div>
+        
         <button onclick="validateTicket()">Validar Ingresso</button>
         <div id="validate-result"></div>
     </div>
 
     <div class="step">
         <h3>9. Check-in</h3>
+        <p><small>⚠️ Certifique-se de ter carregado "Meus Ingressos" primeiro (passo 6) para popular a lista</small></p>
+        
+        <div style="margin: 15px 0;">
+            <label for="checkin-ticket-select" style="font-weight: 600; display: block; margin-bottom: 8px;">Selecione o ingresso para check-in:</label>
+            <select id="checkin-ticket-select" style="padding: 10px; width: 100%; max-width: 500px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                <option value="">Carregue 'Meus Ingressos' primeiro (passo 6)</option>
+            </select>
+        </div>
+        
         <button onclick="checkIn()">Fazer Check-in</button>
         <div id="checkin-result"></div>
     </div>
 
     <script>
         let authToken = '';
-        let currentEventId = '';
+        let currentEventId = 'ab1eb579-9fde-4a9b-b596-f0bc83649ac0'; // ID do evento existente
         let currentTicketCode = '';
         let currentPaymentId = '';
+        let adminToken = '';
+        let currentUserId = '';
 
         async function registerUser() {
             try {
@@ -410,18 +289,30 @@ Content-Type: application/json
                 });
 
                 const data = await response.json();
+                console.log('=== RESPOSTA DO REGISTRO ===');
+                console.log('Status da resposta:', response.status);
+                console.log('Status OK?', response.ok);
+                console.log('Dados recebidos:', data);
+                console.log('Tipo de data.access_token:', typeof data.access_token);
+                console.log('Valor de data.access_token:', data.access_token);
+                console.log('=== FIM DA RESPOSTA ===');
+                
                 if (response.ok) {
                     authToken = data.access_token;
+                    currentUserId = data.user.id;
+                    console.log('Token definido como:', authToken);
+                    console.log('User ID capturado:', currentUserId);
                     document.getElementById('register-result').innerHTML = `
                         <div class="success">
                             <h4>✅ Usuário registrado com sucesso!</h4>
-                            <p><strong>Token:</strong> ${authToken.substring(0, 20)}...</p>
+                            <p><strong>Token:</strong> ${authToken ? authToken.substring(0, 20) + '...' : 'Não disponível'}</p>
+                            <p><strong>User ID:</strong> ${currentUserId}</p>
                             <pre>${JSON.stringify(data, null, 2)}</pre>
                         </div>
                     `;
                 } else {
                     // Se o usuário já existe, sugere fazer login
-                    if (data.message && data.message.includes('already exists')) {
+                    if (data.message && (data.message.includes('already exists') || data.message.includes('já está cadastrado'))) {
                         document.getElementById('register-result').innerHTML = `
                             <div class="error">
                                 <h4>⚠️ Usuário já existe!</h4>
@@ -457,10 +348,12 @@ Content-Type: application/json
                 const data = await response.json();
                 if (response.ok) {
                     authToken = data.access_token;
+                    currentUserId = data.user.id;
                     document.getElementById('register-result').innerHTML = `
                         <div class="success">
                             <h4>✅ Login realizado com sucesso!</h4>
-                            <p><strong>Token:</strong> ${authToken.substring(0, 20)}...</p>
+                            <p><strong>Token:</strong> ${authToken ? authToken.substring(0, 20) + '...' : 'Não disponível'}</p>
+                            <p><strong>User ID:</strong> ${currentUserId}</p>
                             <pre>${JSON.stringify(data, null, 2)}</pre>
                         </div>
                     `;
@@ -477,10 +370,103 @@ Content-Type: application/json
             }
         }
 
+        async function promoteToOrganizer() {
+            try {
+                console.log('🚀 Iniciando processo de promoção...');
+                
+                // Primeiro, fazer login como ADMIN
+                console.log('1. Fazendo login como ADMIN...');
+                const adminLoginResponse = await fetch('http://localhost:3001/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@gwanshop.com',
+                        password: 'admin123'
+                    })
+                });
+
+                if (!adminLoginResponse.ok) {
+                    throw new Error('Erro ao fazer login como ADMIN. Execute primeiro: npm run db:seed:simple');
+                }
+
+                const adminData = await adminLoginResponse.json();
+                adminToken = adminData.access_token;
+                console.log('✅ Login como ADMIN realizado:', adminToken ? 'SIM' : 'NÃO');
+                console.log('🔑 Token do ADMIN:', adminToken ? adminToken.substring(0, 20) + '...' : 'NÃO DISPONÍVEL');
+
+                // Verificar se temos o userId do usuário a ser promovido
+                if (!currentUserId) {
+                    throw new Error('User ID não encontrado. Faça login primeiro.');
+                }
+
+                console.log('2. Promovendo usuário:', currentUserId);
+                console.log('🔑 Usando token do ADMIN:', adminToken ? adminToken.substring(0, 20) + '...' : 'NÃO DISPONÍVEL');
+                
+                // Promover usuário para ORGANIZER
+                const promoteResponse = await fetch(`http://localhost:3001/api/users/${currentUserId}/promote`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        targetRole: 'ORGANIZER'
+                    })
+                });
+
+                console.log('📊 Status da resposta de promoção:', promoteResponse.status);
+                console.log('📊 Status OK?', promoteResponse.ok);
+
+                const promoteData = await promoteResponse.json();
+                console.log('📋 Resposta da promoção:', promoteData);
+
+                if (promoteResponse.ok) {
+                    document.getElementById('promote-result').innerHTML = `
+                        <div class="success">
+                            <h4>✅ Usuário promovido para ORGANIZER!</h4>
+                            <p><strong>Usuário:</strong> ${promoteData.name}</p>
+                            <p><strong>Email:</strong> ${promoteData.email}</p>
+                            <p><strong>Role:</strong> ${promoteData.role}</p>
+                            <pre>${JSON.stringify(promoteData, null, 2)}</pre>
+                        </div>
+                    `;
+                    
+                    // Fazer login novamente como usuário promovido para atualizar o token
+                    console.log('3. Fazendo login novamente como usuário promovido...');
+                    const newLoginResponse = await fetch('http://localhost:3001/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email: 'joao.silva@exemplo.com',
+                            password: 'senha123456'
+                        })
+                    });
+
+                    if (newLoginResponse.ok) {
+                        const newLoginData = await newLoginResponse.json();
+                        authToken = newLoginData.access_token;
+                        console.log('✅ Novo token obtido com role ORGANIZER');
+                    }
+                } else {
+                    throw new Error(promoteData.message || 'Erro na promoção');
+                }
+            } catch (error) {
+                document.getElementById('promote-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Erro na promoção:</h4>
+                        <p>${error.message}</p>
+                        <p><strong>Dica:</strong> Execute primeiro: npm run db:seed:simple</p>
+                    </div>
+                `;
+            }
+        }
+
         async function searchEvents() {
             try {
-                const response = await fetch('http://localhost:3001/api/events?page=1&limit=5', {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
+                const response = await fetch('http://localhost:3001/api/events', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
                 });
 
                 const data = await response.json();
@@ -488,11 +474,34 @@ Content-Type: application/json
                 if (response.ok) {
                     // A API retorna um array diretamente, não um objeto com propriedade 'events'
                     const events = Array.isArray(data) ? data : data.events || [];
-                    currentEventId = events[0]?.id || '';
-                    console.log('Eventos encontrados:', events.length, 'Primeiro evento ID:', currentEventId);
+                    // Não sobrescrever currentEventId se já estiver definido
+                    if (!currentEventId) {
+                        currentEventId = events[0]?.id || '';
+                    }
+                    // Preencher o select de eventos no passo 3, se existir
+                    const eventSelect = document.getElementById('event-select');
+                    if (eventSelect) {
+                        eventSelect.innerHTML = '<option value="">Selecione um evento</option>';
+                        events.forEach(ev => {
+                            const option = document.createElement('option');
+                            option.value = ev.id;
+                            const dateText = ev.date ? new Date(ev.date).toLocaleString() : '';
+                            option.textContent = `${ev.title || 'Evento'}${dateText ? ' - ' + dateText : ''}`;
+                            eventSelect.appendChild(option);
+                        });
+                        // Selecionar o evento atual se existir; caso contrário, o primeiro
+                        if (currentEventId) {
+                            eventSelect.value = currentEventId;
+                        } else if (events[0]) {
+                            eventSelect.value = events[0].id;
+                            currentEventId = events[0].id;
+                        }
+                    }
+                    console.log('Eventos encontrados:', events.length, 'Evento atual ID:', currentEventId);
                     document.getElementById('events-result').innerHTML = `
                         <div class="success">
                             <h4>✅ Eventos encontrados! (${events.length} eventos)</h4>
+                            <p><strong>Evento selecionado:</strong> ${currentEventId}</p>
                             <pre>${JSON.stringify(data, null, 2)}</pre>
                         </div>
                     `;
@@ -510,18 +519,26 @@ Content-Type: application/json
         }
 
         async function getEventDetails() {
-            if (!currentEventId) {
+            // Preferir o evento selecionado no select do passo 3
+            const eventSelect = document.getElementById('event-select');
+            const selectedEventId = eventSelect && eventSelect.value ? eventSelect.value : currentEventId;
+
+            if (!selectedEventId) {
                 document.getElementById('event-details-result').innerHTML = `
                     <div class="error">
                         <h4>❌ Nenhum evento selecionado</h4>
+                        <p>Carregue os eventos (passo 2) e selecione um evento acima.</p>
                     </div>
                 `;
                 return;
             }
 
             try {
-                const response = await fetch(`http://localhost:3001/api/events/${currentEventId}`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
+                // Atualizar o currentEventId com a seleção atual
+                currentEventId = selectedEventId;
+                const response = await fetch(`http://localhost:3001/api/events/${selectedEventId}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
                 });
 
                 const data = await response.json();
@@ -557,16 +574,39 @@ Content-Type: application/json
 
             try {
                 const response = await fetch(`http://localhost:3001/api/events/${currentEventId}/ticket-categories`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
                 });
 
                 const data = await response.json();
                 if (response.ok) {
                     // A API pode retornar um array diretamente ou um objeto com propriedade 'categories'
                     const categories = Array.isArray(data) ? data : data.categories || [];
+                    
+                    // Preencher a combobox de categorias
+                    const categorySelect = document.getElementById('category-select');
+                    categorySelect.innerHTML = '<option value="">Selecione uma categoria</option>';
+                    
+                    categories.forEach(category => {
+                        const option = document.createElement('option');
+                        option.value = category.id;
+                        // Converter price para número se for string
+                        const price = typeof category.price === 'string' ? parseFloat(category.price) : category.price;
+                        option.textContent = `${category.name} - R$ ${price.toFixed(2)}`;
+                        categorySelect.appendChild(option);
+                    });
+                    
+                    // Selecionar a primeira categoria por padrão (se disponível)
+                    if (categories.length > 0) {
+                        categorySelect.value = categories[0].id;
+                        console.log('Categoria padrão selecionada:', categories[0].id);
+                    }
+                    
                     document.getElementById('categories-result').innerHTML = `
                         <div class="success">
                             <h4>✅ Categorias de ingressos carregadas!</h4>
+                            <p><strong>Categorias disponíveis:</strong> ${categories.length}</p>
+                            <p><small>Selecione uma categoria no passo 5 para comprar ingresso.</small></p>
                             <pre>${JSON.stringify(data, null, 2)}</pre>
                         </div>
                     `;
@@ -604,11 +644,31 @@ Content-Type: application/json
                 return;
             }
 
+            // Ler a categoria selecionada da combobox
+            const categorySelect = document.getElementById('category-select');
+            const selectedCategoryId = categorySelect.value;
+            
+            // Ler a quantidade selecionada
+            const quantityInput = document.getElementById('quantity-input');
+            const quantity = parseInt(quantityInput.value) || 1;
+            
+            if (!selectedCategoryId) {
+                document.getElementById('payment-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Selecione uma categoria de ingresso.</h4>
+                        <p>Primeiro carregue as categorias (passo 4) e selecione uma na combobox acima.</p>
+                    </div>
+                `;
+                return;
+            }
+
             try {
                 console.log('=== INÍCIO DO PROCESSAMENTO DE PAGAMENTO ===');
                 console.log('Token disponível:', authToken ? 'SIM' : 'NÃO');
                 console.log('Token completo:', authToken);
                 console.log('Event ID:', currentEventId);
+                console.log('Category ID:', selectedCategoryId);
+                console.log('Quantity:', quantity);
                 
                 const headers = { 
                     'Content-Type': 'application/json',
@@ -617,20 +677,13 @@ Content-Type: application/json
                 
                 console.log('Headers sendo enviados:', headers);
                 
-                const response = await fetch('http://localhost:3001/api/payments/process', {
+                const response = await fetch('http://localhost:3001/api/tickets', {
                     method: 'POST',
                     headers: headers,
                     body: JSON.stringify({
                         eventId: currentEventId,
-                        tickets: [{ categoryId: 'cat-uuid-1', quantity: 1 }],
-                        paymentMethod: 'credit_card',
-                        paymentData: {
-                            cardNumber: '4111111111111111',
-                            expiryMonth: '12',
-                            expiryYear: '2025',
-                            cvv: '123',
-                            holderName: 'JOÃO SILVA'
-                        }
+                        categoryId: selectedCategoryId,
+                        quantity: quantity
                     })
                 });
 
@@ -643,18 +696,24 @@ Content-Type: application/json
                 console.log('Dados da resposta:', data);
                 console.log('=== FIM DA RESPOSTA ===');
                 if (response.ok) {
-                    currentPaymentId = data.paymentId;
+                    // A resposta é um array com um objeto dentro
+                    const ticket = Array.isArray(data) ? data[0] : data;
+                    currentPaymentId = ticket.id;
+                    console.log('Ticket ID capturado:', currentPaymentId);
+                    
                     document.getElementById('payment-result').innerHTML = `
                         <div class="success">
-                            <h4>✅ Pagamento processado!</h4>
-                            <p><strong>Payment ID:</strong> ${data.paymentId}</p>
-                            <p><strong>Status:</strong> ${data.status}</p>
-                            <p><strong>Valor:</strong> R$ ${data.amount}</p>
+                            <h4>✅ Ingresso comprado com sucesso!</h4>
+                            <p><strong>Ticket ID:</strong> ${ticket.id}</p>
+                            <p><strong>Evento:</strong> ${ticket.eventTitle}</p>
+                            <p><strong>Categoria:</strong> ${ticket.categoryName}</p>
+                            <p><strong>Preço:</strong> R$ ${ticket.price}</p>
+                            <p><strong>Status:</strong> ${ticket.status}</p>
                             <pre>${JSON.stringify(data, null, 2)}</pre>
                         </div>
                     `;
                 } else {
-                    throw new Error(data.message || 'Erro no pagamento');
+                    throw new Error(data.message || 'Erro na compra do ingresso');
                 }
             } catch (error) {
                 document.getElementById('payment-result').innerHTML = `
@@ -667,10 +726,15 @@ Content-Type: application/json
         }
 
         async function checkPaymentStatus() {
-            if (!currentPaymentId) {
+            // Ler o ingresso selecionado da combobox de detalhes
+            const detailTicketSelect = document.getElementById('detail-ticket-select');
+            const selectedTicketId = detailTicketSelect.value;
+            
+            if (!selectedTicketId) {
                 document.getElementById('payment-status-result').innerHTML = `
                     <div class="error">
-                        <h4>❌ Nenhum pagamento processado ainda</h4>
+                        <h4>❌ Nenhum ingresso selecionado</h4>
+                        <p>Por favor, selecione um ingresso na combobox acima ou carregue "Meus Ingressos" primeiro (passo 6).</p>
                     </div>
                 `;
                 return;
@@ -686,32 +750,33 @@ Content-Type: application/json
             }
 
             try {
-                console.log('Verificando status do pagamento:', currentPaymentId);
-                const response = await fetch(`http://localhost:3001/api/payments/${currentPaymentId}/status`, {
+                console.log('Verificando detalhes do ingresso:', selectedTicketId);
+                const response = await fetch(`http://localhost:3001/api/tickets/${selectedTicketId}`, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
 
                 const data = await response.json();
-                console.log('Status do pagamento:', data);
+                console.log('Detalhes do ingresso:', data);
                 if (response.ok) {
                     document.getElementById('payment-status-result').innerHTML = `
                         <div class="success">
-                            <h4>✅ Status do pagamento verificado!</h4>
-                            <p><strong>Payment ID:</strong> ${data.paymentId}</p>
+                            <h4>✅ Detalhes do ingresso carregados!</h4>
+                            <p><strong>Ticket ID:</strong> ${data.id}</p>
+                            <p><strong>Evento:</strong> ${data.eventTitle}</p>
+                            <p><strong>Categoria:</strong> ${data.categoryName}</p>
                             <p><strong>Status:</strong> ${data.status}</p>
-                            <p><strong>Valor:</strong> R$ ${data.amount}</p>
-                            <p><strong>Aprovado em:</strong> ${data.approvedAt}</p>
-                            <p><strong>Ingressos gerados:</strong> ${data.tickets.length}</p>
+                            <p><strong>Preço:</strong> R$ ${data.price}</p>
+                            <p><strong>Comprado em:</strong> ${data.purchaseDate || data.purchasedAt}</p>
                             <pre>${JSON.stringify(data, null, 2)}</pre>
                         </div>
                     `;
                 } else {
-                    throw new Error(data.message || 'Erro ao verificar status');
+                    throw new Error(data.message || 'Erro ao verificar ingresso');
                 }
             } catch (error) {
                 document.getElementById('payment-status-result').innerHTML = `
                     <div class="error">
-                        <h4>❌ Erro ao verificar status:</h4>
+                        <h4>❌ Erro ao verificar ingresso:</h4>
                         <p>${error.message}</p>
                     </div>
                 `;
@@ -729,7 +794,7 @@ Content-Type: application/json
             }
 
             try {
-                console.log('Buscando ingressos com token:', authToken.substring(0, 20) + '...');
+                console.log('Buscando ingressos com token:', authToken ? authToken.substring(0, 20) + '...' : 'Token não disponível');
                 const response = await fetch('http://localhost:3001/api/tickets/my-tickets', {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
@@ -738,13 +803,109 @@ Content-Type: application/json
                 if (response.ok) {
                     // A API pode retornar um array diretamente ou um objeto com propriedade 'tickets'
                     const tickets = Array.isArray(data) ? data : data.tickets || [];
-                    currentTicketCode = tickets[0]?.code || '';
-                    document.getElementById('tickets-result').innerHTML = `
+                    
+                    // Preencher a combobox de ingressos para validação
+                    const ticketSelect = document.getElementById('ticket-select');
+                    const checkinTicketSelect = document.getElementById('checkin-ticket-select');
+                    const detailTicketSelect = document.getElementById('detail-ticket-select');
+                    
+                    ticketSelect.innerHTML = '<option value="">Selecione um ingresso</option>';
+                    checkinTicketSelect.innerHTML = '<option value="">Selecione um ingresso</option>';
+                    detailTicketSelect.innerHTML = '<option value="">Selecione um ingresso</option>';
+                    
+                    tickets.forEach(ticket => {
+                        const ticketCode = ticket.qrCodeData || ticket.qrCode || ticket.code || ticket.id;
+                        const ticketLabel = `${ticket.eventTitle || ticket.event?.title || 'Evento'} - ${ticket.categoryName || ticket.category?.name || 'Categoria'}`;
+                        
+                        // Adicionar na combobox de validação
+                        const option1 = document.createElement('option');
+                        option1.value = ticketCode;
+                        option1.textContent = ticketLabel;
+                        ticketSelect.appendChild(option1);
+                        
+                        // Adicionar na combobox de check-in
+                        const option2 = document.createElement('option');
+                        option2.value = ticket.id; // Usar ID para check-in, não o código QR
+                        option2.textContent = ticketLabel;
+                        checkinTicketSelect.appendChild(option2);
+                        
+                        // Adicionar na combobox de detalhes
+                        const option3 = document.createElement('option');
+                        option3.value = ticket.id; // Usar ID para detalhes
+                        option3.textContent = ticketLabel;
+                        detailTicketSelect.appendChild(option3);
+                    });
+                    
+                    // Capturar código do ingresso da primeira propriedade disponível
+                    // O código pode estar em qrCodeData (formato TICKET_...), qrCode, code ou id
+                    const firstTicket = tickets[0];
+                    if (firstTicket) {
+                        currentTicketCode = firstTicket.qrCodeData || firstTicket.qrCode || firstTicket.code || firstTicket.id;
+                        // Selecionar o primeiro ingresso por padrão
+                        ticketSelect.value = currentTicketCode;
+                        console.log('Código do ingresso capturado:', currentTicketCode);
+                    }
+                    
+                    // Construir HTML com QR Code se disponível
+                    let ticketsHtml = `
                         <div class="success">
-                            <h4>✅ Ingressos carregados!</h4>
-                            <pre>${JSON.stringify(data, null, 2)}</pre>
-                        </div>
+                            <h4>✅ Ingressos carregados! (${tickets.length} ingresso(s))</h4>
                     `;
+                    
+                    tickets.forEach((ticket, index) => {
+                        ticketsHtml += `
+                            <div class="ticket-card" style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px;">
+                                <h5>Ingresso ${index + 1}</h5>
+                                <p><strong>Código:</strong> ${ticket.qrCode || ticket.code || ticket.id}</p>
+                                <p><strong>Evento:</strong> ${ticket.eventTitle || ticket.event?.title || 'N/A'}</p>
+                                <p><strong>Categoria:</strong> ${ticket.categoryName || ticket.category?.name || 'N/A'}</p>
+                                <p><strong>Status:</strong> ${ticket.status}</p>
+                                <p><strong>Preço:</strong> R$ ${ticket.price || ticket.category?.price || 0}</p>
+                        `;
+                        
+                        // Exibir QR Code se disponível
+                        const qrCodeImage = ticket.qrCode ? (ticket.qrCode.startsWith('data:image') ? ticket.qrCode : `data:image/png;base64,${ticket.qrCode}`) : null;
+                        const validationUrl = ticket.qrCodeData || ticket.qrCodeUrl || 'http://localhost:3001/api/tickets/validate?code=' + (ticket.qrCode || ticket.code || ticket.id) + '&apiKey=org_12345';
+                        
+                        if (qrCodeImage) {
+                            ticketsHtml += `
+                                <div class="qrcode-section" style="margin-top: 15px;">
+                                    <h6>📱 QR Code para Validação:</h6>
+                                    <img src="${qrCodeImage}" 
+                                         alt="QR Code do Ingresso" 
+                                         style="max-width: 200px; border: 1px solid #ccc; border-radius: 4px;">
+                                    <p><small><strong>URL de Validação:</strong><br>
+                                    <a href="${validationUrl}" target="_blank">${validationUrl}</a></small></p>
+                                    <button onclick="testValidationUrl('${validationUrl}')" 
+                                            style="background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+                                        🧪 Testar URL de Validação
+                                    </button>
+                                </div>
+                            `;
+                        } else {
+                            ticketsHtml += `
+                                <div class="qrcode-section" style="margin-top: 15px;">
+                                    <p><em>QR Code não disponível para este ingresso</em></p>
+                                    <button onclick="generateQRCode()" 
+                                            style="background: #007bff; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+                                        🔄 Gerar QR Code
+                                    </button>
+                                </div>
+                            `;
+                        }
+                        
+                        ticketsHtml += `</div>`;
+                    });
+                    
+                    ticketsHtml += `
+                        </div>
+                        <details style="margin-top: 15px;">
+                            <summary>📋 Dados Completos da API</summary>
+                            <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto;">${JSON.stringify(data, null, 2)}</pre>
+                        </details>
+                    `;
+                    
+                    document.getElementById('tickets-result').innerHTML = ticketsHtml;
                 } else {
                     throw new Error(data.message || 'Erro ao carregar ingressos');
                 }
@@ -758,32 +919,161 @@ Content-Type: application/json
             }
         }
 
-        async function validateTicket() {
-            if (!currentTicketCode) {
-                document.getElementById('validate-result').innerHTML = `
+        // Nova função para gerar QR Code individual
+        async function generateQRCode() {
+            if (!authToken) {
+                document.getElementById('tickets-result').innerHTML = `
                     <div class="error">
-                        <h4>❌ Nenhum ingresso disponível</h4>
+                        <h4>❌ Token de autenticação não encontrado. Faça o registro primeiro.</h4>
                     </div>
                 `;
                 return;
             }
 
             try {
-                const response = await fetch('http://localhost:3001/api/tickets/validate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ticketCode: currentTicketCode,
-                        scannerId: 'scanner-uuid-1',
-                        location: 'Entrada Principal'
-                    })
+                console.log('🚀 Gerando QR Code individual...');
+                console.log('Token disponível:', authToken ? 'SIM' : 'NÃO');
+                console.log('Usando ticket ID:', currentPaymentId || 'Nenhum ingresso comprado');
+                
+                if (!currentPaymentId) {
+                    throw new Error('Nenhum ingresso comprado ainda. Compre um ingresso primeiro.');
+                }
+                
+                const response = await fetch(`http://localhost:3001/api/tickets/${currentPaymentId}/qrcode`, {
+                    method: 'GET',
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
                 });
 
+                console.log('=== RESPOSTA DO QR CODE ===');
+                console.log('Status da resposta:', response.status);
+                console.log('Status OK?', response.ok);
+                
                 const data = await response.json();
+                console.log('Dados recebidos:', data);
+                console.log('=== FIM DA RESPOSTA ===');
+
+                if (response.ok) {
+                    // Exibir QR Code gerado
+                    let qrCodeHtml = `
+                        <div class="success">
+                            <h4>✅ QR Code gerado com sucesso!</h4>
+                            <div class="qrcode-section" style="margin-top: 15px;">
+                                <h6>📱 QR Code Individual:</h6>
+                                <img src="data:image/png;base64,${data.qrCode}" 
+                                     alt="QR Code do Ingresso" 
+                                     style="max-width: 300px; border: 2px solid #28a745; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                                <p><strong>Código do Ingresso:</strong> ${data.ticketCode}</p>
+                                <p><strong>ID do Ingresso:</strong> ${data.ticketId}</p>
+                                <p><strong>URL de Validação:</strong><br>
+                                <a href="${data.url}" target="_blank" style="word-break: break-all;">${data.url}</a></p>
+                                <button onclick="testValidationUrl('${data.url}')" 
+                                        style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-top: 10px;">
+                                    🧪 Testar Validação com este QR Code
+                                </button>
+                            </div>
+                            <details style="margin-top: 15px;">
+                                <summary>📋 Dados Completos da API</summary>
+                                <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto;">${JSON.stringify(data, null, 2)}</pre>
+                            </details>
+                        </div>
+                    `;
+                    
+                    document.getElementById('tickets-result').innerHTML = qrCodeHtml;
+                } else {
+                    throw new Error(data.message || 'Erro ao gerar QR Code');
+                }
+            } catch (error) {
+                document.getElementById('tickets-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Erro ao gerar QR Code:</h4>
+                        <p>${error.message}</p>
+                        <p><strong>Dica:</strong> Certifique-se de que você está logado e que o ingresso existe.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Nova função para testar URL de validação
+        async function testValidationUrl(validationUrl) {
+            try {
+                console.log('Testando URL de validação:', validationUrl);
+                
+                // Extrair código do ingresso da URL
+                const urlParams = new URLSearchParams(validationUrl.split('?')[1]);
+                const ticketCode = urlParams.get('code');
+                
+                if (!ticketCode) {
+                    throw new Error('Código do ingresso não encontrado na URL');
+                }
+                
+                // Testar validação via GET
+                const response = await fetch(`http://localhost:3001/api/tickets/validate?code=${ticketCode}&apiKey=org_12345`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert(`✅ Validação bem-sucedida!\n\nIngresso: ${data.ticket?.code || ticketCode}\nEvento: ${data.ticket?.eventTitle || 'N/A'}\nStatus: ${data.ticket?.status || 'N/A'}\n\nMensagem: ${data.message || 'Ingresso válido'}`);
+                } else {
+                    alert(`❌ Falha na validação!\n\nErro: ${data.message || 'Erro desconhecido'}`);
+                }
+                
+            } catch (error) {
+                alert(`❌ Erro ao testar validação:\n\n${error.message}`);
+            }
+        }
+
+        async function validateTicket() {
+            // Ler o ingresso selecionado da combobox
+            const ticketSelect = document.getElementById('ticket-select');
+            const selectedTicketCode = ticketSelect.value;
+            
+            if (!selectedTicketCode) {
+                document.getElementById('validate-result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Nenhum ingresso selecionado</h4>
+                        <p>Por favor, selecione um ingresso na combobox acima ou carregue "Meus Ingressos" primeiro (passo 6).</p>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                console.log('Validando ingresso com código:', selectedTicketCode);
+                
+                // Extrair o código do QR Code Data se disponível
+                const codeToValidate = selectedTicketCode.includes('TICKET_') ? selectedTicketCode : selectedTicketCode;
+                const apiKey = 'org_12345'; // API Key mock para testes
+                
+                console.log('Código a validar:', codeToValidate);
+                console.log('API Key:', apiKey);
+                
+                const response = await fetch(`http://localhost:3001/api/tickets/validate?code=${encodeURIComponent(codeToValidate)}&apiKey=${apiKey}`, {
+                    method: 'GET',
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('Resposta da validação:', response.status, response.ok);
+
+                const data = await response.json();
+                console.log('Dados da validação:', data);
+                
                 if (response.ok) {
                     document.getElementById('validate-result').innerHTML = `
-                        <div class="success">
-                            <h4>✅ Ingresso validado!</h4>
+                        <div class="${data.valid ? 'success' : 'error'}">
+                            <h4>${data.valid ? '✅' : '❌'} Ingresso validado!</h4>
+                            <p><strong>Válido:</strong> ${data.valid}</p>
+                            <p><strong>Mensagem:</strong> ${data.message}</p>
+                            ${data.ticket ? `<p><strong>Status:</strong> ${data.ticket.status}</p>` : ''}
                             <pre>${JSON.stringify(data, null, 2)}</pre>
                         </div>
                     `;
@@ -795,30 +1085,36 @@ Content-Type: application/json
                     <div class="error">
                         <h4>❌ Erro na validação:</h4>
                         <p>${error.message}</p>
+                        <p><strong>Debug:</strong> Código usado = "${selectedTicketCode}"</p>
                     </div>
                 `;
             }
         }
 
         async function checkIn() {
-            if (!currentTicketCode) {
+            // Ler o ingresso selecionado da combobox de check-in
+            const checkinTicketSelect = document.getElementById('checkin-ticket-select');
+            const selectedTicketId = checkinTicketSelect.value;
+            
+            if (!selectedTicketId) {
                 document.getElementById('checkin-result').innerHTML = `
                     <div class="error">
-                        <h4>❌ Nenhum ingresso disponível</h4>
+                        <h4>❌ Nenhum ingresso selecionado</h4>
+                        <p>Por favor, selecione um ingresso na combobox acima ou carregue "Meus Ingressos" primeiro (passo 6).</p>
                     </div>
                 `;
                 return;
             }
 
             try {
-                const response = await fetch('http://localhost:3001/api/tickets/checkin', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                const response = await fetch(`http://localhost:3001/api/tickets/${selectedTicketId}/use`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
                     body: JSON.stringify({
-                        ticketCode: currentTicketCode,
-                        scannerId: 'scanner-uuid-1',
-                        location: 'Entrada Principal',
-                        timestamp: new Date().toISOString()
+                        usedAt: new Date().toISOString()
                     })
                 });
 
@@ -843,21 +1139,6 @@ Content-Type: application/json
             }
         }
     </script>
+    </div>
 </body>
 </html>
-```
-
-## Como Usar
-
-1. **Salve o HTML** em um arquivo `teste-fluxo-completo.html`
-2. **Abra no navegador** em `http://localhost:3000` (ou qualquer porta do frontend)
-3. **Execute os passos sequencialmente** clicando nos botões
-4. **Verifique as respostas** em cada etapa
-
-## Verificações Importantes
-
-- ✅ CORS está funcionando corretamente
-- ✅ Autenticação JWT está funcionando
-- ✅ Todas as APIs estão respondendo
-- ✅ Fluxo completo está operacional
-- ✅ Tratamento de erros está funcionando

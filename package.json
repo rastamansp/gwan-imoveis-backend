@@ -52,7 +52,10 @@
     "portainer:rollback:win": "powershell -ExecutionPolicy Bypass -File scripts/deploy-portainer.ps1 -Action rollback",
     "typeorm:migration:run": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:run -d src/config/data-source.ts",
     "typeorm:migration:revert": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:revert -d src/config/data-source.ts",
-    "typeorm:migration:generate": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:generate -d src/config/data-source.ts"
+    "typeorm:migration:generate": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:generate -d src/config/data-source.ts",
+    "admin:create": "npx ts-node -r tsconfig-paths/register scripts/create-admin.ts",
+    "db:seed": "npx ts-node -r tsconfig-paths/register scripts/run-seeder.ts",
+    "db:seed:simple": "npx ts-node -r tsconfig-paths/register scripts/simple-seeder.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.20.0",
@@ -71,7 +74,7 @@
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "pg": "^8.16.3",
-    "qrcode": "^1.5.3",
+    "qrcode": "^1.5.4",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
     "typeorm": "^0.3.27",

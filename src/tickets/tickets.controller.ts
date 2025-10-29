@@ -7,8 +7,10 @@ import { CreateTicketDto } from '../shared/presentation/dtos/create-ticket.dto';
 import { ValidateTicketDto } from '../shared/presentation/dtos/validate-ticket.dto';
 import { TransferTicketDto } from '../shared/presentation/dtos/transfer-ticket.dto';
 import { TicketResponseDto } from '../shared/presentation/dtos/ticket-response.dto';
+import { TicketQRCodeResponseDto } from '../shared/presentation/dtos/ticket-qrcode-response.dto';
 import { ITicketRepository } from '../shared/domain/interfaces/ticket-repository.interface';
 import { ILogger } from '../shared/application/interfaces/logger.interface';
+import { IQRCodeService } from '../shared/application/interfaces/qrcode.interface';
 import { Ticket } from '../shared/domain/entities/ticket.entity';
 import { TicketStatus } from '../shared/domain/value-objects/ticket-status.enum';
 
@@ -22,6 +24,8 @@ export class TicketsController {
     private readonly ticketRepository: ITicketRepository,
     @Inject('ILogger')
     private readonly logger: ILogger,
+    @Inject('IQRCodeService')
+    private readonly qrCodeService: IQRCodeService,
   ) {}
 
   @Get()
@@ -50,18 +54,242 @@ export class TicketsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Obter estatísticas de ingressos' })
   @ApiResponse({ status: 200, description: 'Estatísticas obtidas com sucesso' })
-  @ApiQuery({ name: 'eventId', required: false, description: 'Filtrar por evento' })
-  async getStats(@Query('eventId') eventId?: string): Promise<{ total: number; used: number; cancelled: number; pending: number }> {
-    const tickets = eventId 
-      ? await this.ticketRepository.findByEventId(eventId)
-      : await this.ticketRepository.findAll();
+  async getStats(): Promise<any> {
+    const tickets = await this.ticketRepository.findAll();
     
     return {
       total: tickets.length,
+      active: tickets.filter(t => t.status === TicketStatus.ACTIVE).length,
       used: tickets.filter(t => t.status === TicketStatus.USED).length,
       cancelled: tickets.filter(t => t.status === TicketStatus.CANCELLED).length,
-      pending: tickets.filter(t => t.status === TicketStatus.PENDING).length,
     };
+  }
+
+  @Get('my-tickets')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Obter ingressos do usuário logado' })
+  @ApiResponse({ status: 200, description: 'Ingressos do usuário obtidos com sucesso' })
+  async getMyTickets(@Request() req: any): Promise<{ tickets: any[] }> {
+    const startTime = Date.now();
+    const userId = req.user.id;
+
+    this.logger.info('Carregando ingressos do usuário', { userId });
+
+    try {
+      const tickets = await this.ticketRepository.findByUserId(userId);
+      
+      // Gerar QR Codes para os ingressos
+      const ticketsWithQR = await Promise.all(
+        tickets.map(async (ticket) => {
+          try {
+            const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:3001';
+            // Usar qrCodeData (formato TICKET_...) ao invés de qrCode (base64) para URL menor
+            const codeForValidation = ticket.qrCodeData || ticket.qrCode || ticket.id;
+            const validationUrl = `${apiBaseUrl}/api/tickets/validate?code=${encodeURIComponent(codeForValidation)}&apiKey=org_${ticket.eventId.slice(0, 8)}`;
+            
+            const qrCodeBase64 = await this.qrCodeService.generateQRCode(validationUrl);
+            
+            return {
+              ...TicketResponseDto.fromEntity(ticket),
+              qrCode: qrCodeBase64,
+              qrCodeUrl: validationUrl,
+            };
+          } catch (qrError) {
+            this.logger.warn('Falha ao gerar QR Code para ingresso', { 
+              ticketId: ticket.id,
+              error: qrError.message 
+            });
+            
+            return TicketResponseDto.fromEntity(ticket);
+          }
+        })
+      );
+
+      const duration = Date.now() - startTime;
+      this.logger.info('Ingressos carregados com sucesso', { 
+        userId, 
+        ticketCount: ticketsWithQR.length,
+        duration 
+      });
+
+      return { tickets: ticketsWithQR };
+
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.logger.error('Erro ao carregar ingressos do usuário', {
+        userId,
+        error: error.message,
+        duration
+      });
+      throw error;
+    }
+  }
+
+  @Get(':id/qrcode')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Gerar QR Code para ingresso' })
+  @ApiResponse({ status: 200, description: 'QR Code gerado com sucesso' })
+  async generateQRCode(@Param('id') id: string, @Request() req: any): Promise<TicketQRCodeResponseDto> {
+    const startTime = Date.now();
+    const userId = req.user.id;
+
+    this.logger.info('Iniciando geração de QR Code para ingresso', { 
+      ticketId: id, 
+      userId,
+      timestamp: new Date().toISOString()
+    });
+
+    try {
+      const ticket = await this.ticketRepository.findById(id);
+      if (!ticket) {
+        throw new Error('Ticket not found');
+      }
+
+      if (ticket.userId !== userId) {
+        throw new Error('User does not own this ticket');
+      }
+
+      const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:3001';
+      // Usar qrCodeData (formato TICKET_...) ao invés de qrCode (base64) para URL menor
+      const codeForValidation = ticket.qrCodeData || ticket.qrCode || ticket.id;
+      const validationUrl = `${apiBaseUrl}/api/tickets/validate?code=${encodeURIComponent(codeForValidation)}&apiKey=org_${ticket.eventId.slice(0, 8)}`;
+      
+      const qrCodeBase64 = await this.qrCodeService.generateQRCode(validationUrl);
+
+      const duration = Date.now() - startTime;
+      this.logger.info('QR Code gerado com sucesso', {
+        ticketId: id,
+        ticketCode: codeForValidation,
+        validationUrl,
+        qrCodeSize: qrCodeBase64.length,
+        duration
+      });
+
+      return TicketQRCodeResponseDto.create(
+        qrCodeBase64,
+        validationUrl,
+        codeForValidation,
+        ticket.id
+      );
+
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.logger.error('Erro ao gerar QR Code', {
+        ticketId: id,
+        userId,
+        error: error.message,
+        duration
+      });
+      throw error;
+    }
+  }
+
+  @Get('validate')
+  @ApiOperation({ summary: 'Validar ingresso por app mobile' })
+  @ApiResponse({ status: 200, description: 'Ingresso validado com sucesso' })
+  @ApiQuery({ name: 'code', required: true, description: 'Código do ingresso' })
+  @ApiQuery({ name: 'apiKey', required: true, description: 'API Key do organizador' })
+  async validateByCode(
+    @Query('code') code: string,
+    @Query('apiKey') apiKey: string,
+  ): Promise<{ valid: boolean; message: string; ticket?: any }> {
+    const startTime = Date.now();
+
+    this.logger.info('Iniciando validação de ingresso por app mobile', {
+      code,
+      apiKey: apiKey ? `${apiKey.substring(0, 8)}...` : 'undefined',
+      timestamp: new Date().toISOString()
+    });
+
+    try {
+      // Validar API Key básica
+      if (!apiKey || !apiKey.startsWith('org_')) {
+        this.logger.warn('API Key inválida', {
+          apiKey: apiKey ? `${apiKey.substring(0, 8)}...` : 'undefined',
+          code
+        });
+        return {
+          valid: false,
+          message: 'API Key inválida'
+        };
+      }
+
+      // Buscar ingresso pelo código QR (tentar primeiro qrCodeData, depois qrCode)
+      let ticket = await this.ticketRepository.findByQrCodeData(code);
+      if (!ticket) {
+        ticket = await this.ticketRepository.findByQrCode(code);
+      }
+      
+      if (!ticket) {
+        this.logger.warn('Ingresso não encontrado', {
+          code,
+          apiKey: apiKey.substring(0, 8) + '...'
+        });
+        return {
+          valid: false,
+          message: 'Ingresso não encontrado'
+        };
+      }
+
+      // Validar status do ingresso
+      if (ticket.status !== TicketStatus.ACTIVE) {
+        this.logger.warn('Ingresso inválido', {
+          ticketId: ticket.id,
+          status: ticket.status,
+          code
+        });
+        return {
+          valid: false,
+          message: `Ingresso ${ticket.status.toLowerCase()}`
+        };
+      }
+
+      // Validar se o evento ainda está ativo (opcional)
+      // Aqui você pode adicionar validações adicionais se necessário
+
+      const duration = Date.now() - startTime;
+      this.logger.info('Ingresso validado com sucesso', {
+        ticketId: ticket.id,
+        eventId: ticket.eventId,
+        userId: ticket.userId,
+        code,
+        duration
+      });
+
+      return {
+        valid: true,
+        message: 'Ingresso válido',
+        ticket: {
+          id: ticket.id,
+          eventId: ticket.eventId,
+          userId: ticket.userId,
+          status: ticket.status,
+          purchasedAt: ticket.purchasedAt
+        }
+      };
+
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.logger.error('Erro ao validar ingresso', {
+        code,
+        error: error.message,
+        duration
+      });
+      throw error;
+    }
+  }
+
+  @Post()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(201)
+  @ApiOperation({ summary: 'Comprar ingresso' })
+  @ApiResponse({ status: 201, description: 'Ingresso comprado com sucesso' })
+  async create(@Body() createTicketDto: CreateTicketDto, @Request() req: any): Promise<TicketResponseDto[]> {
+    const tickets = await this.purchaseTicketUseCase.execute(createTicketDto, req.user.id);
+    return tickets.map(ticket => TicketResponseDto.fromEntity(ticket));
   }
 
   @Get(':id')
@@ -69,102 +297,25 @@ export class TicketsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Obter ingresso por ID' })
   @ApiResponse({ status: 200, description: 'Ingresso obtido com sucesso' })
-  @ApiResponse({ status: 404, description: 'Ingresso não encontrado' })
-  async findOne(@Param('id') id: string): Promise<TicketResponseDto> {
+  async findOne(@Param('id') id: string, @Request() req: any): Promise<TicketResponseDto> {
     const ticket = await this.ticketRepository.findById(id);
     if (!ticket) {
       throw new Error('Ticket not found');
     }
+
+    if (ticket.userId !== req.user.id) {
+      throw new Error('User does not own this ticket');
+    }
+
     return TicketResponseDto.fromEntity(ticket);
   }
 
-  @Post()
-  @HttpCode(201)
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Comprar ingresso' })
-  @ApiResponse({ status: 201, description: 'Ingresso comprado com sucesso' })
-  @ApiResponse({ status: 401, description: 'Não autorizado' })
-  async create(@Body() createTicketDto: CreateTicketDto, @Request() req: any): Promise<TicketResponseDto> {
-    const tickets = await this.purchaseTicketUseCase.execute(createTicketDto, req.user.id);
-    return TicketResponseDto.fromEntity(tickets[0]);
-  }
-
-  @Get('my-tickets')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Obter meus ingressos' })
-  @ApiResponse({ status: 200, description: 'Ingressos do usuário obtidos com sucesso' })
-  async getMyTickets(@Request() req: any): Promise<any> {
-    // Simular resposta com ingressos do usuário
-    return {
-      tickets: [
-        {
-          id: `ticket-${Date.now()}-1`,
-          code: 'ABC123456',
-          event: {
-            id: '1',
-            title: 'Festival de Música Eletrônica',
-            date: '2024-06-15T20:00:00Z',
-            location: 'Parque da Cidade'
-          },
-          category: {
-            name: 'Pista',
-            price: 150.00
-          },
-          status: 'ACTIVE',
-          purchasedAt: new Date().toISOString(),
-          qrCode: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...'
-        }
-      ]
-    };
-  }
-
-  @Post('validate')
-  @ApiOperation({ summary: 'Validar ingresso por código' })
-  @ApiResponse({ status: 200, description: 'Validação realizada com sucesso' })
-  @ApiResponse({ status: 400, description: 'Ingresso inválido' })
-  async validateByCode(@Body() body: { ticketCode: string; scannerId: string; location: string }): Promise<any> {
-    // Simular validação de ingresso
-    return {
-      valid: true,
-      ticket: {
-        id: `ticket-${Date.now()}`,
-        code: body.ticketCode,
-        eventTitle: 'Festival de Música Eletrônica',
-        categoryName: 'Pista',
-        holderName: 'João Silva',
-        status: 'ACTIVE',
-        checkInStatus: 'NOT_CHECKED_IN'
-      },
-      message: 'Ingresso válido para check-in'
-    };
-  }
-
-  @Post('checkin')
-  @ApiOperation({ summary: 'Fazer check-in do ingresso' })
-  @ApiResponse({ status: 200, description: 'Check-in realizado com sucesso' })
-  @ApiResponse({ status: 400, description: 'Erro no check-in' })
-  async checkIn(@Body() body: { ticketCode: string; scannerId: string; location: string; timestamp: string }): Promise<any> {
-    // Simular check-in
-    return {
-      success: true,
-      ticket: {
-        id: `ticket-${Date.now()}`,
-        code: body.ticketCode,
-        checkInStatus: 'CHECKED_IN',
-        checkedInAt: body.timestamp,
-        checkedInBy: body.scannerId
-      },
-      message: 'Check-in realizado com sucesso'
-    };
-  }
-
   @Post(':id/validate')
-  @ApiOperation({ summary: 'Validar ingresso por QR Code' })
-  @ApiResponse({ status: 200, description: 'Validação realizada com sucesso' })
-  @ApiResponse({ status: 400, description: 'Ingresso inválido' })
-  async validate(@Param('id') id: string, @Body() validateTicketDto: ValidateTicketDto): Promise<{ valid: boolean; message: string }> {
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Validar ingresso' })
+  @ApiResponse({ status: 200, description: 'Ingresso validado com sucesso' })
+  async validate(@Param('id') id: string, @Body() validateTicketDto: ValidateTicketDto): Promise<any> {
     const result = await this.validateTicketUseCase.execute(id, validateTicketDto.qrCodeData);
     return result;
   }
@@ -174,35 +325,31 @@ export class TicketsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Marcar ingresso como usado' })
   @ApiResponse({ status: 200, description: 'Ingresso marcado como usado' })
-  @ApiResponse({ status: 404, description: 'Ingresso não encontrado' })
-  @ApiResponse({ status: 401, description: 'Não autorizado' })
-  async use(@Param('id') id: string): Promise<TicketResponseDto> {
+  async useTicket(@Param('id') id: string): Promise<TicketResponseDto> {
     const ticket = await this.ticketRepository.findById(id);
     if (!ticket) {
       throw new Error('Ticket not found');
     }
-    
+
     ticket.markAsUsed();
     const updatedTicket = await this.ticketRepository.update(id, ticket);
-    return TicketResponseDto.fromEntity(updatedTicket!);
+    return TicketResponseDto.fromEntity(updatedTicket);
   }
 
   @Put(':id/transfer')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Transferir ingresso para outro usuário' })
+  @ApiOperation({ summary: 'Transferir ingresso' })
   @ApiResponse({ status: 200, description: 'Ingresso transferido com sucesso' })
-  @ApiResponse({ status: 404, description: 'Ingresso não encontrado' })
-  @ApiResponse({ status: 401, description: 'Não autorizado' })
-  async transfer(@Param('id') id: string, @Body() transferTicketDto: TransferTicketDto): Promise<TicketResponseDto> {
+  async transferTicket(@Param('id') id: string, @Body() transferTicketDto: TransferTicketDto): Promise<TicketResponseDto> {
     const ticket = await this.ticketRepository.findById(id);
     if (!ticket) {
       throw new Error('Ticket not found');
     }
-    
+
     ticket.markAsTransferred(transferTicketDto.newUserId, transferTicketDto.newUserName, transferTicketDto.newUserEmail);
     const updatedTicket = await this.ticketRepository.update(id, ticket);
-    return TicketResponseDto.fromEntity(updatedTicket!);
+    return TicketResponseDto.fromEntity(updatedTicket);
   }
 
   @Put(':id/cancel')
@@ -210,16 +357,14 @@ export class TicketsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cancelar ingresso' })
   @ApiResponse({ status: 200, description: 'Ingresso cancelado com sucesso' })
-  @ApiResponse({ status: 404, description: 'Ingresso não encontrado' })
-  @ApiResponse({ status: 401, description: 'Não autorizado' })
-  async cancel(@Param('id') id: string): Promise<TicketResponseDto> {
+  async cancelTicket(@Param('id') id: string): Promise<TicketResponseDto> {
     const ticket = await this.ticketRepository.findById(id);
     if (!ticket) {
       throw new Error('Ticket not found');
     }
-    
+
     ticket.markAsCancelled();
     const updatedTicket = await this.ticketRepository.update(id, ticket);
-    return TicketResponseDto.fromEntity(updatedTicket!);
+    return TicketResponseDto.fromEntity(updatedTicket);
   }
 }

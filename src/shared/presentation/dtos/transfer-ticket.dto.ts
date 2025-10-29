@@ -7,12 +7,12 @@ export class TransferTicketDto {
   @IsNotEmpty()
   newUserId: string;
 
-  @ApiProperty({ example: 'João Silva' })
+  @ApiProperty({ example: 'Maria Santos' })
   @IsString()
   @IsNotEmpty()
   newUserName: string;
 
-  @ApiProperty({ example: 'joao@email.com' })
+  @ApiProperty({ example: 'maria@email.com' })
   @IsEmail()
   newUserEmail: string;
 }

@@ -91,22 +91,19 @@ export class PurchaseTicketUseCase {
         const qrCodeData = `TICKET_${uuidv4()}_${event.date.toISOString()}_${userId}`;
         const qrCodeImage = await QRCode.toDataURL(qrCodeData);
 
-        const ticket = new Ticket(
-          uuidv4(),
+        const ticket = Ticket.create(
           createTicketDto.eventId,
+          userId,
+          createTicketDto.categoryId,
           event.title,
           event.date,
           event.location,
-          createTicketDto.categoryId,
           category.name,
-          userId,
           user.name,
           user.email,
           category.price,
           qrCodeImage,
           qrCodeData,
-          TicketStatus.ACTIVE,
-          new Date(),
         );
 
         tickets.push(ticket);
@@ -120,12 +117,12 @@ export class PurchaseTicketUseCase {
       }
 
       // Atualizar evento com ingressos vendidos
-      const updatedEvent = event.addSoldTickets(createTicketDto.quantity);
-      await this.eventRepository.update(createTicketDto.eventId, updatedEvent);
+      event.addSoldTickets(createTicketDto.quantity);
+      await this.eventRepository.update(createTicketDto.eventId, event);
 
       // Atualizar categoria com ingressos vendidos
-      const updatedCategory = category.sell(createTicketDto.quantity);
-      await this.ticketCategoryRepository.update(createTicketDto.categoryId, updatedCategory);
+      category.sell(createTicketDto.quantity);
+      await this.ticketCategoryRepository.update(createTicketDto.categoryId, category);
 
       const duration = Date.now() - startTime;
       this.logger.info('Ingressos comprados com sucesso', {

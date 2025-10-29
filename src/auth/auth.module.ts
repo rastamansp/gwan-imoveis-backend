@@ -6,12 +6,15 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { SharedModule } from '../shared/shared.module';
 
+const jwtSecret = process.env.JWT_SECRET || 'pazdedeus';
+console.log('🔧 AuthModule - JWT_SECRET configurado:', jwtSecret ? 'SIM' : 'NÃO');
+
 @Module({
   imports: [
     SharedModule,
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'gwan-shop-secret-key',
+      secret: jwtSecret,
       signOptions: { expiresIn: '24h' },
     }),
   ],

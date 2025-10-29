@@ -1,0 +1,38 @@
+### Teste de Token JWT - Debug
+
+### 1. Login para obter novo token
+POST http://localhost:3001/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "joao.silva@exemplo.com",
+  "password": "senha123456"
+}
+
+### 2. Testar token com endpoint que requer auth
+GET http://localhost:3001/api/auth/profile
+Authorization: Bearer {{token}}
+
+### 3. Criar evento com token válido
+POST http://localhost:3001/api/events
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Teste Evento",
+  "description": "Evento de teste para verificar autenticação",
+  "date": "2024-06-15T20:00:00.000Z",
+  "location": "Local de Teste",
+  "address": "Endereço de Teste",
+  "city": "São Paulo",
+  "state": "SP",
+  "image": "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800",
+  "category": "Teste",
+  "maxCapacity": 100
+}
+
+### Instruções:
+### 1. Execute o login primeiro
+### 2. Copie o token da resposta
+### 3. Substitua {{token}} pelo token copiado
+### 4. Execute os outros testes

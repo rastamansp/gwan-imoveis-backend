@@ -46,6 +46,19 @@ export class EventTypeOrmRepository implements IEventRepository {
     });
   }
 
+  async findByCode(code: string): Promise<Event | null> {
+    return await this.eventRepository.findOne({ where: { code } });
+  }
+
+  async searchByNameOrCode(query: string): Promise<Event[]> {
+    const normalizedQuery = query.trim().replace(/\*\*/g, '').replace(/\s+/g, ' ');
+    const qb = this.eventRepository.createQueryBuilder('e');
+    qb.where('e.title ILIKE :q', { q: `%${normalizedQuery}%` })
+      .orWhere('e.code ILIKE :q', { q: `%${normalizedQuery}%` })
+      .orderBy('e.createdAt', 'DESC');
+    return await qb.getMany();
+  }
+
   async update(id: string, updatedEvent: Event): Promise<Event | null> {
     const result = await this.eventRepository.update(id, updatedEvent);
     if (result.affected === 0) {
