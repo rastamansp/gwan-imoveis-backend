@@ -67,22 +67,17 @@ services:
       - gwan
       
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
       interval: 30s
       timeout: 10s
-      retries: 5
+      retries: 3
       start_period: 60s
       
     # depends_on removido - PostgreSQL e Redis não utilizados
       
     labels:
       - "traefik.enable=true"
-      
-      # HTTP Router (redireciona para HTTPS)
-      - "traefik.http.routers.gwan-events-backend-http.rule=Host(`api-events.gwan.com.br`)"
-      - "traefik.http.routers.gwan-events-backend-http.entrypoints=web"
-      - "traefik.http.routers.gwan-events-backend-http.middlewares=redirect-to-https"
-      
+           
       # HTTPS Router
       - "traefik.http.routers.gwan-events-backend.rule=Host(`api-events.gwan.com.br`)"
       - "traefik.http.routers.gwan-events-backend.entrypoints=websecure"
@@ -93,10 +88,6 @@ services:
       - "traefik.http.services.gwan-events-backend.loadbalancer.server.port=3001"
       - "traefik.docker.network=gwan"
       
-      # Middleware para redirecionamento HTTP -> HTTPS
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-
-  # PostgreSQL e Redis removidos - não utilizados no projeto atual
 
   # MCP Server SSE (opcional)
   gwan-events-mcp:
