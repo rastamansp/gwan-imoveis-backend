@@ -11,6 +11,15 @@ GET {{baseUrl}}/events?category=Música
 ### Listar eventos por cidade
 GET {{baseUrl}}/events?city=São Paulo
 
+### Buscar eventos por nome ou código
+GET {{baseUrl}}/events/search?query=Culto
+
+### Buscar eventos usando RAG (busca semântica)
+GET {{baseUrl}}/events/search/rag?query=show de música em São Paulo
+
+### Buscar eventos usando RAG com limite personalizado
+GET {{baseUrl}}/events/search/rag?query=evento infantil para famílias&limit=5
+
 ### Obter evento por ID
 GET {{baseUrl}}/events/1
 

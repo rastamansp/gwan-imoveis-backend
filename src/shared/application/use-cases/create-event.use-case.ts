@@ -2,7 +2,10 @@ import { Injectable, Inject } from '@nestjs/common';
 import { Event } from '../../domain/entities/event.entity';
 import { IEventRepository } from '../../domain/interfaces/event-repository.interface';
 import { IUserRepository } from '../../domain/interfaces/user-repository.interface';
+import { ITicketCategoryRepository } from '../../domain/interfaces/ticket-category-repository.interface';
 import { ILogger } from '../interfaces/logger.interface';
+import { IEmbeddingService } from '../interfaces/embedding-service.interface';
+import { EventContentService } from '../../infrastructure/services/event-content.service';
 import { CreateEventDto } from '../../presentation/dtos/create-event.dto';
 import { EventStatus } from '../../domain/value-objects/event-status.enum';
 import { UserNotFoundException } from '../../domain/exceptions/user-not-found.exception';
@@ -16,8 +19,13 @@ export class CreateEventUseCase {
     private readonly eventRepository: IEventRepository,
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
+    @Inject('ITicketCategoryRepository')
+    private readonly ticketCategoryRepository: ITicketCategoryRepository,
     @Inject('ILogger')
     private readonly logger: ILogger,
+    @Inject('IEmbeddingService')
+    private readonly embeddingService: IEmbeddingService,
+    private readonly eventContentService: EventContentService,
   ) {}
 
   async execute(createEventDto: CreateEventDto, organizerId: string): Promise<Event> {
@@ -73,6 +81,14 @@ export class CreateEventUseCase {
       // Salvar evento
       const savedEvent = await this.eventRepository.save(event);
 
+      // Gerar embeddings em background (não bloquear criação do evento)
+      this.generateEventEmbedding(savedEvent.id).catch(error => {
+        this.logger.error('Erro ao gerar embedding do evento', {
+          eventId: savedEvent.id,
+          error: error.message,
+        });
+      });
+
       const duration = Date.now() - startTime;
       this.logger.info('Evento criado com sucesso', {
         eventId: savedEvent.id,
@@ -112,5 +128,47 @@ export class CreateEventUseCase {
       rand += alphabet[Math.floor(Math.random() * alphabet.length)];
     }
     return prefix + rand;
+  }
+
+  /**
+   * Gera embedding e metadados para o evento
+   * Executado de forma assíncrona após criação/atualização
+   */
+  private async generateEventEmbedding(eventId: string): Promise<void> {
+    try {
+      const event = await this.eventRepository.findById(eventId);
+      if (!event) {
+        this.logger.warn('Evento não encontrado para gerar embedding', { eventId });
+        return;
+      }
+
+      // Buscar categorias de ingressos relacionadas
+      const categories = await this.ticketCategoryRepository.findByEventId(eventId);
+
+      // Construir metadados
+      const metadata = this.eventContentService.buildEventMetadata(event, categories);
+
+      // Gerar texto consolidado
+      const textContent = this.eventContentService.buildTextContent(event, categories);
+
+      // Gerar embedding
+      const embedding = await this.embeddingService.generateEmbedding(textContent);
+      const model = this.embeddingService.getModel();
+
+      // Atualizar evento com metadata e embedding
+      await this.eventRepository.updateEmbedding(eventId, metadata, embedding, model);
+
+      this.logger.debug('Embedding gerado com sucesso', {
+        eventId,
+        embeddingDimension: embedding.length,
+        model,
+      });
+    } catch (error) {
+      this.logger.error('Erro ao gerar embedding do evento', {
+        eventId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // Não propagar erro para não quebrar criação/atualização do evento
+    }
   }
 }

@@ -16,6 +16,9 @@ import { TicketCategory } from '../shared/domain/entities/ticket-category.entity
 import { InsufficientPermissionsFilter } from '../shared/presentation/filters/insufficient-permissions.filter';
 import { AddTicketCategoriesToEventUseCase } from '../shared/application/use-cases/add-ticket-categories-to-event.use-case';
 import { SearchEventsByQueryUseCase } from '../shared/application/use-cases/search-events-by-query.use-case';
+import { SearchEventsRagUseCase } from '../shared/application/use-cases/search-events-rag.use-case';
+import { IEmbeddingService } from '../shared/application/interfaces/embedding-service.interface';
+import { EventContentService } from '../shared/infrastructure/services/event-content.service';
 
 @ApiTags('Eventos')
 @ApiExtraModels(CreateTicketCategoryDto)
@@ -27,12 +30,16 @@ export class EventsController {
     private readonly listEventsUseCase: ListEventsUseCase,
     private readonly addTicketCategoriesToEventUseCase: AddTicketCategoriesToEventUseCase,
     private readonly searchEventsByQueryUseCase: SearchEventsByQueryUseCase,
+    private readonly searchEventsRagUseCase: SearchEventsRagUseCase,
     @Inject('IEventRepository')
     private readonly eventRepository: IEventRepository,
     @Inject('ITicketCategoryRepository')
     private readonly ticketCategoryRepository: ITicketCategoryRepository,
     @Inject('ILogger')
     private readonly logger: ILogger,
+    @Inject('IEmbeddingService')
+    private readonly embeddingService: IEmbeddingService,
+    private readonly eventContentService: EventContentService,
   ) {}
 
   @Get('test')
@@ -70,6 +77,25 @@ export class EventsController {
       return [];
     }
     const events = await this.searchEventsByQueryUseCase.execute(query.trim());
+    return events.map(e => EventResponseDto.fromEntity(e));
+  }
+
+  @Get('search/rag')
+  @ApiOperation({ summary: 'Buscar eventos usando RAG (busca semântica)', description: 'Busca eventos por similaridade semântica usando embeddings. Retorna eventos relevantes baseado no significado da query, não apenas palavras-chave exatas.' })
+  @ApiResponse({ status: 200, description: 'Eventos encontrados com sucesso via busca semântica' })
+  @ApiQuery({ name: 'query', required: true, description: 'Query de busca semântica (ex: "show de música em São Paulo", "evento infantil")' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Número máximo de resultados (padrão: 10)', type: Number })
+  @ApiExtension('x-mcp', {
+    enabled: true,
+    toolName: 'search_events_rag',
+    description: 'Busca eventos por similaridade semântica usando embeddings. Permite encontrar eventos por significado/conceito, não apenas palavras-chave exatas. Exemplos: "show de música em São Paulo", "evento infantil para famílias", "festival de rock".',
+  })
+  async searchRag(@Query('query') query: string, @Query('limit') limit?: number): Promise<EventResponseDto[]> {
+    if (!query || query.trim().length === 0) {
+      return [];
+    }
+    const limitNum = limit ? Math.min(Math.max(1, limit), 50) : 10; // Entre 1 e 50
+    const events = await this.searchEventsRagUseCase.execute(query.trim(), limitNum);
     return events.map(e => EventResponseDto.fromEntity(e));
   }
 
@@ -156,7 +182,32 @@ export class EventsController {
     );
 
     const savedEvent = await this.eventRepository.update(id, updatedEvent);
-    return EventResponseDto.fromEntity(savedEvent!);
+
+    if (!savedEvent) {
+      throw new Error('Event not found after update');
+    }
+
+    // Gerar embeddings em background (não bloquear atualização do evento)
+    this.logger.info('Iniciando geração de embedding após atualização', {
+      eventId: savedEvent.id,
+      title: savedEvent.title,
+    });
+
+    this.generateEventEmbedding(savedEvent.id)
+      .then(() => {
+        this.logger.info('Embedding gerado com sucesso após atualização', {
+          eventId: savedEvent.id,
+        });
+      })
+      .catch(error => {
+        this.logger.error('Erro ao gerar embedding do evento após atualização', {
+          eventId: savedEvent.id,
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+      });
+
+    return EventResponseDto.fromEntity(savedEvent);
   }
 
   @Put('ticket-categories/:categoryId')
@@ -255,5 +306,72 @@ export class EventsController {
       throw new Error('Falha ao deletar categoria');
     }
     return { message: 'Categoria deletada com sucesso' };
+  }
+
+  /**
+   * Gera embedding e metadados para o evento
+   * Executado de forma assíncrona após criação/atualização
+   */
+  private async generateEventEmbedding(eventId: string): Promise<void> {
+    this.logger.info('Iniciando geração de embedding', { eventId });
+    
+    try {
+      const event = await this.eventRepository.findById(eventId);
+      if (!event) {
+        this.logger.warn('Evento não encontrado para gerar embedding', { eventId });
+        return;
+      }
+
+      this.logger.info('Evento encontrado, buscando categorias', {
+        eventId,
+        title: event.title,
+      });
+
+      // Buscar categorias de ingressos relacionadas
+      const categories = await this.ticketCategoryRepository.findByEventId(eventId);
+      this.logger.info('Categorias encontradas', {
+        eventId,
+        categoriesCount: categories.length,
+      });
+
+      // Construir metadados
+      const metadata = this.eventContentService.buildEventMetadata(event, categories);
+      this.logger.info('Metadados construídos', { eventId });
+
+      // Gerar texto consolidado
+      const textContent = this.eventContentService.buildTextContent(event, categories);
+      this.logger.info('Texto consolidado gerado', {
+        eventId,
+        textLength: textContent.length,
+      });
+
+      // Gerar embedding
+      this.logger.info('Gerando embedding via OpenAI', { eventId });
+      const embedding = await this.embeddingService.generateEmbedding(textContent);
+      const model = this.embeddingService.getModel();
+
+      this.logger.info('Embedding gerado, atualizando evento', {
+        eventId,
+        embeddingDimension: embedding.length,
+        model,
+      });
+
+      // Atualizar evento com metadata e embedding
+      await this.eventRepository.updateEmbedding(eventId, metadata, embedding, model);
+
+      this.logger.info('Embedding salvo com sucesso', {
+        eventId,
+        embeddingDimension: embedding.length,
+        model,
+      });
+    } catch (error) {
+      this.logger.error('Erro ao gerar embedding do evento', {
+        eventId,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      // Não propagar erro para não quebrar criação/atualização do evento
+      throw error; // Re-throw para que o .catch() no controller possa logar também
+    }
   }
 }

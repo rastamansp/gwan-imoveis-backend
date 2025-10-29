@@ -71,4 +71,66 @@ export class EventTypeOrmRepository implements IEventRepository {
     const result = await this.eventRepository.delete(id);
     return result.affected > 0;
   }
+
+  async updateEmbedding(eventId: string, metadata: Record<string, any>, embedding: number[], model: string): Promise<void> {
+    const updateData: any = {
+      metadata,
+      embedding,
+      embeddingModel: model,
+    };
+
+    const result = await this.eventRepository.update(eventId, updateData);
+    
+    if (result.affected === 0) {
+      throw new Error(`Falha ao atualizar embedding: evento ${eventId} não encontrado ou nenhuma linha afetada`);
+    }
+  }
+
+  async searchByEmbedding(queryEmbedding: number[], limit: number): Promise<Event[]> {
+    // Busca por similaridade de cosseno usando SQL direto
+    // Formula: cosine_similarity = dot_product(a, b) / (||a|| * ||b||)
+    // Como normalizamos os embeddings, podemos usar apenas o produto escalar
+    
+    const events = await this.eventRepository
+      .createQueryBuilder('event')
+      .where('event.embedding IS NOT NULL')
+      .andWhere('event.status = :status', { status: 'ACTIVE' })
+      .getMany();
+
+    // Calcular similaridade para cada evento
+    const eventsWithSimilarity = events
+      .filter(event => event.embedding && event.embedding.length === queryEmbedding.length)
+      .map(event => {
+        const similarity = this.cosineSimilarity(queryEmbedding, event.embedding!);
+        return { event, similarity };
+      })
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, limit)
+      .map(item => item.event);
+
+    return eventsWithSimilarity;
+  }
+
+  private cosineSimilarity(vecA: number[], vecB: number[]): number {
+    if (vecA.length !== vecB.length) {
+      return 0;
+    }
+
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+
+    for (let i = 0; i < vecA.length; i++) {
+      dotProduct += vecA[i] * vecB[i];
+      normA += vecA[i] * vecA[i];
+      normB += vecB[i] * vecB[i];
+    }
+
+    const magnitude = Math.sqrt(normA) * Math.sqrt(normB);
+    if (magnitude === 0) {
+      return 0;
+    }
+
+    return dotProduct / magnitude;
+  }
 }

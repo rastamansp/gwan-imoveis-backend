@@ -13,8 +13,11 @@ import { TicketCategoryTypeOrmRepository } from './infrastructure/repositories/t
 import { TicketTypeOrmRepository } from './infrastructure/repositories/ticket-typeorm.repository';
 import { PaymentTypeOrmRepository } from './infrastructure/repositories/payment-typeorm.repository';
 import { QRCodeService } from './infrastructure/services/qrcode.service';
+import { EmbeddingService } from './infrastructure/services/embedding.service';
+import { EventContentService } from './infrastructure/services/event-content.service';
 import { ILogger } from './application/interfaces/logger.interface';
 import { IQRCodeService } from './application/interfaces/qrcode.interface';
+import { IEmbeddingService } from './application/interfaces/embedding-service.interface';
 import { IUserRepository } from './domain/interfaces/user-repository.interface';
 import { IEventRepository } from './domain/interfaces/event-repository.interface';
 import { ITicketRepository } from './domain/interfaces/ticket-repository.interface';
@@ -31,6 +34,7 @@ import { CreatePaymentUseCase } from './application/use-cases/create-payment.use
 import { AddTicketCategoriesToEventUseCase } from './application/use-cases/add-ticket-categories-to-event.use-case';
 import { PromoteUserToOrganizerUseCase } from './application/use-cases/promote-user-to-organizer.use-case';
 import { SearchEventsByQueryUseCase } from './application/use-cases/search-events-by-query.use-case';
+import { SearchEventsRagUseCase } from './application/use-cases/search-events-rag.use-case';
 
 @Global()
 @Module({
@@ -49,6 +53,11 @@ import { SearchEventsByQueryUseCase } from './application/use-cases/search-event
       provide: 'IQRCodeService',
       useClass: QRCodeService,
     },
+    {
+      provide: 'IEmbeddingService',
+      useClass: EmbeddingService,
+    },
+    EventContentService,
     
     // Repositories
     {
@@ -84,10 +93,13 @@ import { SearchEventsByQueryUseCase } from './application/use-cases/search-event
     AddTicketCategoriesToEventUseCase,
     PromoteUserToOrganizerUseCase,
     SearchEventsByQueryUseCase,
+    SearchEventsRagUseCase,
   ],
   exports: [
     'ILogger',
     'IQRCodeService',
+    'IEmbeddingService',
+    EventContentService,
     'IUserRepository',
     'IEventRepository',
     'ITicketRepository',
@@ -104,6 +116,7 @@ import { SearchEventsByQueryUseCase } from './application/use-cases/search-event
     AddTicketCategoriesToEventUseCase,
     PromoteUserToOrganizerUseCase,
     SearchEventsByQueryUseCase,
+    SearchEventsRagUseCase,
   ],
 })
 export class SharedModule {}

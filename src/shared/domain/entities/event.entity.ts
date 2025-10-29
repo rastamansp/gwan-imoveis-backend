@@ -60,6 +60,15 @@ export class Event {
   @UpdateDateColumn()
   updatedAt: Date;
 
+  @Column({ type: 'jsonb', nullable: true })
+  metadata: Record<string, any> | null;
+
+  @Column({ type: 'real', array: true, nullable: true })
+  embedding: number[] | null;
+
+  @Column({ name: 'embedding_model', type: 'varchar', length: 100, nullable: true, default: 'text-embedding-3-small' })
+  embeddingModel: string | null;
+
   // Constructor vazio para TypeORM
   constructor() {}
 

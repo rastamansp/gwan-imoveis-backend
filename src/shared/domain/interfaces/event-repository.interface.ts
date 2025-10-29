@@ -11,4 +11,6 @@ export interface IEventRepository {
   searchByNameOrCode(query: string): Promise<Event[]>;
   update(id: string, event: Event): Promise<Event | null>;
   delete(id: string): Promise<boolean>;
+  updateEmbedding(eventId: string, metadata: Record<string, any>, embedding: number[], model: string): Promise<void>;
+  searchByEmbedding(queryEmbedding: number[], limit: number): Promise<Event[]>;
 }
