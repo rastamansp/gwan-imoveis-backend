@@ -2,28 +2,25 @@
 node_modules
 npm-debug.log
 
-# Source files (already compiled to dist)
-src
-*.ts
-!*.d.ts
-tsconfig.json
-
-# Environment files
-.env
-.env.local
-.env.*.local
-
 # Git
 .git
 .gitignore
+.gitattributes
 
 # IDE
 .vscode
 .idea
 *.swp
 *.swo
+*.suo
 
-# Documentation
+# Environment files
+.env
+.env.local
+.env.*.local
+env.production
+
+# Documentation (opcional, manter README.md)
 docs
 *.md
 !README.md
@@ -32,23 +29,11 @@ docs
 test
 *.spec.ts
 *.test.ts
-
-# Scripts
-scripts/*.ts
-!scripts/*.js
-
-# Build artifacts (do not ignore dist - needed for runtime)
-dist/src/*.ts
-dist/src/*.map
-
-# Docker
-docker-compose*.yml
-Dockerfile*
-.dockerignore
-
-# Development
 coverage
-.nyc_output
+
+# Build artifacts (manter apenas source maps e types)
+dist/src/*.map
+dist/src/*.d.ts
 
 # Logs
 logs
@@ -57,4 +42,17 @@ logs
 # Misc
 .cache
 .parcel-cache
+.nyc_output
 
+# Docker
+docker-compose*.yml
+Dockerfile.with-migrations
+docker-entrypoint.sh
+.dockerignore
+
+# Other
+test-*.html
+teste-*.html
+create-events.http
+debug-jwt.http
+test-jwt.http
