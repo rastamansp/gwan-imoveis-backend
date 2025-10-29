@@ -3,8 +3,8 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Instalar wget para health check
-RUN apk add --no-cache wget
+# Instalar wget e netcat para health check e entrypoint
+RUN apk add --no-cache wget netcat-openbsd
 
 # Debug: mostrar versão do npm
 RUN npm --version
@@ -30,8 +30,9 @@ RUN ls -la
 # Build da aplicação
 RUN npm run build
 
-# Executar migrations
-RUN npm run typeorm:migration:run
+# Copiar entrypoint script
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
 
 # Criar usuário não-root
 RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
@@ -43,5 +44,5 @@ USER nestjs
 # Expor porta
 EXPOSE 3001
 
-# Comando de inicialização
-CMD ["node", "dist/main.js"]
+# Usar entrypoint para executar migrations antes de iniciar
+ENTRYPOINT ["./docker-entrypoint.sh"]
