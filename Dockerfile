@@ -34,4 +34,4 @@ USER nestjs
 EXPOSE 3001
 
 # Comando de inicialização (sem migrations por enquanto)
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]

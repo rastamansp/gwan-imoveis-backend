@@ -1,0 +1,60 @@
+# Dependencies
+node_modules
+npm-debug.log
+
+# Source files (already compiled to dist)
+src
+*.ts
+!*.d.ts
+tsconfig.json
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Documentation
+docs
+*.md
+!README.md
+
+# Tests
+test
+*.spec.ts
+*.test.ts
+
+# Scripts
+scripts/*.ts
+!scripts/*.js
+
+# Build artifacts (do not ignore dist - needed for runtime)
+dist/src/*.ts
+dist/src/*.map
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Development
+coverage
+.nyc_output
+
+# Logs
+logs
+*.log
+
+# Misc
+.cache
+.parcel-cache
+
