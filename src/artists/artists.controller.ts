@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request, HttpCode, Inject, UseFilters } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam, ApiBody, ApiExtraModels, getSchemaPath, ApiOkResponse, ApiExtension } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam, ApiBody, ApiExtraModels, ApiExtension } from '@nestjs/swagger';
 import { CreateArtistUseCase } from '../shared/application/use-cases/create-artist.use-case';
 import { GetArtistByIdUseCase } from '../shared/application/use-cases/get-artist-by-id.use-case';
 import { ListArtistsUseCase } from '../shared/application/use-cases/list-artists.use-case';
@@ -20,7 +20,6 @@ import { LinkArtistToEventDto } from '../shared/presentation/dtos/link-artist-to
 import { ArtistSearchFilters } from '../shared/domain/value-objects/artist-search-filters';
 import { InsufficientPermissionsFilter } from '../shared/presentation/filters/insufficient-permissions.filter';
 import { IArtistRepository } from '../shared/domain/interfaces/artist-repository.interface';
-import { IEventRepository } from '../shared/domain/interfaces/event-repository.interface';
 import { IEmbeddingService } from '../shared/application/interfaces/embedding-service.interface';
 import { ArtistContentService } from '../shared/infrastructure/services/artist-content.service';
 import { ILogger } from '../shared/application/interfaces/logger.interface';
@@ -42,8 +41,6 @@ export class ArtistsController {
     private readonly unlinkArtistFromEventUseCase: UnlinkArtistFromEventUseCase,
     @Inject('IArtistRepository')
     private readonly artistRepository: IArtistRepository,
-    @Inject('IEventRepository')
-    private readonly eventRepository: IEventRepository,
     @Inject('IEmbeddingService')
     private readonly embeddingService: IEmbeddingService,
     private readonly artistContentService: ArtistContentService,
