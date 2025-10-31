@@ -78,4 +78,80 @@ Content-Type: application/json
   }
 }
 
+### ============================================
+### Testes de Busca de Artistas via Chat
+### ============================================
+
+### 4) Listar todos os artistas
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Liste todos os artistas cadastrados"
+}
+
+### 4.1) Buscar artista por nome específico (via search_artists_by_query)
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Busque o artista com nome artístico Nome Artístico"
+}
+
+### 4.2) Buscar artista por nome completo (via search_artists_by_query)
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Encontre o artista João Silva"
+}
+
+### 5) Detalhes de artista por ID
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Mostre os detalhes completos do artista 767429d1-b1e9-45b4-bd10-77485aa0ff2b"
+}
+
+### 5.1) Buscar artistas usando busca semântica - música gospel (via search_artists_rag)
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Encontre artistas de música gospel"
+}
+
+### 5.2) Buscar artistas usando busca semântica - cantor sertanejo (via search_artists_rag)
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Quero encontrar cantores sertanejos"
+}
+
+### 5.3) Buscar artistas usando busca semântica - banda de rock (via search_artists_rag)
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Preciso de bandas de rock para meu evento"
+}
+
+### 5.4) Buscar artistas usando busca semântica - artista evangélico (via search_artists_rag)
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Quais artistas cristãos vocês têm?"
+}
+
+### 5.5) Buscar artista por username de rede social (via search_artists_by_query)
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Busque o artista com Instagram @artistname"
+}
+
 

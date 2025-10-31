@@ -14,6 +14,7 @@ import { DatabaseModule } from './database/database.module';
 import { McpModule } from './mcp/mcp.module';
 import { ChatModule } from './chat/chat.module';
 import { HealthModule } from './health/health.module';
+import { ArtistsModule } from './artists/artists.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { HealthModule } from './health/health.module';
     McpModule,
     ChatModule,
     HealthModule,
+    ArtistsModule,
   ],
 })
 export class AppModule {}

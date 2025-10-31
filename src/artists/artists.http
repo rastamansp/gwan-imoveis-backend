@@ -1,0 +1,110 @@
+### Variáveis
+@baseUrl = http://localhost:3001/api
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBlZHJvLmhwLmFsbWVpZGFAZ21haWwuY29tIiwic3ViIjoiNjZjNzY1NTItYzM5Yy00ZTkzLTg0ZTQtNGY2NzczMGU2ZWE3Iiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzYxOTM3NDczLCJleHAiOjE3NjIwMjM4NzN9.Js_N9xrpVibal5XSlkVhXWXQ6feroowVCIHyZS0qAkc
+@artistId = uuid-do-artista
+@eventId = uuid-do-evento
+
+### Listar todos os artistas
+GET {{baseUrl}}/artists
+
+### Buscar artistas por nome artístico
+GET {{baseUrl}}/artists/search?artisticName=Artista
+
+### Buscar artistas por nome completo
+GET {{baseUrl}}/artists/search?name=João Silva
+
+### Buscar artistas por Instagram
+GET {{baseUrl}}/artists/search?instagramUsername=artistname
+
+### Buscar artistas por múltiplos filtros
+GET {{baseUrl}}/artists/search?artisticName=Artista&instagramUsername=artistname
+
+### ============================================
+### Busca RAG (Busca Semântica)
+### ============================================
+
+### Buscar artistas por busca semântica (música gospel)
+GET {{baseUrl}}/artists/search/rag?query=artista de música gospel
+
+### Buscar artistas por busca semântica (cantor sertanejo)
+GET {{baseUrl}}/artists/search/rag?query=cantor sertanejo
+
+### Buscar artistas por busca semântica (banda de rock)
+GET {{baseUrl}}/artists/search/rag?query=banda de rock
+
+### Buscar artistas por busca semântica (artista evangélico)
+GET {{baseUrl}}/artists/search/rag?query=artista evangélico
+
+### Buscar artistas por busca semântica com limite personalizado
+GET {{baseUrl}}/artists/search/rag?query=músico cristão&limit=5
+
+### Obter artista por ID (com eventos vinculados - ideal para página do artista)
+GET {{baseUrl}}/artists/{{artistId}}
+
+### Obter artista por ID específico (exemplo)
+GET {{baseUrl}}/artists/767429d1-b1e9-45b4-bd10-77485aa0ff2b
+
+### Criar novo artista (requer autenticação de organizador/admin)
+POST {{baseUrl}}/artists
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "artisticName": "Nome Artístico",
+  "name": "Nome Completo do Artista",
+  "birthDate": "1990-01-01",
+  "biography": "Biografia completa do artista aqui...",
+  "instagramUsername": "artistname",
+  "youtubeUsername": "artistname",
+  "xUsername": "artistname",
+  "spotifyUsername": "artistname",
+  "siteUrl": "https://artista.com.br",
+  "tiktokUsername": "artistname",
+  "image": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800"
+}
+
+### Criar artista mínimo (apenas campos obrigatórios)
+POST {{baseUrl}}/artists
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "artisticName": "Artista Simples",
+  "name": "Nome Completo"
+}
+
+### Atualizar artista (requer autenticação de organizador/admin)
+PUT {{baseUrl}}/artists/{{artistId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "artisticName": "Nome Artístico Atualizado",
+  "biography": "Biografia atualizada",
+  "image": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800"
+}
+
+### Deletar artista (requer autenticação de organizador/admin)
+DELETE {{baseUrl}}/artists/{{artistId}}
+Authorization: Bearer {{token}}
+
+### ============================================
+### Endpoints de Relacionamento Artista-Evento
+### ============================================
+
+### Listar artistas vinculados a um evento
+GET {{baseUrl}}/events/{{eventId}}/artists
+
+### Vincular artista a evento (requer autenticação de organizador do evento/admin)
+POST {{baseUrl}}/events/{{eventId}}/artists
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "artistId": "{{artistId}}"
+}
+
+### Desvincular artista de evento (requer autenticação de organizador do evento/admin)
+DELETE {{baseUrl}}/events/{{eventId}}/artists/{{artistId}}
+Authorization: Bearer {{token}}
+

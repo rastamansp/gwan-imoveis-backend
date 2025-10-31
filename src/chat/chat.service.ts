@@ -57,6 +57,13 @@ export class ChatService {
             return { answer, toolsUsed };
           }
         }
+        if (mcpToolName === 'get_artist_by_id') {
+          const candidateId = String((args as any)?.id || '');
+          if (!this.isValidUuid(candidateId)) {
+            const answer = 'ID de artista inválido. Forneça um UUID válido ou peça para listar artistas para escolher um ID.';
+            return { answer, toolsUsed };
+          }
+        }
 
         const result = await this.callMcpTool(mcpToolName, args);
 
@@ -91,6 +98,8 @@ export class ChatService {
       'Responda às perguntas do usuário e utilize ferramentas quando precisar de dados atualizados.',
       '',
       'FERRAMENTAS DISPONÍVEIS:',
+      '',
+      'EVENTOS:',
       '- events.search: Lista todos os eventos (com filtros opcionais: category, city)',
       '- get_event_by_id: Obtém detalhes completos de um evento específico pelo ID',
       '- get_event_ticket_categories: Lista categorias de ingressos e preços de um evento',
@@ -98,7 +107,13 @@ export class ChatService {
       '- search_events_by_query: Busca EXATA por nome de evento ou código amigável',
       '- search_events_rag: Busca SEMÂNTICA por significado/conceito/categoria',
       '',
-      'REGRAS PARA ESCOLHER ENTRE search_events_by_query E search_events_rag:',
+      'ARTISTAS:',
+      '- list_artists: Lista todos os artistas cadastrados',
+      '- get_artist_by_id: Obtém detalhes completos de um artista específico pelo ID (inclui eventos vinculados)',
+      '- search_artists_by_query: Busca EXATA por artista usando filtros (nome artístico, nome completo, redes sociais)',
+      '- search_artists_rag: Busca SEMÂNTICA de artistas por significado/conceito/estilo',
+      '',
+      'REGRAS PARA ESCOLHER ENTRE search_events_by_query E search_events_rag (EVENTOS):',
       '',
       'USE search_events_by_query QUANDO:',
       '1. Query contém CÓDIGO no formato EVT-XXXXXX (ex: "EVT-ABC123", "código EVT-XYZ789")',
@@ -135,7 +150,35 @@ export class ChatService {
       '- "EVT-ABC123" → search_events_by_query (código específico)',
       '- "shows para crianças" → search_events_rag (característica/conceito)',
       '',
-      'Quando retornar dados, seja objetivo e, se útil, sintetize os resultados (título, data, local, preço).',
+      'REGRAS PARA ESCOLHER ENTRE search_artists_by_query E search_artists_rag (ARTISTAS):',
+      '',
+      'USE search_artists_by_query QUANDO:',
+      '1. Query é NOME ARTÍSTICO ESPECÍFICO conhecido (ex: "Nome Artístico", "Artista X")',
+      '2. Query menciona NOME COMPLETO específico (ex: "João Silva", "Maria Santos")',
+      '3. Query menciona USERNAME de rede social específico (ex: "artistname" no Instagram)',
+      '4. Query curta (1-3 palavras) que parece NOME PRÓPRIO',
+      '',
+      'USE search_artists_rag QUANDO:',
+      '1. Query é DESCRIÇÃO GENÉRICA sem nome específico:',
+      '   - Exemplos: "artista de música gospel", "cantor sertanejo", "banda de rock"',
+      '2. Query combina CARACTERÍSTICAS/ESTILO:',
+      '   - Exemplos: "artista cristão", "músico evangélico", "cantor de música popular"',
+      '3. Query é FRASE CONVERSACIONAL:',
+      '   - Exemplos: "quero encontrar artistas cristãos", "preciso de artistas para evento", "artistas que tocam rock"',
+      '4. Query busca por CONCEITO/CATEGORIA/ESTILO:',
+      '   - Exemplos: "artistas gospel", "bandas sertanejas", "cantores de MPB"',
+      '',
+      'EXEMPLOS PRÁTICOS DE ARTISTAS:',
+      '- "Nome Artístico" → search_artists_by_query (nome específico)',
+      '- "artista de música gospel" → search_artists_rag (descrição genérica)',
+      '- "João Silva" → search_artists_by_query (nome completo)',
+      '- "cantor sertanejo" → search_artists_rag (categoria/estilo)',
+      '- "artistname" (username) → search_artists_by_query (username específico)',
+      '- "artistas para evento cristão" → search_artists_rag (descrição conversacional)',
+      '',
+      'Quando retornar dados, seja objetivo e, se útil, sintetize os resultados:',
+      '- Para eventos: título, data, local, preço',
+      '- Para artistas: nome artístico, nome completo, biografia resumida, eventos vinculados',
     ].join('\n');
   }
 
@@ -240,6 +283,92 @@ export class ChatService {
           },
         },
       },
+      {
+        type: 'function',
+        function: {
+          name: 'list_artists',
+          description: 'Lista todos os artistas cadastrados no sistema.',
+          parameters: {
+            type: 'object',
+            properties: {},
+          },
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'get_artist_by_id',
+          description: 'Obter detalhes completos de um artista pelo ID. Retorna informações do artista incluindo eventos nos quais participa.',
+          parameters: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', description: 'ID do artista (UUID)' },
+            },
+            required: ['id'],
+          },
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'search_artists_by_query',
+          description: 'Busca EXATA por artista usando filtros específicos. Use quando: 1) Query é nome artístico específico conhecido, 2) Query menciona nome completo específico, 3) Query menciona username de rede social específico, 4) Query curta (1-3 palavras) que parece nome próprio. Exemplos: "Nome Artístico", "João Silva", "artistname" (username). NÃO use para descrições genéricas.',
+          parameters: {
+            type: 'object',
+            properties: {
+              artisticName: {
+                type: 'string',
+                description: 'Nome artístico do artista (busca parcial case-insensitive)',
+              },
+              name: {
+                type: 'string',
+                description: 'Nome completo do artista (busca parcial case-insensitive)',
+              },
+              instagramUsername: {
+                type: 'string',
+                description: 'Nome de usuário do Instagram',
+              },
+              youtubeUsername: {
+                type: 'string',
+                description: 'Nome de usuário do YouTube',
+              },
+              xUsername: {
+                type: 'string',
+                description: 'Nome de usuário do X/Twitter',
+              },
+              spotifyUsername: {
+                type: 'string',
+                description: 'Nome de usuário do Spotify',
+              },
+              tiktokUsername: {
+                type: 'string',
+                description: 'Nome de usuário do TikTok',
+              },
+            },
+          },
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'search_artists_rag',
+          description: 'Busca SEMÂNTICA de artistas por similaridade. Use quando: 1) Query é descrição genérica (ex: "artista de música gospel"), 2) Query combina características (ex: "cantor sertanejo", "banda de rock"), 3) Query é frase conversacional (ex: "quero encontrar artistas cristãos"), 4) Busca por conceito/estilo/categoria. Use esta ferramenta para buscar por significado, não por nome exato.',
+          parameters: {
+            type: 'object',
+            properties: {
+              query: {
+                type: 'string',
+                description: 'Query descritiva de busca semântica. Exemplos: "artista de música gospel", "cantor sertanejo", "banda de rock", "músico cristão"',
+              },
+              limit: {
+                type: 'number',
+                description: 'Número máximo de resultados (opcional, padrão: 10, máximo: 50)',
+              },
+            },
+            required: ['query'],
+          },
+        },
+      },
     ];
   }
 
@@ -248,6 +377,10 @@ export class ChatService {
     if (name === 'get_ticket_prices_by_event' || name === 'events.ticket_prices') return 'get_event_ticket_categories';
     if (name === 'search_events_by_query' || name === 'events.search_query') return 'search_events_by_query';
     if (name === 'search_events_rag' || name === 'events.search_rag' || name === 'events.semantic_search') return 'search_events_rag';
+    if (name === 'list_artists' || name === 'artists.list') return 'list_artists';
+    if (name === 'get_artist_by_id' || name === 'artists.get_by_id') return 'get_artist_by_id';
+    if (name === 'search_artists_by_query' || name === 'artists.search_query') return 'search_artists_by_query';
+    if (name === 'search_artists_rag' || name === 'artists.search_rag' || name === 'artists.semantic_search') return 'search_artists_rag';
     return name;
   }
 

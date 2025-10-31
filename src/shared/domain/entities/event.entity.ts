@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, ManyToMany } from 'typeorm';
 import { EventStatus } from '../value-objects/event-status.enum';
+import { Artist } from './artist.entity';
 
 @Entity('events')
 @Index(['organizerId'])
@@ -68,6 +69,10 @@ export class Event {
 
   @Column({ name: 'embedding_model', type: 'varchar', length: 100, nullable: true, default: 'text-embedding-3-small' })
   embeddingModel: string | null;
+
+  // Relacionamento ManyToMany com Artist
+  @ManyToMany(() => Artist, artist => artist.events)
+  artists: Artist[];
 
   // Constructor vazio para TypeORM
   constructor() {}

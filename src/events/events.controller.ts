@@ -19,6 +19,11 @@ import { SearchEventsByQueryUseCase } from '../shared/application/use-cases/sear
 import { SearchEventsRagUseCase } from '../shared/application/use-cases/search-events-rag.use-case';
 import { IEmbeddingService } from '../shared/application/interfaces/embedding-service.interface';
 import { EventContentService } from '../shared/infrastructure/services/event-content.service';
+import { GetArtistsByEventUseCase } from '../shared/application/use-cases/get-artists-by-event.use-case';
+import { LinkArtistToEventUseCase } from '../shared/application/use-cases/link-artist-to-event.use-case';
+import { UnlinkArtistFromEventUseCase } from '../shared/application/use-cases/unlink-artist-from-event.use-case';
+import { ArtistResponseDto } from '../shared/presentation/dtos/artist-response.dto';
+import { LinkArtistToEventDto } from '../shared/presentation/dtos/link-artist-to-event.dto';
 
 @ApiTags('Eventos')
 @ApiExtraModels(CreateTicketCategoryDto)
@@ -31,6 +36,9 @@ export class EventsController {
     private readonly addTicketCategoriesToEventUseCase: AddTicketCategoriesToEventUseCase,
     private readonly searchEventsByQueryUseCase: SearchEventsByQueryUseCase,
     private readonly searchEventsRagUseCase: SearchEventsRagUseCase,
+    private readonly getArtistsByEventUseCase: GetArtistsByEventUseCase,
+    private readonly linkArtistToEventUseCase: LinkArtistToEventUseCase,
+    private readonly unlinkArtistFromEventUseCase: UnlinkArtistFromEventUseCase,
     @Inject('IEventRepository')
     private readonly eventRepository: IEventRepository,
     @Inject('ITicketCategoryRepository')
@@ -306,6 +314,57 @@ export class EventsController {
       throw new Error('Falha ao deletar categoria');
     }
     return { message: 'Categoria deletada com sucesso' };
+  }
+
+  @Get(':eventId/artists')
+  @ApiOperation({ summary: 'Listar artistas vinculados a um evento' })
+  @ApiResponse({ status: 200, description: 'Artistas do evento obtidos com sucesso', type: [ArtistResponseDto] })
+  @ApiResponse({ status: 404, description: 'Evento não encontrado' })
+  @ApiParam({ name: 'eventId', description: 'ID do evento (UUID)' })
+  async getArtistsByEvent(@Param('eventId') eventId: string): Promise<ArtistResponseDto[]> {
+    const artists = await this.getArtistsByEventUseCase.execute(eventId);
+    return artists.map(artist => ArtistResponseDto.fromEntity(artist));
+  }
+
+  @Post(':eventId/artists')
+  @HttpCode(201)
+  @UseGuards(JwtAuthGuard)
+  @UseFilters(InsufficientPermissionsFilter)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Vincular artista a evento', description: 'Vincular um artista a um evento. Apenas organizadores do evento ou administradores podem realizar esta operação.' })
+  @ApiResponse({ status: 201, description: 'Artista vinculado ao evento com sucesso' })
+  @ApiResponse({ status: 404, description: 'Artista ou evento não encontrado' })
+  @ApiResponse({ status: 401, description: 'Não autorizado' })
+  @ApiResponse({ status: 403, description: 'Permissão insuficiente' })
+  @ApiParam({ name: 'eventId', description: 'ID do evento (UUID)' })
+  @ApiBody({ type: LinkArtistToEventDto })
+  async linkArtistToEvent(
+    @Param('eventId') eventId: string,
+    @Body() linkDto: LinkArtistToEventDto,
+    @Request() req: any,
+  ): Promise<{ message: string }> {
+    await this.linkArtistToEventUseCase.execute(linkDto.artistId, eventId, req.user.id);
+    return { message: 'Artista vinculado ao evento com sucesso' };
+  }
+
+  @Delete(':eventId/artists/:artistId')
+  @UseGuards(JwtAuthGuard)
+  @UseFilters(InsufficientPermissionsFilter)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Desvincular artista de evento', description: 'Desvincular um artista de um evento. Apenas organizadores do evento ou administradores podem realizar esta operação.' })
+  @ApiResponse({ status: 200, description: 'Artista desvinculado do evento com sucesso' })
+  @ApiResponse({ status: 404, description: 'Artista ou evento não encontrado' })
+  @ApiResponse({ status: 401, description: 'Não autorizado' })
+  @ApiResponse({ status: 403, description: 'Permissão insuficiente' })
+  @ApiParam({ name: 'eventId', description: 'ID do evento (UUID)' })
+  @ApiParam({ name: 'artistId', description: 'ID do artista (UUID)' })
+  async unlinkArtistFromEvent(
+    @Param('eventId') eventId: string,
+    @Param('artistId') artistId: string,
+    @Request() req: any,
+  ): Promise<{ message: string }> {
+    await this.unlinkArtistFromEventUseCase.execute(artistId, eventId, req.user.id);
+    return { message: 'Artista desvinculado do evento com sucesso' };
   }
 
   /**

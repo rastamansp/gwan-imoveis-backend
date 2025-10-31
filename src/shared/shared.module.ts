@@ -6,15 +6,18 @@ import { Ticket } from './domain/entities/ticket.entity';
 import { Payment } from './domain/entities/payment.entity';
 import { TicketCategory } from './domain/entities/ticket-category.entity';
 import { Scanner } from './domain/entities/scanner.entity';
+import { Artist } from './domain/entities/artist.entity';
 import { ConsoleLoggerService } from './infrastructure/logger/console-logger.service';
 import { UserTypeOrmRepository } from './infrastructure/repositories/user-typeorm.repository';
 import { EventTypeOrmRepository } from './infrastructure/repositories/event-typeorm.repository';
 import { TicketCategoryTypeOrmRepository } from './infrastructure/repositories/ticket-category-typeorm.repository';
 import { TicketTypeOrmRepository } from './infrastructure/repositories/ticket-typeorm.repository';
 import { PaymentTypeOrmRepository } from './infrastructure/repositories/payment-typeorm.repository';
+import { ArtistTypeOrmRepository } from './infrastructure/repositories/artist-typeorm.repository';
 import { QRCodeService } from './infrastructure/services/qrcode.service';
 import { EmbeddingService } from './infrastructure/services/embedding.service';
 import { EventContentService } from './infrastructure/services/event-content.service';
+import { ArtistContentService } from './infrastructure/services/artist-content.service';
 import { ILogger } from './application/interfaces/logger.interface';
 import { IQRCodeService } from './application/interfaces/qrcode.interface';
 import { IEmbeddingService } from './application/interfaces/embedding-service.interface';
@@ -23,6 +26,7 @@ import { IEventRepository } from './domain/interfaces/event-repository.interface
 import { ITicketRepository } from './domain/interfaces/ticket-repository.interface';
 import { IPaymentRepository } from './domain/interfaces/payment-repository.interface';
 import { ITicketCategoryRepository } from './domain/interfaces/ticket-category-repository.interface';
+import { IArtistRepository } from './domain/interfaces/artist-repository.interface';
 import { RegisterUserUseCase } from './application/use-cases/register-user.use-case';
 import { LoginUserUseCase } from './application/use-cases/login-user.use-case';
 import { CreateEventUseCase } from './application/use-cases/create-event.use-case';
@@ -35,11 +39,21 @@ import { AddTicketCategoriesToEventUseCase } from './application/use-cases/add-t
 import { PromoteUserToOrganizerUseCase } from './application/use-cases/promote-user-to-organizer.use-case';
 import { SearchEventsByQueryUseCase } from './application/use-cases/search-events-by-query.use-case';
 import { SearchEventsRagUseCase } from './application/use-cases/search-events-rag.use-case';
+import { SearchArtistsRagUseCase } from './application/use-cases/search-artists-rag.use-case';
+import { CreateArtistUseCase } from './application/use-cases/create-artist.use-case';
+import { GetArtistByIdUseCase } from './application/use-cases/get-artist-by-id.use-case';
+import { ListArtistsUseCase } from './application/use-cases/list-artists.use-case';
+import { SearchArtistsUseCase } from './application/use-cases/search-artists.use-case';
+import { GetArtistsByEventUseCase } from './application/use-cases/get-artists-by-event.use-case';
+import { UpdateArtistUseCase } from './application/use-cases/update-artist.use-case';
+import { DeleteArtistUseCase } from './application/use-cases/delete-artist.use-case';
+import { LinkArtistToEventUseCase } from './application/use-cases/link-artist-to-event.use-case';
+import { UnlinkArtistFromEventUseCase } from './application/use-cases/unlink-artist-from-event.use-case';
 
 @Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Event, Ticket, Payment, TicketCategory, Scanner]),
+    TypeOrmModule.forFeature([User, Event, Ticket, Payment, TicketCategory, Scanner, Artist]),
   ],
   providers: [
     // Logger
@@ -58,6 +72,7 @@ import { SearchEventsRagUseCase } from './application/use-cases/search-events-ra
       useClass: EmbeddingService,
     },
     EventContentService,
+    ArtistContentService,
     
     // Repositories
     {
@@ -80,6 +95,10 @@ import { SearchEventsRagUseCase } from './application/use-cases/search-events-ra
       provide: 'ITicketCategoryRepository',
       useClass: TicketCategoryTypeOrmRepository,
     },
+    {
+      provide: 'IArtistRepository',
+      useClass: ArtistTypeOrmRepository,
+    },
 
     // Use Cases
     RegisterUserUseCase,
@@ -94,17 +113,29 @@ import { SearchEventsRagUseCase } from './application/use-cases/search-events-ra
     PromoteUserToOrganizerUseCase,
     SearchEventsByQueryUseCase,
     SearchEventsRagUseCase,
+    SearchArtistsRagUseCase,
+    CreateArtistUseCase,
+    GetArtistByIdUseCase,
+    ListArtistsUseCase,
+    SearchArtistsUseCase,
+    GetArtistsByEventUseCase,
+    UpdateArtistUseCase,
+    DeleteArtistUseCase,
+    LinkArtistToEventUseCase,
+    UnlinkArtistFromEventUseCase,
   ],
   exports: [
     'ILogger',
     'IQRCodeService',
     'IEmbeddingService',
     EventContentService,
+    ArtistContentService,
     'IUserRepository',
     'IEventRepository',
     'ITicketRepository',
     'IPaymentRepository',
     'ITicketCategoryRepository',
+    'IArtistRepository',
     RegisterUserUseCase,
     LoginUserUseCase,
     CreateEventUseCase,
@@ -117,6 +148,16 @@ import { SearchEventsRagUseCase } from './application/use-cases/search-events-ra
     PromoteUserToOrganizerUseCase,
     SearchEventsByQueryUseCase,
     SearchEventsRagUseCase,
+    SearchArtistsRagUseCase,
+    CreateArtistUseCase,
+    GetArtistByIdUseCase,
+    ListArtistsUseCase,
+    SearchArtistsUseCase,
+    GetArtistsByEventUseCase,
+    UpdateArtistUseCase,
+    DeleteArtistUseCase,
+    LinkArtistToEventUseCase,
+    UnlinkArtistFromEventUseCase,
   ],
 })
 export class SharedModule {}
