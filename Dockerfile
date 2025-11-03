@@ -30,30 +30,23 @@ RUN echo "=== Verificando pacote @solufy/evolution-sdk ===" && \
     npm list @solufy/evolution-sdk || echo "AVISO: SDK nao encontrado nas dependencias instaladas"
 
 # Compilar TypeScript para JavaScript
-RUN echo "=== Iniciando build ===" && \
-    npm run build && \
-    echo "=== Build concluido ===" && \
-    echo "=== Verificando estrutura dist/ ===" && \
-    ls -la dist/ 2>&1 || true && \
-    echo "=== Verificando estrutura dist/src/ ===" && \
-    ls -la dist/src/ 2>&1 || true && \
-    echo "=== Procurando main.js ===" && \
-    find dist -name "main.js" -type f 2>&1 || true
+RUN npm run build
 
-# Verificar se main.js foi gerado
-RUN if [ ! -f dist/src/main.js ]; then \
-      echo "ERRO: dist/src/main.js nao encontrado!" && \
-      echo "=== Conteudo de dist/ ===" && \
-      ls -la dist/ 2>&1 && \
-      echo "=== Conteudo de dist/src/ ===" && \
-      ls -la dist/src/ 2>&1 || true && \
-      echo "=== Procurando qualquer main.js ===" && \
-      find dist -name "*.js" -path "*/main.js" 2>&1 || true && \
-      exit 1; \
-    else \
-      echo "=== main.js encontrado em dist/src/main.js ===" && \
-      ls -lh dist/src/main.js; \
-    fi
+# Verificar estrutura gerada pelo build
+RUN echo "=== Verificando estrutura dist/ ===" && \
+    ls -la dist/ && \
+    echo "=== Verificando estrutura dist/src/ ===" && \
+    (ls -la dist/src/ || echo "dist/src/ nao existe") && \
+    echo "=== Procurando main.js ===" && \
+    find dist -name "main.js" -type f || echo "Nenhum main.js encontrado"
+
+# Verificar se main.js foi gerado (permitir que continue mesmo se nao encontrar para debug)
+RUN test -f dist/src/main.js && \
+    echo "=== main.js encontrado ===" && \
+    ls -lh dist/src/main.js || \
+    (echo "=== AVISO: dist/src/main.js nao encontrado - listando estrutura ===" && \
+     find dist -type f -name "*.js" | head -20 && \
+     exit 1)
 
 # ========================================
 # PRODUCTION STAGE
