@@ -30,22 +30,30 @@ RUN echo "=== Verificando pacote @solufy/evolution-sdk ===" && \
     npm list @solufy/evolution-sdk || echo "AVISO: SDK nao encontrado nas dependencias instaladas"
 
 # Compilar TypeScript para JavaScript
-# Tentar build e capturar qualquer erro
-RUN set -e && \
-    echo "=== Iniciando build ===" && \
-    npm run build 2>&1 | head -100 || \
-    (echo "=== ERRO NO BUILD - Tentando novamente com verbose ===" && \
-     npx nest build 2>&1 || \
-     (echo "=== ERRO PERSISTENTE - Verificando tipo de erro ===" && \
-      npx tsc --noEmit 2>&1 | head -50 || true && \
-      echo "=== Listando node_modules/@solufy ===" && \
-      ls -la node_modules/@solufy/ 2>&1 || true && \
-      echo "=== Verificando package.json ===" && \
-      cat package.json | grep -A 2 "evolution-sdk" || true && \
-      exit 1))
+RUN echo "=== Iniciando build ===" && \
+    npm run build && \
+    echo "=== Build concluido ===" && \
+    echo "=== Verificando estrutura dist/ ===" && \
+    ls -la dist/ 2>&1 || true && \
+    echo "=== Verificando estrutura dist/src/ ===" && \
+    ls -la dist/src/ 2>&1 || true && \
+    echo "=== Procurando main.js ===" && \
+    find dist -name "main.js" -type f 2>&1 || true
 
 # Verificar se main.js foi gerado
-RUN test -f dist/src/main.js || (echo "ERRO: dist/src/main.js nao encontrado!" && ls -la dist/ && ls -la dist/src/ 2>&1 && exit 1)
+RUN if [ ! -f dist/src/main.js ]; then \
+      echo "ERRO: dist/src/main.js nao encontrado!" && \
+      echo "=== Conteudo de dist/ ===" && \
+      ls -la dist/ 2>&1 && \
+      echo "=== Conteudo de dist/src/ ===" && \
+      ls -la dist/src/ 2>&1 || true && \
+      echo "=== Procurando qualquer main.js ===" && \
+      find dist -name "*.js" -path "*/main.js" 2>&1 || true && \
+      exit 1; \
+    else \
+      echo "=== main.js encontrado em dist/src/main.js ===" && \
+      ls -lh dist/src/main.js; \
+    fi
 
 # ========================================
 # PRODUCTION STAGE
