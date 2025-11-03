@@ -30,19 +30,27 @@ RUN echo "=== Verificando pacote @solufy/evolution-sdk ===" && \
     npm list @solufy/evolution-sdk || echo "AVISO: SDK nao encontrado nas dependencias instaladas"
 
 # Compilar TypeScript para JavaScript
-RUN npm run build || \
-    (echo "=== ERRO NO BUILD ===" && \
-     echo "=== Verificando Node e NPM ===" && \
-     node --version && npm --version && \
-     echo "=== Verificando NestJS CLI ===" && \
-     npx nest --version 2>&1 || echo "NestJS CLI nao encontrado" && \
-     echo "=== Verificando TypeScript ===" && \
-     npx tsc --version 2>&1 || echo "TypeScript nao encontrado" && \
-     echo "=== Verificando estrutura src/ ===" && \
-     ls -la src/ | head -10 && \
-     echo "=== Verificando se o SDK esta instalado ===" && \
-     npm list @solufy/evolution-sdk 2>&1 || echo "SDK nao encontrado" && \
-     exit 1)
+RUN echo "=== Iniciando build ===" && \
+    npm run build; \
+    BUILD_EXIT_CODE=$?; \
+    if [ $BUILD_EXIT_CODE -ne 0 ]; then \
+      echo "=== ERRO NO BUILD (exit code: $BUILD_EXIT_CODE) ===" && \
+      echo "=== Verificando Node e NPM ===" && \
+      node --version && npm --version && \
+      echo "=== Verificando NestJS CLI ===" && \
+      npx nest --version 2>&1 || echo "NestJS CLI nao encontrado" && \
+      echo "=== Verificando TypeScript ===" && \
+      npx tsc --version 2>&1 || echo "TypeScript nao encontrado" && \
+      echo "=== Tentando compilacao direta com tsc ===" && \
+      npx tsc --noEmit 2>&1 | head -30 || echo "Erro ao verificar tipos" && \
+      echo "=== Verificando estrutura src/ ===" && \
+      ls -la src/ | head -10 && \
+      echo "=== Verificando se o SDK esta instalado ===" && \
+      npm list @solufy/evolution-sdk 2>&1 || echo "SDK nao encontrado" && \
+      echo "=== Verificando estrutura do SDK ===" && \
+      ls -la node_modules/@solufy/evolution-sdk/ 2>&1 | head -20 || echo "SDK nao encontrado em node_modules" && \
+      exit $BUILD_EXIT_CODE; \
+    fi
 
 # Verificar estrutura gerada pelo build
 RUN echo "=== Verificando estrutura dist/ ===" && \
