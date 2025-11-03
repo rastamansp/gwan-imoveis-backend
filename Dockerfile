@@ -26,20 +26,10 @@ RUN test -d src/whatsapp-webhook && \
     (echo "ERRO: Estrutura de diretorios do whatsapp-webhook nao encontrada!" && exit 1)
 
 # Compilar TypeScript para JavaScript
-RUN echo "=== Iniciando build do NestJS ===" && \
-    npm run build 2>&1 | tee /tmp/build.log || \
-    (echo "=== ERRO NO BUILD - LOG COMPLETO ===" && \
-     cat /tmp/build.log && \
-     echo "=== Tentando build com mais verbosidade ===" && \
-     npx nest build --verbose 2>&1 || true && \
-     echo "=== Verificando arquivos TypeScript ===" && \
-     find src -name "*.ts" | head -20 && \
-     echo "=== Verificando imports ===" && \
-     grep -r "import.*whatsapp-webhook" src/ || true && \
-     exit 1) && \
-    echo "=== Verificando se main.js foi gerado ===" && \
-    test -f dist/src/main.js || (echo "ERRO: dist/src/main.js nao encontrado!" && ls -la dist/ && ls -la dist/src/ 2>&1 && exit 1) && \
-    echo "=== Build concluido com sucesso ==="
+RUN npm run build
+
+# Verificar se main.js foi gerado
+RUN test -f dist/src/main.js || (echo "ERRO: dist/src/main.js nao encontrado!" && ls -la dist/ && ls -la dist/src/ 2>&1 && exit 1)
 
 # ========================================
 # PRODUCTION STAGE
