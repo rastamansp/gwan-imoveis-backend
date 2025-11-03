@@ -27,7 +27,16 @@ RUN echo "Verificando estrutura de diretórios..." && \
 
 # Compilar TypeScript para JavaScript
 RUN echo "=== Iniciando build ===" && \
-    npm run build
+    npm run build 2>&1 || \
+    (echo "=== ERRO NO BUILD - DETALHES ===" && \
+     echo "Node version:" && node --version && \
+     echo "NPM version:" && npm --version && \
+     echo "NestJS CLI version:" && npx nest --version && \
+     echo "=== Tentando build direto com nest ===" && \
+     npx nest build 2>&1 || true && \
+     echo "=== Tentando build direto com tsc ===" && \
+     npx tsc --noEmit 2>&1 || true && \
+     exit 1)
 
 # ========================================
 # PRODUCTION STAGE
