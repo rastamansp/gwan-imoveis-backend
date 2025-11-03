@@ -57,7 +57,7 @@ export class EvolutionApiService {
       text,
     };
 
-    this.logger.info('📤 Enviando mensagem via Evolution API', {
+    this.logger.info('[SEND] Enviando mensagem via Evolution API', {
       instanceName,
       number,
       textLength: text.length,
@@ -80,7 +80,7 @@ export class EvolutionApiService {
       });
 
       const duration = Date.now() - startTime;
-      this.logger.info('✅ Mensagem enviada com sucesso via Evolution API', {
+      this.logger.info('[SUCCESS] Mensagem enviada com sucesso via Evolution API', {
         instanceName,
         number,
         status: response.status,
@@ -91,7 +91,7 @@ export class EvolutionApiService {
 
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError;
-        this.logger.error('❌ Erro ao enviar mensagem via Evolution API', {
+        this.logger.error('[ERROR] Erro ao enviar mensagem via Evolution API', {
           instanceName,
           number,
           url,
@@ -102,7 +102,7 @@ export class EvolutionApiService {
           duration,
         });
       } else {
-        this.logger.error('❌ Erro desconhecido ao enviar mensagem via Evolution API', {
+        this.logger.error('[ERROR] Erro desconhecido ao enviar mensagem via Evolution API', {
           instanceName,
           number,
           url,

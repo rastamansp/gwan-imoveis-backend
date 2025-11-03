@@ -132,8 +132,8 @@ export class WhatsappWebhookController {
       // Processar webhook
       await this.whatsappWebhookService.processWebhook(webhook);
 
-      this.nestLogger.log('✅ [WEBHOOK] Webhook processado com sucesso');
-      this.logger.info('✅ Webhook processado com sucesso', {
+      this.nestLogger.log('[SUCCESS] [WEBHOOK] Webhook processado com sucesso');
+      this.logger.info('[SUCCESS] Webhook processado com sucesso', {
         event: webhook.event,
         instance: webhook.instance,
       });
@@ -143,8 +143,8 @@ export class WhatsappWebhookController {
         message: 'Webhook processado com sucesso',
       };
     } catch (error) {
-      this.nestLogger.error('❌ [WEBHOOK] Erro ao processar webhook', error instanceof Error ? error.stack : String(error));
-      this.logger.error('❌ Erro ao processar webhook', {
+      this.nestLogger.error('[ERROR] [WEBHOOK] Erro ao processar webhook', error instanceof Error ? error.stack : String(error));
+      this.logger.error('[ERROR] Erro ao processar webhook', {
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
         webhook: JSON.stringify(webhook, null, 2),

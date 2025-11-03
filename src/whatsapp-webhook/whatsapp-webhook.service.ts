@@ -18,7 +18,7 @@ export class WhatsappWebhookService {
   async processWebhook(webhook: EvolutionWebhookDto): Promise<void> {
     const timestamp = new Date().toISOString();
     
-    this.logger.info('📨 Webhook recebido da Evolution API', {
+    this.logger.info('[WEBHOOK] Webhook recebido da Evolution API', {
       event: webhook.event,
       instance: webhook.instance,
       timestamp,
@@ -61,7 +61,7 @@ export class WhatsappWebhookService {
         break;
 
       default:
-        this.logger.warn('⚠️ Tipo de evento desconhecido', {
+        this.logger.warn('[WARNING] Tipo de evento desconhecido', {
           event: webhook.event,
           instance: webhook.instance,
           data: webhook.data,
@@ -92,7 +92,7 @@ export class WhatsappWebhookService {
       } else {
         // Se data contém apenas metadados (instanceId, source, etc)
         // A mensagem real pode estar em outro lugar ou ainda não chegou
-        this.logger.warn('⚠️ Evento messages.upsert recebido mas data não contém mensagem completa', {
+        this.logger.warn('[WARNING] Evento messages.upsert recebido mas data não contém mensagem completa', {
           event: webhook.event,
           instance: webhook.instance,
           dataKeys: Object.keys(webhook.data || {}),
@@ -135,7 +135,7 @@ export class WhatsappWebhookService {
       const messageId = key.id || messageData?.id || 'Sem ID';
 
       // Log detalhado da mensagem
-      this.logger.info('💬 Mensagem recebida/enviada via WhatsApp', {
+      this.logger.info('[MENSAGEM] Mensagem recebida/enviada via WhatsApp', {
         instance: webhook.instance,
         messageId,
         from: remoteJid,
@@ -158,7 +158,7 @@ export class WhatsappWebhookService {
       // Se não há mensagem completa mas temos sender, logar como evento de mensagem
       if (!messageText || messageText === '[Mensagem sem texto]') {
         if (webhook.sender) {
-          this.logger.info('📱 Evento de mensagem recebido (dados parciais)', {
+          this.logger.info('[MENSAGEM] Evento de mensagem recebido (dados parciais)', {
             instance: webhook.instance,
             sender: webhook.sender,
             instanceId: messageData?.instanceId,
@@ -177,7 +177,7 @@ export class WhatsappWebhookService {
   private async processMessagesUpdate(webhook: EvolutionWebhookDto): Promise<void> {
     const updateData = webhook.data || {};
 
-    this.logger.info('🔄 Mensagem atualizada no WhatsApp', {
+    this.logger.info('[UPDATE] Mensagem atualizada no WhatsApp', {
       instance: webhook.instance,
       updateData: JSON.stringify(updateData, null, 2),
     });
@@ -189,7 +189,7 @@ export class WhatsappWebhookService {
   private async processMessagesDelete(webhook: EvolutionWebhookDto): Promise<void> {
     const deleteData = webhook.data || {};
 
-    this.logger.info('🗑️ Mensagem deletada no WhatsApp', {
+    this.logger.info('[DELETE] Mensagem deletada no WhatsApp', {
       instance: webhook.instance,
       deleteData: JSON.stringify(deleteData, null, 2),
     });
@@ -201,7 +201,7 @@ export class WhatsappWebhookService {
   private async processConnectionUpdate(webhook: EvolutionWebhookDto): Promise<void> {
     const connectionData = webhook.data || {};
 
-    this.logger.info('🔌 Status de conexão atualizado', {
+    this.logger.info('[CONNECTION] Status de conexão atualizado', {
       instance: webhook.instance,
       connectionState: connectionData.state || 'Desconhecido',
       connectionData: JSON.stringify(connectionData, null, 2),
@@ -214,7 +214,7 @@ export class WhatsappWebhookService {
   private async processQrcodeUpdate(webhook: EvolutionWebhookDto): Promise<void> {
     const qrcodeData = webhook.data || {};
 
-    this.logger.info('📱 QR Code atualizado', {
+    this.logger.info('[QRCODE] QR Code atualizado', {
       instance: webhook.instance,
       qrcode: qrcodeData.qrcode || 'Não disponível',
       status: qrcodeData.status || 'Desconhecido',
@@ -227,7 +227,7 @@ export class WhatsappWebhookService {
   private async processContactsUpdate(webhook: EvolutionWebhookDto): Promise<void> {
     const contactsData = webhook.data || {};
 
-    this.logger.info('👤 Contato atualizado', {
+    this.logger.info('[CONTACT] Contato atualizado', {
       instance: webhook.instance,
       contactData: JSON.stringify(contactsData, null, 2),
     });
@@ -239,7 +239,7 @@ export class WhatsappWebhookService {
   private async processGroupsUpdate(webhook: EvolutionWebhookDto): Promise<void> {
     const groupsData = webhook.data || {};
 
-    this.logger.info('👥 Grupo atualizado', {
+    this.logger.info('[GROUP] Grupo atualizado', {
       instance: webhook.instance,
       groupData: JSON.stringify(groupsData, null, 2),
     });
@@ -251,7 +251,7 @@ export class WhatsappWebhookService {
   private async processPresenceUpdate(webhook: EvolutionWebhookDto): Promise<void> {
     const presenceData = webhook.data || {};
 
-    this.logger.info('📊 Presença atualizada', {
+    this.logger.info('[PRESENCE] Presença atualizada', {
       instance: webhook.instance,
       presenceData: JSON.stringify(presenceData, null, 2),
     });
@@ -268,7 +268,7 @@ export class WhatsappWebhookService {
   ): Promise<void> {
     const startTime = Date.now();
 
-    this.logger.info('🤖 Iniciando processamento de mensagem recebida', {
+    this.logger.info('[PROCESS] Iniciando processamento de mensagem recebida', {
       instanceName,
       remoteJid,
       messageText,
@@ -277,7 +277,7 @@ export class WhatsappWebhookService {
 
     try {
       // Chamar serviço de chat internamente
-      this.logger.info('💬 Chamando serviço de chat', {
+      this.logger.info('[CHAT] Chamando serviço de chat', {
         instanceName,
         remoteJid,
         messageText,
@@ -286,7 +286,7 @@ export class WhatsappWebhookService {
       const chatResponse = await this.chatService.chat(messageText);
 
       if (!chatResponse || !chatResponse.answer) {
-        this.logger.warn('⚠️ Chat não retornou resposta válida', {
+        this.logger.warn('[WARNING] Chat não retornou resposta válida', {
           instanceName,
           remoteJid,
           messageText,
@@ -297,7 +297,7 @@ export class WhatsappWebhookService {
 
       const answer = chatResponse.answer;
 
-      this.logger.info('✅ Resposta do chat obtida', {
+      this.logger.info('[SUCCESS] Resposta do chat obtida', {
         instanceName,
         remoteJid,
         answerLength: answer.length,
@@ -308,7 +308,7 @@ export class WhatsappWebhookService {
       await this.evolutionApiService.sendTextMessage(instanceName, remoteJid, answer);
 
       const duration = Date.now() - startTime;
-      this.logger.info('✅ Mensagem processada e resposta enviada com sucesso', {
+      this.logger.info('[SUCCESS] Mensagem processada e resposta enviada com sucesso', {
         instanceName,
         remoteJid,
         messageId,
@@ -318,7 +318,7 @@ export class WhatsappWebhookService {
       const duration = Date.now() - startTime;
 
       // Logar erro mas não propagar para não quebrar processamento do webhook
-      this.logger.error('❌ Erro ao processar mensagem recebida', {
+      this.logger.error('[ERROR] Erro ao processar mensagem recebida', {
         instanceName,
         remoteJid,
         messageText,
