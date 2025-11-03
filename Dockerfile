@@ -14,8 +14,10 @@ COPY package*.json ./
 # Instalar todas as dependências (incluindo dev para build)
 RUN npm ci && npm cache clean --force
 
-# Copiar código-fonte
+# Copiar código-fonte (ignorar apenas o que está no .dockerignore)
 COPY . .
+# Garantir que o diretório whatsapp-webhook existe
+RUN test -d src/whatsapp-webhook || (echo "ERRO: src/whatsapp-webhook não encontrado!" && exit 1)
 
 # Compilar TypeScript para JavaScript
 RUN npm run build
