@@ -7,6 +7,7 @@ import { ChatService } from './chat.service';
   imports: [ConfigModule],
   controllers: [ChatController],
   providers: [ChatService],
+  exports: [ChatService], // Exportar para permitir uso em outros módulos
 })
 export class ChatModule {}
 

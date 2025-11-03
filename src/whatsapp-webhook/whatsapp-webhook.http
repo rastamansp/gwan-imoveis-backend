@@ -1,0 +1,216 @@
+### Variáveis
+@baseUrl = http://localhost:3001/api
+@webhookUrl = {{baseUrl}}/webhooks/whatsapp
+
+### ============================================
+### Webhook - Evolution API - Mensagem Recebida
+### ============================================
+
+### Evento: Mensagem recebida/enviada (messages.upsert)
+POST {{webhookUrl}}
+Content-Type: application/json
+
+{
+  "event": "messages.upsert",
+  "instance": "minha-instancia",
+  "data": {
+    "key": {
+      "remoteJid": "5511999999999@s.whatsapp.net",
+      "fromMe": false,
+      "id": "3EB0123456789ABCDEF"
+    },
+    "message": {
+      "conversation": "Olá, esta é uma mensagem de teste do webhook"
+    },
+    "messageTimestamp": 1701234567,
+    "pushName": "João Silva"
+  }
+}
+
+### Evento: Mensagem com texto estendido
+POST {{webhookUrl}}
+Content-Type: application/json
+
+{
+  "event": "messages.upsert",
+  "instance": "minha-instancia",
+  "data": {
+    "key": {
+      "remoteJid": "5511888888888@s.whatsapp.net",
+      "fromMe": false,
+      "id": "3EB0987654321FEDCBA"
+    },
+    "message": {
+      "extendedTextMessage": {
+        "text": "Esta é uma mensagem com texto estendido e formatação"
+      }
+    },
+    "messageTimestamp": 1701234568,
+    "pushName": "Maria Santos"
+  }
+}
+
+### Evento: Mensagem com imagem
+POST {{webhookUrl}}
+Content-Type: application/json
+
+{
+  "event": "messages.upsert",
+  "instance": "minha-instancia",
+  "data": {
+    "key": {
+      "remoteJid": "5511777777777@s.whatsapp.net",
+      "fromMe": false,
+      "id": "3EB0ABCDEF123456789"
+    },
+    "message": {
+      "imageMessage": {
+        "caption": "Legenda da imagem",
+        "mimetype": "image/jpeg"
+      }
+    },
+    "messageTimestamp": 1701234569,
+    "pushName": "Pedro Costa"
+  }
+}
+
+### Evento: Mensagem com documento
+POST {{webhookUrl}}
+Content-Type: application/json
+
+{
+  "event": "messages.upsert",
+  "instance": "minha-instancia",
+  "data": {
+    "key": {
+      "remoteJid": "5511666666666@s.whatsapp.net",
+      "fromMe": false,
+      "id": "3EB0FEDCBA987654321"
+    },
+    "message": {
+      "documentMessage": {
+        "fileName": "documento.pdf",
+        "mimetype": "application/pdf"
+      }
+    },
+    "messageTimestamp": 1701234570,
+    "pushName": "Ana Oliveira"
+  }
+}
+
+### ============================================
+### Webhook - Evolution API - Atualização de Conexão
+### ============================================
+
+### Evento: Status de conexão atualizado
+POST {{webhookUrl}}
+Content-Type: application/json
+
+{
+  "event": "connection.update",
+  "instance": "minha-instancia",
+  "data": {
+    "state": "open"
+  }
+}
+
+### Evento: Conexão fechada
+POST {{webhookUrl}}
+Content-Type: application/json
+
+{
+  "event": "connection.update",
+  "instance": "minha-instancia",
+  "data": {
+    "state": "close"
+  }
+}
+
+### ============================================
+### Webhook - Evolution API - QR Code
+### ============================================
+
+### Evento: QR Code gerado
+POST {{webhookUrl}}
+Content-Type: application/json
+
+{
+  "event": "qrcode.update",
+  "instance": "minha-instancia",
+  "data": {
+    "qrcode": {
+      "base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    },
+    "status": "QRCODE_GENERATED"
+  }
+}
+
+### Evento: QR Code escaneado
+POST {{webhookUrl}}
+Content-Type: application/json
+
+{
+  "event": "qrcode.update",
+  "instance": "minha-instancia",
+  "data": {
+    "status": "QRCODE_SCANNED"
+  }
+}
+
+### ============================================
+### Webhook - Evolution API - Atualização de Mensagem
+### ============================================
+
+### Evento: Mensagem atualizada (status de leitura)
+POST {{webhookUrl}}
+Content-Type: application/json
+
+{
+  "event": "messages.update",
+  "instance": "minha-instancia",
+  "data": {
+    "key": {
+      "remoteJid": "5511999999999@s.whatsapp.net",
+      "fromMe": true,
+      "id": "3EB0123456789ABCDEF"
+    },
+    "update": {
+      "status": "READ"
+    }
+  }
+}
+
+### ============================================
+### Webhook - Evolution API - Contatos
+### ============================================
+
+### Evento: Contato atualizado
+POST {{webhookUrl}}
+Content-Type: application/json
+
+{
+  "event": "contacts.update",
+  "instance": "minha-instancia",
+  "data": {
+    "id": "5511999999999@s.whatsapp.net",
+    "name": "João Silva Atualizado"
+  }
+}
+
+### ============================================
+### Webhook - Evolution API - Grupos
+### ============================================
+
+### Evento: Grupo atualizado
+POST {{webhookUrl}}
+Content-Type: application/json
+
+{
+  "event": "groups.update",
+  "instance": "minha-instancia",
+  "data": {
+    "id": "120363123456789012@g.us",
+    "subject": "Nome do Grupo Atualizado"
+  }
+}
+
