@@ -36,7 +36,10 @@ RUN echo "=== Iniciando build do NestJS ===" && \
      find src -name "*.ts" | head -20 && \
      echo "=== Verificando imports ===" && \
      grep -r "import.*whatsapp-webhook" src/ || true && \
-     exit 1)
+     exit 1) && \
+    echo "=== Verificando se main.js foi gerado ===" && \
+    test -f dist/src/main.js || (echo "ERRO: dist/src/main.js nao encontrado!" && ls -la dist/ && ls -la dist/src/ 2>&1 && exit 1) && \
+    echo "=== Build concluido com sucesso ==="
 
 # ========================================
 # PRODUCTION STAGE
@@ -62,6 +65,11 @@ RUN npm ci --only=production && \
 
 # Copiar código buildado do stage builder
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
+
+# Verificar se main.js foi copiado corretamente
+RUN echo "=== Verificando arquivos copiados ===" && \
+    test -f dist/src/main.js || (echo "ERRO: dist/src/main.js nao encontrado apos copia!" && ls -la dist/ && ls -la dist/src/ 2>&1 && exit 1) && \
+    echo "=== Arquivos copiados com sucesso ==="
 
 # Copiar toda a estrutura src/ para MCP poder executar (bootstrap precisa de toda a estrutura)
 COPY --from=builder --chown=nestjs:nodejs /app/src ./src
