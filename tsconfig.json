@@ -18,6 +18,9 @@
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false
   },
+  "include": [
+    "src/**/*.ts"
+  ],
   "exclude": [
     "node_modules",
     "dist",
@@ -25,6 +28,7 @@
     "**/*.spec.ts",
     "**/*.test.ts",
     "**/*.feature",
-    "**/*.http"
+    "**/*.http",
+    "**/*.md"
   ]
 }

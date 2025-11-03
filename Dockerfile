@@ -26,16 +26,21 @@ RUN echo "Verificando estrutura de diretórios..." && \
     test -f src/whatsapp-webhook/services/evolution-api.service.ts && echo "✓ evolution-api.service.ts existe" || (echo "✗ evolution-api.service.ts NÃO encontrado!" && exit 1)
 
 # Compilar TypeScript para JavaScript
-RUN echo "=== Iniciando build ===" && \
-    npm run build 2>&1 || \
-    (echo "=== ERRO NO BUILD - DETALHES ===" && \
-     echo "Node version:" && node --version && \
-     echo "NPM version:" && npm --version && \
-     echo "NestJS CLI version:" && npx nest --version && \
-     echo "=== Tentando build direto com nest ===" && \
-     npx nest build 2>&1 || true && \
-     echo "=== Tentando build direto com tsc ===" && \
-     npx tsc --noEmit 2>&1 || true && \
+RUN echo "=== Verificando Node e NPM ===" && \
+    node --version && \
+    npm --version && \
+    echo "=== Verificando NestJS CLI ===" && \
+    npx nest --version && \
+    echo "=== Listando arquivos do whatsapp-webhook ===" && \
+    ls -la src/whatsapp-webhook/ && \
+    ls -la src/whatsapp-webhook/services/ && \
+    echo "=== Verificando imports no controller ===" && \
+    head -10 src/whatsapp-webhook/whatsapp-webhook.controller.ts && \
+    echo "=== Iniciando build ===" && \
+    npm run build || \
+    (echo "=== FALHA NO BUILD - Mostrando estrutura ===" && \
+     find src/whatsapp-webhook -type f && \
+     cat src/whatsapp-webhook/whatsapp-webhook.module.ts && \
      exit 1)
 
 # ========================================
