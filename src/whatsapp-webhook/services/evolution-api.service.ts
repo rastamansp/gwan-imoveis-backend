@@ -1,29 +1,13 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios, { AxiosError } from 'axios';
+import { EvolutionClient } from '@solufy/evolution-sdk';
 import { ILogger } from '../../shared/application/interfaces/logger.interface';
 
-interface SendTextMessagePayload {
-  number: string;
-  text: string;
-  delay?: number;
-  quoted?: {
-    key?: {
-      id: string;
-    };
-    message?: {
-      conversation: string;
-    };
-  };
-  linkPreview?: boolean;
-  mentionsEveryOne?: boolean;
-  mentioned?: string[];
-}
-
 @Injectable()
-export class EvolutionApiService {
+export class EvolutionApiService implements OnModuleInit {
   private readonly baseUrl: string;
   private readonly apiKey: string;
+  private client: EvolutionClient | null = null;
 
   constructor(
     private readonly configService: ConfigService,
@@ -43,76 +27,81 @@ export class EvolutionApiService {
   }
 
   /**
-   * Envia mensagem de texto via Evolution API
+   * Inicializa o cliente Evolution SDK após a criação do módulo
+   */
+  onModuleInit() {
+    try {
+      // O SDK será inicializado por instância quando necessário
+      // Isso permite usar diferentes instâncias dinamicamente
+      this.logger.info('[INIT] EvolutionApiService inicializado com SDK', {
+        baseUrl: this.baseUrl,
+        hasApiKey: !!this.apiKey,
+      });
+    } catch (error) {
+      this.logger.error('[ERROR] Erro ao inicializar EvolutionApiService', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
+   * Obtém ou cria uma instância do EvolutionClient para uma instância específica
+   * @param instanceName Nome da instância do Evolution API
+   * @returns EvolutionClient configurado
+   */
+  private getClient(instanceName: string): EvolutionClient {
+    // Criar novo cliente para cada instância (o SDK gerencia conexões)
+    return new EvolutionClient({
+      serverUrl: this.baseUrl,
+      instance: instanceName,
+      token: this.apiKey,
+    });
+  }
+
+  /**
+   * Envia mensagem de texto via Evolution API usando SDK
    * @param instanceName Nome da instância do Evolution API (ex: "Gwan")
    * @param number Número do WhatsApp do destinatário (ex: "5511987221050@s.whatsapp.net")
    * @param text Texto da mensagem a ser enviada
    */
   async sendTextMessage(instanceName: string, number: string, text: string): Promise<void> {
     const startTime = Date.now();
-    const url = `${this.baseUrl}/message/sendText/${instanceName}`;
 
-    const payload: SendTextMessagePayload = {
-      number,
-      text,
-    };
-
-    this.logger.info('[SEND] Enviando mensagem via Evolution API', {
+    this.logger.info('[SEND] Enviando mensagem via Evolution API SDK', {
       instanceName,
       number,
       textLength: text.length,
-      url,
+      baseUrl: this.baseUrl,
     });
 
     try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
+      const client = this.getClient(instanceName);
 
-      // Adicionar API key no header (Evolution API usa 'apikey' como header)
-      if (this.apiKey) {
-        headers['apikey'] = this.apiKey;
-      }
-
-      const response = await axios.post(url, payload, {
-        headers,
-        timeout: 30000, // 30 segundos de timeout
+      // Usar o método sendText do SDK
+      const response = await client.messages.sendText({
+        number,
+        text,
       });
 
       const duration = Date.now() - startTime;
-      this.logger.info('[SUCCESS] Mensagem enviada com sucesso via Evolution API', {
+      this.logger.info('[SUCCESS] Mensagem enviada com sucesso via Evolution API SDK', {
         instanceName,
         number,
-        status: response.status,
+        response,
         duration,
       });
     } catch (error) {
       const duration = Date.now() - startTime;
 
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError;
-        this.logger.error('[ERROR] Erro ao enviar mensagem via Evolution API', {
-          instanceName,
-          number,
-          url,
-          status: axiosError.response?.status,
-          statusText: axiosError.response?.statusText,
-          data: axiosError.response?.data,
-          message: axiosError.message,
-          duration,
-        });
-      } else {
-        this.logger.error('[ERROR] Erro desconhecido ao enviar mensagem via Evolution API', {
-          instanceName,
-          number,
-          url,
-          error: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-          duration,
-        });
-      }
+      this.logger.error('[ERROR] Erro ao enviar mensagem via Evolution API SDK', {
+        instanceName,
+        number,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        duration,
+      });
 
-      // Não propagar erro - apenas logar para não quebrar processamento do webhook
+      // Propagar erro para tratamento no serviço que chamou
       throw error;
     }
   }

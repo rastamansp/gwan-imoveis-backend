@@ -192,13 +192,19 @@ Quando uma mensagem é recebida (`fromMe: false`):
 
 ### Configuração
 
-Adicione a seguinte variável no arquivo `.env`:
+Adicione as seguintes variáveis no arquivo `.env`:
 
 ```env
 EVOLUTION_INSTANCE_URL=http://localhost:8080
+EVOLUTION_INSTANCE=09BA00F4FE55-4C37-859A-5743BE3BD4E7
+# ou
+EVOLUTION_API_KEY=09BA00F4FE55-4C37-859A-5743BE3BD4E7
 ```
 
-**Nota**: A URL deve ser apenas a base, sem o caminho do endpoint. O endpoint completo será construído automaticamente como: `{EVOLUTION_INSTANCE_URL}/message/sendText/{instanceName}`
+**Nota**: 
+- A URL deve ser apenas a base, sem o caminho do endpoint
+- O serviço utiliza o SDK oficial `@solufy/evolution-sdk` ao invés de chamadas HTTP diretas
+- O SDK gerencia automaticamente a construção das URLs e autenticação
 
 ### Comportamento
 
