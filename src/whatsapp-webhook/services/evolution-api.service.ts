@@ -7,7 +7,6 @@ import { ILogger } from '../../shared/application/interfaces/logger.interface';
 export class EvolutionApiService implements OnModuleInit {
   private readonly baseUrl: string;
   private readonly apiKey: string;
-  private client: EvolutionClient | null = null;
 
   constructor(
     private readonly configService: ConfigService,
