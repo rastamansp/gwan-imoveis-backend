@@ -12,7 +12,9 @@ RUN apk add --no-cache python3 make g++
 COPY package*.json ./
 
 # Instalar todas as dependências (incluindo dev para build)
-RUN npm ci && npm cache clean --force
+RUN npm ci && npm cache clean --force && \
+    echo "Dependências instaladas. Verificando NestJS CLI..." && \
+    npx nest --version
 
 # Copiar código-fonte (ignorar apenas o que está no .dockerignore)
 COPY . .
@@ -24,7 +26,8 @@ RUN echo "Verificando estrutura de diretórios..." && \
     test -f src/whatsapp-webhook/services/evolution-api.service.ts && echo "✓ evolution-api.service.ts existe" || (echo "✗ evolution-api.service.ts NÃO encontrado!" && exit 1)
 
 # Compilar TypeScript para JavaScript
-RUN echo "Iniciando build..." && npm run build 2>&1 || (echo "=== ERRO NO BUILD ===" && exit 1)
+RUN echo "=== Iniciando build ===" && \
+    npm run build
 
 # ========================================
 # PRODUCTION STAGE
