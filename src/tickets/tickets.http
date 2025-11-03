@@ -18,7 +18,7 @@ Authorization: Bearer {{token}}
 GET {{baseUrl}}/tickets/event/1
 Authorization: Bearer {{token}}
 
-### Criar ingresso (comprar)
+### Criar ingresso (comprar) - sem dados de identificação
 POST {{baseUrl}}/tickets
 Content-Type: application/json
 Authorization: Bearer {{token}}
@@ -27,6 +27,21 @@ Authorization: Bearer {{token}}
   "eventId": "1",
   "categoryId": "1",
   "quantity": 2
+}
+
+### Criar ingresso (comprar) - com dados de identificação
+POST {{baseUrl}}/tickets
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "eventId": "1",
+  "categoryId": "1",
+  "quantity": 2,
+  "holderFirstName": "João",
+  "holderLastName": "Silva",
+  "documentType": "CPF",
+  "documentNumber": "12345678900"
 }
 
 ### Validar ingresso

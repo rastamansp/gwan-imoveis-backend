@@ -28,6 +28,20 @@ export class PurchaseTicketUseCase {
     private readonly logger: ILogger,
   ) {}
 
+  /**
+   * Executa a compra de ingressos
+   * 
+   * Fluxo de execução (simulando pagamento aprovado):
+   * 1. Validações: usuário, evento, categoria e disponibilidade
+   * 2. Criação dos tickets com dados de identificação (nome, sobrenome, documento)
+   * 3. Geração de QR codes para cada ticket
+   * 4. Salvamento dos tickets no banco
+   * 5. Atualização do evento (ingressos vendidos)
+   * 6. Atualização da categoria (ingressos vendidos)
+   * 
+   * Nota: O pagamento é considerado aprovado neste use case.
+   * A integração real com gateway de pagamento será implementada posteriormente.
+   */
   async execute(createTicketDto: CreateTicketDto, userId: string): Promise<Ticket[]> {
     const startTime = Date.now();
     
@@ -36,10 +50,14 @@ export class PurchaseTicketUseCase {
       categoryId: createTicketDto.categoryId,
       quantity: createTicketDto.quantity,
       userId,
+      hasHolderInfo: !!(createTicketDto.holderFirstName && createTicketDto.holderLastName),
       timestamp: new Date().toISOString(),
     });
 
     try {
+      // ============================================
+      // ETAPA 1: VALIDAÇÕES
+      // ============================================
       // Verificar se o usuário existe
       const user = await this.userRepository.findById(userId);
       if (!user) {
@@ -85,7 +103,11 @@ export class PurchaseTicketUseCase {
         );
       }
 
-      // Criar ingressos
+      // ============================================
+      // ETAPA 2: CRIAÇÃO DOS TICKETS
+      // Pagamento considerado aprovado (simulação)
+      // ============================================
+      // Ordem de execução: 1. Validações → 2. Criação dos tickets → 3. Salvamento → 4. Atualização evento/categoria
       const tickets: Ticket[] = [];
       for (let i = 0; i < createTicketDto.quantity; i++) {
         const qrCodeData = `TICKET_${uuidv4()}_${event.date.toISOString()}_${userId}`;
@@ -104,23 +126,30 @@ export class PurchaseTicketUseCase {
           category.price,
           qrCodeImage,
           qrCodeData,
+          createTicketDto.holderFirstName,
+          createTicketDto.holderLastName,
+          createTicketDto.documentType,
+          createTicketDto.documentNumber,
         );
 
         tickets.push(ticket);
       }
 
-      // Salvar ingressos
+      // ============================================
+      // ETAPA 3: SALVAMENTO DOS TICKETS
+      // ============================================
       const savedTickets: Ticket[] = [];
       for (const ticket of tickets) {
         const savedTicket = await this.ticketRepository.save(ticket);
         savedTickets.push(savedTicket);
       }
 
-      // Atualizar evento com ingressos vendidos
+      // ============================================
+      // ETAPA 4: ATUALIZAÇÃO DO EVENTO E CATEGORIA
+      // ============================================
       event.addSoldTickets(createTicketDto.quantity);
       await this.eventRepository.update(createTicketDto.eventId, event);
 
-      // Atualizar categoria com ingressos vendidos
       category.sell(createTicketDto.quantity);
       await this.ticketCategoryRepository.update(createTicketDto.categoryId, category);
 

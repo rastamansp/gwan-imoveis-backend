@@ -119,9 +119,10 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "spotifyUrl": "https://open.spotify.com/intl-pt/artist/6nynI5RNNt5DJ9gB4jCRTb"
+  "spotifyUrl": "https://open.spotify.com/intl-pt/artist/0GWNKI3VPEcJsOIEhUjmxd"
 }
 
+### Buscar e atualizar artista do Spotify (atualizar artista existente)
 POST {{baseUrl}}/artists/spotify/fetch-and-update
 Content-Type: application/json
 Authorization: Bearer {{token}}

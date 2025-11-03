@@ -95,7 +95,7 @@ POST {{baseUrl}}/api/chat
 Content-Type: application/json
 
 {
-  "message": "Busque o artista com nome artístico Nome Artístico"
+  "message": "Busque o artista com nome artístico Junior Dread"
 }
 
 ### 4.2) Buscar artista por nome completo (via search_artists_by_query)

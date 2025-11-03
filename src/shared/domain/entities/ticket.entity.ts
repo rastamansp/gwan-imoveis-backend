@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDa
 import { User } from './user.entity';
 import { Event } from './event.entity';
 import { TicketStatus } from '../value-objects/ticket-status.enum';
+import { DocumentType } from '../value-objects/document-type.enum';
 
 @Entity('tickets')
 export class Ticket {
@@ -65,6 +66,18 @@ export class Ticket {
   @Column({ type: 'varchar', length: 255, nullable: true })
   transferredToEmail: string;
 
+  @Column({ name: 'holder_first_name', type: 'varchar', length: 255, nullable: true })
+  holderFirstName: string | null;
+
+  @Column({ name: 'holder_last_name', type: 'varchar', length: 255, nullable: true })
+  holderLastName: string | null;
+
+  @Column({ name: 'document_type', type: 'enum', enum: DocumentType, nullable: true })
+  documentType: DocumentType | null;
+
+  @Column({ name: 'document_number', type: 'varchar', length: 50, nullable: true })
+  documentNumber: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -94,6 +107,10 @@ export class Ticket {
     price: number,
     qrCode?: string,
     qrCodeData?: string,
+    holderFirstName?: string | null,
+    holderLastName?: string | null,
+    documentType?: DocumentType | null,
+    documentNumber?: string | null,
   ): Ticket {
     const ticket = new Ticket();
     ticket.eventId = eventId;
@@ -108,6 +125,10 @@ export class Ticket {
     ticket.price = price;
     ticket.qrCode = qrCode;
     ticket.qrCodeData = qrCodeData;
+    ticket.holderFirstName = holderFirstName ?? null;
+    ticket.holderLastName = holderLastName ?? null;
+    ticket.documentType = documentType ?? null;
+    ticket.documentNumber = documentNumber ?? null;
     ticket.status = TicketStatus.ACTIVE;
     ticket.purchasedAt = new Date();
     ticket.createdAt = new Date();

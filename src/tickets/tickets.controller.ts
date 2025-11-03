@@ -285,8 +285,13 @@ export class TicketsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(201)
-  @ApiOperation({ summary: 'Comprar ingresso' })
-  @ApiResponse({ status: 201, description: 'Ingresso comprado com sucesso' })
+  @ApiOperation({ 
+    summary: 'Comprar ingresso', 
+    description: 'Realiza a compra de ingressos para um evento. Pode incluir dados de identificação do titular (nome, sobrenome, tipo e número de documento). O pagamento é considerado aprovado (simulação). Retorna array de tickets criados.' 
+  })
+  @ApiResponse({ status: 201, description: 'Ingresso comprado com sucesso', type: [TicketResponseDto] })
+  @ApiResponse({ status: 400, description: 'Dados inválidos ou evento/categoria não disponível' })
+  @ApiResponse({ status: 401, description: 'Não autorizado' })
   async create(@Body() createTicketDto: CreateTicketDto, @Request() req: any): Promise<TicketResponseDto[]> {
     const tickets = await this.purchaseTicketUseCase.execute(createTicketDto, req.user.id);
     return tickets.map(ticket => TicketResponseDto.fromEntity(ticket));

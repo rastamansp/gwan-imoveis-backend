@@ -21,6 +21,9 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:bdd": "cucumber-js --config test/bdd/.cucumberrc.js",
+    "test:bdd:watch": "cucumber-js --config test/bdd/.cucumberrc.js --watch",
+    "test:bdd:report": "cucumber-js --config test/bdd/.cucumberrc.js && echo 'Relatório gerado em test/bdd/reports/'",
     "docs:generate": "node scripts/docs-manager.js generate",
     "docs:validate": "node scripts/docs-manager.js validate",
     "docs:serve": "node scripts/docs-manager.js serve",
@@ -82,6 +85,8 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "@cucumber/cucumber": "^12.2.0",
+    "@cucumber/pretty-formatter": "^2.4.1",
     "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
@@ -106,7 +111,7 @@
     "supertest": "^6.3.3",
     "ts-jest": "^29.1.0",
     "ts-loader": "^9.4.3",
-    "ts-node": "^10.9.1",
+    "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.1.3"
   },

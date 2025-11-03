@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Ticket } from '../../domain/entities/ticket.entity';
+import { DocumentType } from '../../domain/value-objects/document-type.enum';
 
 export class TicketResponseDto {
   @ApiProperty()
@@ -56,6 +57,18 @@ export class TicketResponseDto {
   @ApiProperty()
   transferredTo?: string;
 
+  @ApiProperty({ required: false, description: 'Primeiro nome do titular do ingresso' })
+  holderFirstName?: string | null;
+
+  @ApiProperty({ required: false, description: 'Sobrenome do titular do ingresso' })
+  holderLastName?: string | null;
+
+  @ApiProperty({ required: false, description: 'Tipo de documento de identificação', enum: DocumentType })
+  documentType?: DocumentType | null;
+
+  @ApiProperty({ required: false, description: 'Número do documento de identificação' })
+  documentNumber?: string | null;
+
   static fromEntity(ticket: Ticket): TicketResponseDto {
     const dto = new TicketResponseDto();
     dto.id = ticket.id;
@@ -76,6 +89,10 @@ export class TicketResponseDto {
     dto.usedDate = ticket.usedAt;
     dto.transferDate = ticket.transferredAt;
     dto.transferredTo = ticket.transferredTo;
+    dto.holderFirstName = ticket.holderFirstName ?? undefined;
+    dto.holderLastName = ticket.holderLastName ?? undefined;
+    dto.documentType = ticket.documentType ?? undefined;
+    dto.documentNumber = ticket.documentNumber ?? undefined;
     return dto;
   }
 }

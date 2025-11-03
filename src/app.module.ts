@@ -15,6 +15,7 @@ import { McpModule } from './mcp/mcp.module';
 import { ChatModule } from './chat/chat.module';
 import { HealthModule } from './health/health.module';
 import { ArtistsModule } from './artists/artists.module';
+import { WhatsappWebhookModule } from './whatsapp-webhook/whatsapp-webhook.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { ArtistsModule } from './artists/artists.module';
     ChatModule,
     HealthModule,
     ArtistsModule,
+    WhatsappWebhookModule,
   ],
 })
 export class AppModule {}
