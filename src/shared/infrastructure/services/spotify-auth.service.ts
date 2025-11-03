@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 interface TokenResponse {
   access_token: string;
