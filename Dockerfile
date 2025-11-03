@@ -16,11 +16,15 @@ RUN npm ci && npm cache clean --force
 
 # Copiar código-fonte (ignorar apenas o que está no .dockerignore)
 COPY . .
-# Garantir que o diretório whatsapp-webhook existe
-RUN test -d src/whatsapp-webhook || (echo "ERRO: src/whatsapp-webhook não encontrado!" && exit 1)
+
+# Verificar estrutura de diretórios importantes
+RUN echo "Verificando estrutura de diretórios..." && \
+    test -d src/whatsapp-webhook && echo "✓ src/whatsapp-webhook existe" || (echo "✗ src/whatsapp-webhook NÃO encontrado!" && exit 1) && \
+    test -d src/whatsapp-webhook/services && echo "✓ src/whatsapp-webhook/services existe" || (echo "✗ src/whatsapp-webhook/services NÃO encontrado!" && exit 1) && \
+    test -f src/whatsapp-webhook/services/evolution-api.service.ts && echo "✓ evolution-api.service.ts existe" || (echo "✗ evolution-api.service.ts NÃO encontrado!" && exit 1)
 
 # Compilar TypeScript para JavaScript
-RUN npm run build
+RUN echo "Iniciando build..." && npm run build 2>&1 || (echo "=== ERRO NO BUILD ===" && exit 1)
 
 # ========================================
 # PRODUCTION STAGE
