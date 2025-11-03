@@ -30,22 +30,33 @@ RUN echo "=== Verificando pacote @solufy/evolution-sdk ===" && \
     npm list @solufy/evolution-sdk || echo "AVISO: SDK nao encontrado nas dependencias instaladas"
 
 # Compilar TypeScript para JavaScript
-RUN npm run build
+# Capturar todo o output do build para debug
+RUN npm run build 2>&1 | tee /tmp/build-output.txt || \
+    (echo "=== ERRO NO BUILD - Output completo ===" && \
+     cat /tmp/build-output.txt && \
+     echo "=== Verificando Node e NPM ===" && \
+     node --version && npm --version && \
+     echo "=== Verificando NestJS CLI ===" && \
+     npx nest --version || echo "NestJS CLI nao encontrado" && \
+     echo "=== Tentando build direto com tsc ===" && \
+     npx tsc --version || echo "TypeScript nao encontrado" && \
+     exit 1)
 
 # Verificar estrutura gerada pelo build
 RUN echo "=== Verificando estrutura dist/ ===" && \
-    ls -la dist/ && \
+    ls -la dist/ 2>&1 || echo "dist/ nao existe" && \
     echo "=== Verificando estrutura dist/src/ ===" && \
-    (ls -la dist/src/ || echo "dist/src/ nao existe") && \
+    (ls -la dist/src/ 2>&1 || echo "dist/src/ nao existe") && \
     echo "=== Procurando main.js ===" && \
-    find dist -name "main.js" -type f || echo "Nenhum main.js encontrado"
+    (find dist -name "main.js" -type f 2>&1 || echo "Nenhum main.js encontrado")
 
-# Verificar se main.js foi gerado (permitir que continue mesmo se nao encontrar para debug)
+# Verificar se main.js foi gerado
 RUN test -f dist/src/main.js && \
     echo "=== main.js encontrado ===" && \
     ls -lh dist/src/main.js || \
-    (echo "=== AVISO: dist/src/main.js nao encontrado - listando estrutura ===" && \
-     find dist -type f -name "*.js" | head -20 && \
+    (echo "=== ERRO: dist/src/main.js nao encontrado ===" && \
+     echo "=== Listando primeiros arquivos JS gerados ===" && \
+     find dist -type f -name "*.js" 2>&1 | head -20 && \
      exit 1)
 
 # ========================================
