@@ -25,8 +25,24 @@ RUN test -d src/whatsapp-webhook && \
     test -f src/whatsapp-webhook/services/evolution-api.service.ts || \
     (echo "ERRO: Estrutura de diretorios do whatsapp-webhook nao encontrada!" && exit 1)
 
+# Verificar se o SDK está instalado
+RUN echo "=== Verificando pacote @solufy/evolution-sdk ===" && \
+    npm list @solufy/evolution-sdk || echo "AVISO: SDK nao encontrado nas dependencias instaladas"
+
 # Compilar TypeScript para JavaScript
-RUN npm run build
+# Tentar build e capturar qualquer erro
+RUN set -e && \
+    echo "=== Iniciando build ===" && \
+    npm run build 2>&1 | head -100 || \
+    (echo "=== ERRO NO BUILD - Tentando novamente com verbose ===" && \
+     npx nest build 2>&1 || \
+     (echo "=== ERRO PERSISTENTE - Verificando tipo de erro ===" && \
+      npx tsc --noEmit 2>&1 | head -50 || true && \
+      echo "=== Listando node_modules/@solufy ===" && \
+      ls -la node_modules/@solufy/ 2>&1 || true && \
+      echo "=== Verificando package.json ===" && \
+      cat package.json | grep -A 2 "evolution-sdk" || true && \
+      exit 1))
 
 # Verificar se main.js foi gerado
 RUN test -f dist/src/main.js || (echo "ERRO: dist/src/main.js nao encontrado!" && ls -la dist/ && ls -la dist/src/ 2>&1 && exit 1)
