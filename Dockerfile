@@ -20,27 +20,13 @@ RUN npm ci && npm cache clean --force && \
 COPY . .
 
 # Verificar estrutura de diretórios importantes
-RUN echo "Verificando estrutura de diretórios..." && \
-    test -d src/whatsapp-webhook && echo "✓ src/whatsapp-webhook existe" || (echo "✗ src/whatsapp-webhook NÃO encontrado!" && exit 1) && \
-    test -d src/whatsapp-webhook/services && echo "✓ src/whatsapp-webhook/services existe" || (echo "✗ src/whatsapp-webhook/services NÃO encontrado!" && exit 1) && \
-    test -f src/whatsapp-webhook/services/evolution-api.service.ts && echo "✓ evolution-api.service.ts existe" || (echo "✗ evolution-api.service.ts NÃO encontrado!" && exit 1)
+RUN test -d src/whatsapp-webhook && \
+    test -d src/whatsapp-webhook/services && \
+    test -f src/whatsapp-webhook/services/evolution-api.service.ts || \
+    (echo "ERRO: Estrutura de diretorios do whatsapp-webhook nao encontrada!" && exit 1)
 
 # Compilar TypeScript para JavaScript
-RUN echo "=== Verificando ambiente ===" && \
-    node --version && \
-    npm --version && \
-    npx nest --version && \
-    echo "=== Listando arquivos do whatsapp-webhook ===" && \
-    ls -la src/whatsapp-webhook/ && \
-    ls -la src/whatsapp-webhook/services/ && \
-    echo "=== Iniciando build (salvando output) ===" && \
-    npm run build > /tmp/build-output.log 2>&1 && \
-    echo "=== Build concluído com sucesso ===" || \
-    (echo "=== ERRO NO BUILD ===" && \
-     cat /tmp/build-output.log && \
-     echo "=== Verificando arquivos TypeScript ===" && \
-     find src/whatsapp-webhook -name "*.ts" -exec head -5 {} \; && \
-     exit 1)
+RUN npm run build
 
 # ========================================
 # PRODUCTION STAGE
