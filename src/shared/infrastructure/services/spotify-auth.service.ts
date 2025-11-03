@@ -24,6 +24,13 @@ export class SpotifyAuthService {
 
     if (!this.clientId || !this.clientSecret) {
       this.logger.warn('SPOTIFY_CLIENT_ID ou SPOTIFY_CLIENT_SECRET não configurados. Integração com Spotify não funcionará.');
+    } else {
+      this.logger.debug('Credenciais do Spotify carregadas', {
+        hasClientId: !!this.clientId,
+        hasClientSecret: !!this.clientSecret,
+        clientIdLength: this.clientId.length,
+        clientSecretLength: this.clientSecret.length,
+      });
     }
   }
 
@@ -41,14 +48,32 @@ export class SpotifyAuthService {
     // Obter novo token
     this.logger.debug('Obtendo novo token do Spotify');
     
+    // Validar credenciais antes de fazer a requisição
+    if (!this.clientId || !this.clientSecret) {
+      this.logger.error('Credenciais do Spotify não configuradas', {
+        hasClientId: !!this.clientId,
+        hasClientSecret: !!this.clientSecret,
+      });
+      throw new Error('SPOTIFY_CLIENT_ID ou SPOTIFY_CLIENT_SECRET não configurados');
+    }
+
     try {
+      const authHeader = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
+      
+      this.logger.debug('Fazendo requisição de token', {
+        url: this.tokenUrl,
+        hasClientId: !!this.clientId,
+        hasClientSecret: !!this.clientSecret,
+        authHeaderLength: authHeader.length,
+      });
+
       const response = await axios.post<TokenResponse>(
         this.tokenUrl,
         'grant_type=client_credentials',
         {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': `Basic ${Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64')}`,
+            'Authorization': `Basic ${authHeader}`,
           },
           timeout: 10000,
         },
@@ -66,10 +91,28 @@ export class SpotifyAuthService {
 
       return access_token;
     } catch (error) {
-      this.logger.error('Erro ao obter token do Spotify', {
-        error: axios.isAxiosError(error) ? error.message : String(error),
-        status: axios.isAxiosError(error) ? error.response?.status : undefined,
-      });
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError;
+        const errorData = axiosError.response?.data;
+        const errorMessage = typeof errorData === 'string' 
+          ? errorData 
+          : (errorData && typeof errorData === 'object' ? JSON.stringify(errorData) : axiosError.message);
+        
+        this.logger.error('Erro ao obter token do Spotify', {
+          error: axiosError.message,
+          status: axiosError.response?.status,
+          statusText: axiosError.response?.statusText,
+          responseData: errorMessage,
+          hasClientId: !!this.clientId,
+          hasClientSecret: !!this.clientSecret,
+          clientIdLength: this.clientId?.length || 0,
+          clientSecretLength: this.clientSecret?.length || 0,
+        });
+      } else {
+        this.logger.error('Erro desconhecido ao obter token do Spotify', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
       throw new Error('Falha na autenticação com a API do Spotify');
     }
   }
