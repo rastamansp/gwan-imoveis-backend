@@ -46,20 +46,33 @@ RUN npm run build || \
 
 # Verificar estrutura gerada pelo build
 RUN echo "=== Verificando estrutura dist/ ===" && \
-    ls -la dist/ 2>&1 || echo "dist/ nao existe" && \
+    ls -la dist/ 2>&1 && \
     echo "=== Verificando estrutura dist/src/ ===" && \
-    (ls -la dist/src/ 2>&1 || echo "dist/src/ nao existe") && \
-    echo "=== Procurando main.js ===" && \
-    (find dist -name "main.js" -type f 2>&1 || echo "Nenhum main.js encontrado")
+    ls -la dist/src/ 2>&1 || echo "AVISO: dist/src/ nao existe" && \
+    echo "=== Procurando main.js em toda estrutura ===" && \
+    find dist -name "main.js" -type f 2>&1 && \
+    echo "=== Verificando se existe dist/main.js (sem src/) ===" && \
+    test -f dist/main.js && echo "dist/main.js EXISTE!" || echo "dist/main.js nao existe" && \
+    echo "=== Verificando se existe dist/src/main.js ===" && \
+    test -f dist/src/main.js && echo "dist/src/main.js EXISTE!" || echo "dist/src/main.js nao existe"
 
-# Verificar se main.js foi gerado
-RUN test -f dist/src/main.js && \
-    echo "=== main.js encontrado ===" && \
-    ls -lh dist/src/main.js || \
-    (echo "=== ERRO: dist/src/main.js nao encontrado ===" && \
-     echo "=== Listando primeiros arquivos JS gerados ===" && \
-     find dist -type f -name "*.js" 2>&1 | head -20 && \
-     exit 1)
+# Verificar se main.js foi gerado (tentar ambos os caminhos)
+RUN if [ -f dist/src/main.js ]; then \
+      echo "=== main.js encontrado em dist/src/main.js ===" && \
+      ls -lh dist/src/main.js; \
+    elif [ -f dist/main.js ]; then \
+      echo "=== AVISO: main.js encontrado em dist/main.js (sem src/) ===" && \
+      ls -lh dist/main.js && \
+      echo "=== Criando link simbolico ou copiando ===" && \
+      mkdir -p dist/src && \
+      cp dist/main.js dist/src/main.js && \
+      echo "=== Arquivo copiado para dist/src/main.js ==="; \
+    else \
+      echo "=== ERRO: main.js nao encontrado em nenhum lugar ===" && \
+      echo "=== Listando estrutura completa de dist/ ===" && \
+      find dist -type f 2>&1 | head -30 && \
+      exit 1; \
+    fi
 
 # ========================================
 # PRODUCTION STAGE
