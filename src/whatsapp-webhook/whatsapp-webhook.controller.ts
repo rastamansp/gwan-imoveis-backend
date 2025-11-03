@@ -20,9 +20,6 @@ export class WhatsappWebhookController {
       whitelist: false, // Permite campos extras
       forbidNonWhitelisted: false, // Não rejeita campos não decorados
       transform: true, // Permite transformação
-      skipMissingProperties: true, // Permite propriedades faltantes
-      skipNullProperties: true, // Permite propriedades null
-      skipUndefinedProperties: true, // Permite propriedades undefined
     }),
   )
   @HttpCode(HttpStatus.OK)
