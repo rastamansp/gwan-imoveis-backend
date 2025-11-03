@@ -25,8 +25,8 @@ docs
 *.md
 !README.md
 
-# Tests
-test
+# Tests (mas precisamos do test/bdd/support para os steps)
+# test
 *.spec.ts
 *.test.ts
 coverage

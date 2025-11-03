@@ -77,7 +77,8 @@ class RestApiClient {
 
 // Estender TestWorld para armazenar dados de API REST
 // Note: TestWorld extends World from @cucumber/cucumber which already has attach method
-interface RestApiWorld extends TestWorld {
+// Usando type assertion para garantir que attach esteja disponível
+type RestApiWorld = TestWorld & {
   apiClient?: RestApiClient;
   createdEvent?: any;
   createdCategories?: any[];
