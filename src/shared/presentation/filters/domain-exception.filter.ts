@@ -25,8 +25,15 @@ export class DomainExceptionFilter implements ExceptionFilter {
       case 'EVENT_NOT_FOUND':
       case 'TICKET_NOT_FOUND':
       case 'PAYMENT_NOT_FOUND':
+      case 'ARTIST_NOT_FOUND':
+      case 'SPOTIFY_ARTIST_NOT_FOUND':
         return HttpStatus.NOT_FOUND;
       case 'INVALID_OPERATION':
+      case 'SPOTIFY_INVALID_URL':
+      case 'SPOTIFY_INTEGRATION_ERROR':
+      case 'SPOTIFY_AUTH_FAILED':
+      case 'SPOTIFY_API_ERROR':
+      case 'INVALID_UUID':
         return HttpStatus.BAD_REQUEST;
       default:
         return HttpStatus.INTERNAL_SERVER_ERROR;

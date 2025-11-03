@@ -18,9 +18,12 @@ import { QRCodeService } from './infrastructure/services/qrcode.service';
 import { EmbeddingService } from './infrastructure/services/embedding.service';
 import { EventContentService } from './infrastructure/services/event-content.service';
 import { ArtistContentService } from './infrastructure/services/artist-content.service';
+import { SpotifyAuthService } from './infrastructure/services/spotify-auth.service';
+import { SpotifyService } from './infrastructure/services/spotify.service';
 import { ILogger } from './application/interfaces/logger.interface';
 import { IQRCodeService } from './application/interfaces/qrcode.interface';
 import { IEmbeddingService } from './application/interfaces/embedding-service.interface';
+import { ISpotifyService } from './application/interfaces/spotify-service.interface';
 import { IUserRepository } from './domain/interfaces/user-repository.interface';
 import { IEventRepository } from './domain/interfaces/event-repository.interface';
 import { ITicketRepository } from './domain/interfaces/ticket-repository.interface';
@@ -49,6 +52,7 @@ import { UpdateArtistUseCase } from './application/use-cases/update-artist.use-c
 import { DeleteArtistUseCase } from './application/use-cases/delete-artist.use-case';
 import { LinkArtistToEventUseCase } from './application/use-cases/link-artist-to-event.use-case';
 import { UnlinkArtistFromEventUseCase } from './application/use-cases/unlink-artist-from-event.use-case';
+import { FetchAndUpdateArtistFromSpotifyUseCase } from './application/use-cases/fetch-and-update-artist-from-spotify.use-case';
 
 @Global()
 @Module({
@@ -73,6 +77,11 @@ import { UnlinkArtistFromEventUseCase } from './application/use-cases/unlink-art
     },
     EventContentService,
     ArtistContentService,
+    SpotifyAuthService,
+    {
+      provide: 'ISpotifyService',
+      useClass: SpotifyService,
+    },
     
     // Repositories
     {
@@ -123,11 +132,13 @@ import { UnlinkArtistFromEventUseCase } from './application/use-cases/unlink-art
     DeleteArtistUseCase,
     LinkArtistToEventUseCase,
     UnlinkArtistFromEventUseCase,
+    FetchAndUpdateArtistFromSpotifyUseCase,
   ],
   exports: [
     'ILogger',
     'IQRCodeService',
     'IEmbeddingService',
+    'ISpotifyService',
     EventContentService,
     ArtistContentService,
     'IUserRepository',
@@ -158,6 +169,7 @@ import { UnlinkArtistFromEventUseCase } from './application/use-cases/unlink-art
     DeleteArtistUseCase,
     LinkArtistToEventUseCase,
     UnlinkArtistFromEventUseCase,
+    FetchAndUpdateArtistFromSpotifyUseCase,
   ],
 })
 export class SharedModule {}

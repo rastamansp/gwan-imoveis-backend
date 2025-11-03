@@ -38,6 +38,9 @@ export class ArtistResponseDto {
   @ApiProperty({ required: false, description: 'URL da imagem do artista' })
   image?: string | null;
 
+  @ApiProperty({ required: false, description: 'Metadados do artista (inclui dados do Spotify se disponível)', type: 'object' })
+  metadata?: Record<string, any> | null;
+
   @ApiProperty()
   createdAt: Date;
 
@@ -58,6 +61,7 @@ export class ArtistResponseDto {
     dto.siteUrl = artist.siteUrl || undefined;
     dto.tiktokUsername = artist.tiktokUsername || undefined;
     dto.image = artist.image || undefined;
+    dto.metadata = artist.metadata || undefined;
     dto.createdAt = artist.createdAt;
     dto.updatedAt = artist.updatedAt;
     return dto;

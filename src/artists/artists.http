@@ -1,8 +1,9 @@
 ### Variáveis
 @baseUrl = http://localhost:3001/api
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBlZHJvLmhwLmFsbWVpZGFAZ21haWwuY29tIiwic3ViIjoiNjZjNzY1NTItYzM5Yy00ZTkzLTg0ZTQtNGY2NzczMGU2ZWE3Iiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzYxOTM3NDczLCJleHAiOjE3NjIwMjM4NzN9.Js_N9xrpVibal5XSlkVhXWXQ6feroowVCIHyZS0qAkc
-@artistId = uuid-do-artista
-@eventId = uuid-do-evento
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBlZHJvLmhwLmFsbWVpZGFAZ21haWwuY29tIiwic3ViIjoiNjZjNzY1NTItYzM5Yy00ZTkzLTg0ZTQtNGY2NzczMGU2ZWE3Iiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzYyMTM1NzE1LCJleHAiOjE3NjIyMjIxMTV9.m8dDj-7sJFDDcQrAb_XwEf8_oICZYCaRd_D3B5DnJoM
+
+@artistId = 76bf12c5-e800-4790-9de9-9165885e907f
+@eventId = 89a91565-38eb-4dea-8166-ac251617fa72
 
 ### Listar todos os artistas
 GET {{baseUrl}}/artists
@@ -50,16 +51,16 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "artisticName": "Nome Artístico",
-  "name": "Nome Completo do Artista",
-  "birthDate": "1990-01-01",
+  "artisticName": "Dj The Rock",
+  "name": "Pedro Almeida",
+  "birthDate": "1987-01-09",
   "biography": "Biografia completa do artista aqui...",
-  "instagramUsername": "artistname",
-  "youtubeUsername": "artistname",
-  "xUsername": "artistname",
-  "spotifyUsername": "artistname",
-  "siteUrl": "https://artista.com.br",
-  "tiktokUsername": "artistname",
+  "instagramUsername": "therockdeejay",
+  "youtubeUsername": "therockdeeja",
+  "xUsername": "rastamansp",
+  "spotifyUsername": "rastamansp",
+  "siteUrl": "https://gwan.com.br",
+  "tiktokUsername": "rastamansp",
   "image": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800"
 }
 
@@ -108,3 +109,27 @@ Authorization: Bearer {{token}}
 DELETE {{baseUrl}}/events/{{eventId}}/artists/{{artistId}}
 Authorization: Bearer {{token}}
 
+### ============================================
+### Integração com Spotify
+### ============================================
+
+### Buscar e atualizar artista do Spotify (criar novo artista)
+POST {{baseUrl}}/artists/spotify/fetch-and-update
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "spotifyUrl": "https://open.spotify.com/intl-pt/artist/6nynI5RNNt5DJ9gB4jCRTb"
+}
+
+POST {{baseUrl}}/artists/spotify/fetch-and-update
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "spotifyUrl": "https://open.spotify.com/intl-pt/artist/6nynI5RNNt5DJ9gB4jCRTb",
+  "artistId": "76bf12c5-e800-4790-9de9-9165885e907f"
+}
+
+
+GET {{baseUrl}}/artists/{{artistId}}

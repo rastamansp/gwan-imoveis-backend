@@ -29,6 +29,7 @@ export interface ArtistMetadata {
     category: string;
   }>;
   textContent: string;
+  spotify?: any; // Dados do Spotify preservados quando existem
 }
 
 @Injectable()
@@ -37,12 +38,24 @@ export class ArtistContentService {
    * Constrói os metadados completos do artista em formato JSON
    */
   buildArtistMetadata(artist: Artist, events: Event[]): ArtistMetadata {
+    // Converter birthDate para string se necessário (TypeORM pode retornar como string)
+    let birthDateString: string | null = null;
+    if (artist.birthDate) {
+      if (artist.birthDate instanceof Date) {
+        birthDateString = artist.birthDate.toISOString().split('T')[0];
+      } else {
+        // TypeORM pode retornar como string ou outro tipo
+        const dateStr = String(artist.birthDate);
+        birthDateString = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+      }
+    }
+
     const metadata: ArtistMetadata = {
       artist: {
         id: artist.id,
         artisticName: artist.artisticName,
         name: artist.name,
-        birthDate: artist.birthDate ? artist.birthDate.toISOString().split('T')[0] : null,
+        birthDate: birthDateString,
         biography: artist.biography || null,
         instagramUsername: artist.instagramUsername || null,
         youtubeUsername: artist.youtubeUsername || null,
@@ -81,7 +94,11 @@ export class ArtistContentService {
     parts.push(`Nome completo: ${artist.name}`);
     
     if (artist.birthDate) {
-      parts.push(`Data de nascimento: ${artist.birthDate.toLocaleDateString('pt-BR')}`);
+      // Converter birthDate para Date se necessário
+      const birthDate = artist.birthDate instanceof Date 
+        ? artist.birthDate 
+        : new Date(artist.birthDate);
+      parts.push(`Data de nascimento: ${birthDate.toLocaleDateString('pt-BR')}`);
     }
 
     if (artist.biography) {
