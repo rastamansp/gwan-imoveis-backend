@@ -30,16 +30,18 @@ RUN echo "=== Verificando pacote @solufy/evolution-sdk ===" && \
     npm list @solufy/evolution-sdk || echo "AVISO: SDK nao encontrado nas dependencias instaladas"
 
 # Compilar TypeScript para JavaScript
-# Capturar todo o output do build para debug
-RUN npm run build 2>&1 | tee /tmp/build-output.txt || \
-    (echo "=== ERRO NO BUILD - Output completo ===" && \
-     cat /tmp/build-output.txt && \
+RUN npm run build || \
+    (echo "=== ERRO NO BUILD ===" && \
      echo "=== Verificando Node e NPM ===" && \
      node --version && npm --version && \
      echo "=== Verificando NestJS CLI ===" && \
-     npx nest --version || echo "NestJS CLI nao encontrado" && \
-     echo "=== Tentando build direto com tsc ===" && \
-     npx tsc --version || echo "TypeScript nao encontrado" && \
+     npx nest --version 2>&1 || echo "NestJS CLI nao encontrado" && \
+     echo "=== Verificando TypeScript ===" && \
+     npx tsc --version 2>&1 || echo "TypeScript nao encontrado" && \
+     echo "=== Verificando estrutura src/ ===" && \
+     ls -la src/ | head -10 && \
+     echo "=== Verificando se o SDK esta instalado ===" && \
+     npm list @solufy/evolution-sdk 2>&1 || echo "SDK nao encontrado" && \
      exit 1)
 
 # Verificar estrutura gerada pelo build
