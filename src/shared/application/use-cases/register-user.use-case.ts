@@ -43,7 +43,8 @@ export class RegisterUserUseCase {
         registerDto.email,
         hashedPassword,
         registerDto.phone,
-        registerDto.role as UserRole || UserRole.USER,
+        undefined, // whatsappNumber - não é fornecido no registro
+        (registerDto.role as UserRole) || UserRole.USER,
         new Date(),
         new Date(),
       );

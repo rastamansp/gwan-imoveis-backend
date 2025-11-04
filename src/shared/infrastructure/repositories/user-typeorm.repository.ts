@@ -23,6 +23,10 @@ export class UserTypeOrmRepository implements IUserRepository {
     return await this.userRepository.findOne({ where: { email } });
   }
 
+  async findByWhatsappNumber(whatsappNumber: string): Promise<User | null> {
+    return await this.userRepository.findOne({ where: { whatsappNumber } });
+  }
+
   async findAll(): Promise<User[]> {
     return await this.userRepository.find();
   }

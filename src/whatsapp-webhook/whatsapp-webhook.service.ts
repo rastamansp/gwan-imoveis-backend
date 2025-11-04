@@ -3,6 +3,13 @@ import { ILogger } from '../shared/application/interfaces/logger.interface';
 import { EvolutionWebhookDto, EvolutionEventType } from './dtos/evolution-webhook.dto';
 import { ChatService } from '../chat/chat.service';
 import { EvolutionApiService } from './services/evolution-api.service';
+import { CreateOrFindConversationUseCase } from '../shared/application/use-cases/create-or-find-conversation.use-case';
+import { SaveMessageUseCase } from '../shared/application/use-cases/save-message.use-case';
+import { IUserRepository } from '../shared/domain/interfaces/user-repository.interface';
+import { IConversationRepository } from '../shared/domain/interfaces/conversation-repository.interface';
+import { extractPhoneNumberFromRemoteJid, normalizeNumberForEvolutionSDK } from '../shared/infrastructure/utils/whatsapp.utils';
+import { MessageDirection } from '../shared/domain/value-objects/message-direction.enum';
+import { RegistrationService } from './services/registration.service';
 
 @Injectable()
 export class WhatsappWebhookService {
@@ -10,6 +17,13 @@ export class WhatsappWebhookService {
     @Inject('ILogger') private readonly logger: ILogger,
     private readonly chatService: ChatService,
     private readonly evolutionApiService: EvolutionApiService,
+    private readonly createOrFindConversationUseCase: CreateOrFindConversationUseCase,
+    private readonly saveMessageUseCase: SaveMessageUseCase,
+    private readonly registrationService: RegistrationService,
+    @Inject('IUserRepository')
+    private readonly userRepository: IUserRepository,
+    @Inject('IConversationRepository')
+    private readonly conversationRepository: IConversationRepository,
   ) {}
 
   /**
@@ -130,7 +144,9 @@ export class WhatsappWebhookService {
       }
 
       // Extrair número do remetente (pode vir de key.remoteJid ou do sender do webhook)
+      // O webhook pode ter remoteJidAlt que é o formato correto quando remoteJid é inválido
       const remoteJid = key.remoteJid || (webhook.sender as string) || 'Desconhecido';
+      const remoteJidAlt = (key as any).remoteJidAlt || null;
       const isFromMe = key.fromMe || false;
       const messageId = key.id || messageData?.id || 'Sem ID';
 
@@ -150,9 +166,91 @@ export class WhatsappWebhookService {
         rawData: JSON.stringify(messageData, null, 2),
       });
 
-      // Processar apenas mensagens RECEBIDAS (fromMe: false) e que tenham texto válido
+      // Extrair número de telefone do remoteJid
+      const phoneNumber = extractPhoneNumberFromRemoteJid(remoteJid);
+
+      // Verificar se usuário está cadastrado
+      const isUserRegistered = phoneNumber ? await this.registrationService.checkUserRegistration(phoneNumber) : false;
+
+      // Buscar usuário por número de WhatsApp se disponível
+      let userId: string | null = null;
+      if (phoneNumber && isUserRegistered) {
+        const user = await this.userRepository.findByWhatsappNumber(phoneNumber);
+        if (user) {
+          userId = user.id;
+        }
+      }
+
+      // Criar ou buscar conversa
+      let conversation = await this.createOrFindConversationUseCase.execute({
+        phoneNumber,
+        instanceName: webhook.instance,
+        userId,
+      });
+
+      // Recarregar conversa do banco para garantir que temos o metadata atualizado
+      conversation = await this.conversationRepository.findById(conversation.id);
+      if (!conversation) {
+        this.logger.error('[ERROR] Conversa não encontrada após criação', { phoneNumber });
+        return;
+      }
+
+      // Processar mensagens recebidas
       if (!isFromMe && messageText && messageText !== '[Mensagem sem texto]') {
-        await this.processIncomingMessage(webhook.instance, remoteJid, messageText, messageId);
+        // Verificar se tem cadastro em andamento (sempre ler do banco atualizado)
+        const registrationStatus = this.registrationService.getRegistrationStatus(conversation);
+
+        if (!isUserRegistered) {
+          // Usuário não cadastrado - verificar se precisa iniciar cadastro
+          if (!registrationStatus || registrationStatus === 'cancelled') {
+            // Normalizar remoteJid antes de passar para o serviço de registro
+            const normalizedRemoteJid = normalizeNumberForEvolutionSDK(remoteJid, remoteJidAlt);
+            // Iniciar fluxo de cadastro
+            await this.registrationService.startRegistration(conversation.id, phoneNumber, webhook.instance, normalizedRemoteJid);
+            return; // Não processar mensagem como chat normal
+          } else if (registrationStatus !== 'completed') {
+            // Normalizar remoteJid antes de passar para o serviço de registro
+            const normalizedRemoteJid = normalizeNumberForEvolutionSDK(remoteJid, remoteJidAlt);
+            // Cadastro em andamento - processar resposta
+            const result = await this.registrationService.processRegistrationMessage(
+              conversation.id,
+              phoneNumber,
+              webhook.instance,
+              messageText,
+              normalizedRemoteJid,
+            );
+
+            // Se cadastro completado, a próxima mensagem será processada como chat normal
+            if (result.completed) {
+              // Atualizar conversa para ter userId
+              const updatedConversation = await this.conversationRepository.findById(conversation.id);
+              if (updatedConversation) {
+                conversation.userId = updatedConversation.userId;
+              }
+            }
+
+            return; // Não processar como chat normal durante cadastro
+          }
+        }
+
+        // Salvar mensagem recebida
+        await this.saveMessageUseCase.execute({
+          conversationId: conversation.id,
+          content: messageText,
+          direction: MessageDirection.INCOMING,
+          messageId,
+          phoneNumber,
+          timestamp: messageTimestamp
+            ? new Date(typeof messageTimestamp === 'number' ? messageTimestamp * 1000 : new Date(messageTimestamp).getTime())
+            : new Date(),
+        });
+
+        // Processar como chat normal (apenas se usuário cadastrado ou cadastro completo)
+        if (isUserRegistered || registrationStatus === 'completed') {
+          // Normalizar remoteJid antes de processar
+          const normalizedRemoteJid = normalizeNumberForEvolutionSDK(remoteJid, remoteJidAlt);
+          await this.processIncomingMessage(webhook.instance, normalizedRemoteJid, messageText, messageId, conversation.id);
+        }
       }
 
       // Se não há mensagem completa mas temos sender, logar como evento de mensagem
@@ -265,6 +363,7 @@ export class WhatsappWebhookService {
     remoteJid: string,
     messageText: string,
     messageId: string,
+    conversationId: string,
   ): Promise<void> {
     const startTime = Date.now();
 
@@ -302,6 +401,22 @@ export class WhatsappWebhookService {
         remoteJid,
         answerLength: answer.length,
         toolsUsed: chatResponse.toolsUsed?.length || 0,
+      });
+
+      // Obter phoneNumber da conversa para salvar na mensagem de resposta
+      const conversationForResponse = await this.conversationRepository.findById(conversationId);
+      const phoneNumberForResponse = conversationForResponse?.phoneNumber || null;
+
+      // Salvar mensagem de resposta (outgoing)
+      await this.saveMessageUseCase.execute({
+        conversationId,
+        content: answer,
+        direction: MessageDirection.OUTGOING,
+        messageId: null, // Mensagem enviada pelo sistema não tem messageId do WhatsApp
+        phoneNumber: phoneNumberForResponse,
+        timestamp: new Date(),
+        response: answer,
+        toolsUsed: chatResponse.toolsUsed || null,
       });
 
       // Enviar resposta via Evolution API

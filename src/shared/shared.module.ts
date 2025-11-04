@@ -7,6 +7,8 @@ import { Payment } from './domain/entities/payment.entity';
 import { TicketCategory } from './domain/entities/ticket-category.entity';
 import { Scanner } from './domain/entities/scanner.entity';
 import { Artist } from './domain/entities/artist.entity';
+import { Conversation } from './domain/entities/conversation.entity';
+import { Message } from './domain/entities/message.entity';
 import { ConsoleLoggerService } from './infrastructure/logger/console-logger.service';
 import { UserTypeOrmRepository } from './infrastructure/repositories/user-typeorm.repository';
 import { EventTypeOrmRepository } from './infrastructure/repositories/event-typeorm.repository';
@@ -14,6 +16,8 @@ import { TicketCategoryTypeOrmRepository } from './infrastructure/repositories/t
 import { TicketTypeOrmRepository } from './infrastructure/repositories/ticket-typeorm.repository';
 import { PaymentTypeOrmRepository } from './infrastructure/repositories/payment-typeorm.repository';
 import { ArtistTypeOrmRepository } from './infrastructure/repositories/artist-typeorm.repository';
+import { ConversationTypeOrmRepository } from './infrastructure/repositories/conversation-typeorm.repository';
+import { MessageTypeOrmRepository } from './infrastructure/repositories/message-typeorm.repository';
 import { QRCodeService } from './infrastructure/services/qrcode.service';
 import { EmbeddingService } from './infrastructure/services/embedding.service';
 import { EventContentService } from './infrastructure/services/event-content.service';
@@ -30,6 +34,8 @@ import { ITicketRepository } from './domain/interfaces/ticket-repository.interfa
 import { IPaymentRepository } from './domain/interfaces/payment-repository.interface';
 import { ITicketCategoryRepository } from './domain/interfaces/ticket-category-repository.interface';
 import { IArtistRepository } from './domain/interfaces/artist-repository.interface';
+import { IConversationRepository } from './domain/interfaces/conversation-repository.interface';
+import { IMessageRepository } from './domain/interfaces/message-repository.interface';
 import { RegisterUserUseCase } from './application/use-cases/register-user.use-case';
 import { LoginUserUseCase } from './application/use-cases/login-user.use-case';
 import { CreateEventUseCase } from './application/use-cases/create-event.use-case';
@@ -53,11 +59,14 @@ import { DeleteArtistUseCase } from './application/use-cases/delete-artist.use-c
 import { LinkArtistToEventUseCase } from './application/use-cases/link-artist-to-event.use-case';
 import { UnlinkArtistFromEventUseCase } from './application/use-cases/unlink-artist-from-event.use-case';
 import { FetchAndUpdateArtistFromSpotifyUseCase } from './application/use-cases/fetch-and-update-artist-from-spotify.use-case';
+import { CreateOrFindConversationUseCase } from './application/use-cases/create-or-find-conversation.use-case';
+import { SaveMessageUseCase } from './application/use-cases/save-message.use-case';
+import { RegisterUserViaWhatsappUseCase } from './application/use-cases/register-user-via-whatsapp.use-case';
 
 @Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Event, Ticket, Payment, TicketCategory, Scanner, Artist]),
+    TypeOrmModule.forFeature([User, Event, Ticket, Payment, TicketCategory, Scanner, Artist, Conversation, Message]),
   ],
   providers: [
     // Logger
@@ -108,6 +117,14 @@ import { FetchAndUpdateArtistFromSpotifyUseCase } from './application/use-cases/
       provide: 'IArtistRepository',
       useClass: ArtistTypeOrmRepository,
     },
+    {
+      provide: 'IConversationRepository',
+      useClass: ConversationTypeOrmRepository,
+    },
+    {
+      provide: 'IMessageRepository',
+      useClass: MessageTypeOrmRepository,
+    },
 
     // Use Cases
     RegisterUserUseCase,
@@ -133,6 +150,9 @@ import { FetchAndUpdateArtistFromSpotifyUseCase } from './application/use-cases/
     LinkArtistToEventUseCase,
     UnlinkArtistFromEventUseCase,
     FetchAndUpdateArtistFromSpotifyUseCase,
+    CreateOrFindConversationUseCase,
+    SaveMessageUseCase,
+    RegisterUserViaWhatsappUseCase,
   ],
   exports: [
     'ILogger',
@@ -147,6 +167,8 @@ import { FetchAndUpdateArtistFromSpotifyUseCase } from './application/use-cases/
     'IPaymentRepository',
     'ITicketCategoryRepository',
     'IArtistRepository',
+    'IConversationRepository',
+    'IMessageRepository',
     RegisterUserUseCase,
     LoginUserUseCase,
     CreateEventUseCase,
@@ -170,6 +192,9 @@ import { FetchAndUpdateArtistFromSpotifyUseCase } from './application/use-cases/
     LinkArtistToEventUseCase,
     UnlinkArtistFromEventUseCase,
     FetchAndUpdateArtistFromSpotifyUseCase,
+    CreateOrFindConversationUseCase,
+    SaveMessageUseCase,
+    RegisterUserViaWhatsappUseCase,
   ],
 })
 export class SharedModule {}

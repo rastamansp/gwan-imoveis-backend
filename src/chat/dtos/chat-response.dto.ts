@@ -29,6 +29,12 @@ export class ChatResponseDto {
     events?: unknown[];
     event?: unknown;
   };
+
+  @ApiPropertyOptional({
+    description: 'ID da sessão de conversa (usado para manter contexto entre requisições)',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  sessionId?: string;
 }
 
 

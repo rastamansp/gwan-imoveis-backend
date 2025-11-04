@@ -18,6 +18,9 @@ export class User {
   @Column({ type: 'varchar', length: 20, nullable: true })
   phone?: string;
 
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  whatsappNumber?: string | null;
+
   @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
   role: UserRole;
 
@@ -37,6 +40,7 @@ export class User {
     email: string,
     password: string,
     phone?: string,
+    whatsappNumber?: string | null,
     role: UserRole = UserRole.USER,
     createdAt: Date = new Date(),
     updatedAt: Date = new Date(),
@@ -47,6 +51,7 @@ export class User {
     user.email = email;
     user.password = password;
     user.phone = phone;
+    user.whatsappNumber = whatsappNumber || null;
     user.role = role;
     user.createdAt = createdAt;
     user.updatedAt = updatedAt;
@@ -70,9 +75,10 @@ export class User {
     return this.role === UserRole.ADMIN;
   }
 
-  public updateProfile(name: string, phone?: string): User {
+  public updateProfile(name: string, phone?: string, whatsappNumber?: string | null): User {
     this.name = name;
     this.phone = phone;
+    this.whatsappNumber = whatsappNumber || null;
     this.updatedAt = new Date();
     return this;
   }

@@ -18,6 +18,22 @@ export class ChatRequestDto {
   @IsOptional()
   @IsObject()
   userCtx?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    description: 'ID da sessão de conversa existente',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @IsOptional()
+  @IsString()
+  sessionId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Número de telefone do WhatsApp (para criar/buscar sessão)',
+    example: '5511999999999',
+  })
+  @IsOptional()
+  @IsString()
+  phoneNumber?: string;
 }
 
 

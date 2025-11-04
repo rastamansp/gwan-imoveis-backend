@@ -19,13 +19,30 @@ export class SpotifyAuthService {
   private tokenExpiresAt: number = 0;
 
   constructor(private readonly configService: ConfigService) {
-    this.clientId = this.configService.get<string>('SPOTIFY_CLIENT_ID') || '';
-    this.clientSecret = this.configService.get<string>('SPOTIFY_CLIENT_SECRET') || '';
+    // Tentar obter das variáveis de ambiente diretamente também (fallback)
+    this.clientId = this.configService.get<string>('SPOTIFY_CLIENT_ID') || process.env.SPOTIFY_CLIENT_ID || '';
+    this.clientSecret = this.configService.get<string>('SPOTIFY_CLIENT_SECRET') || process.env.SPOTIFY_CLIENT_SECRET || '';
+
+    // Log detalhado para debug
+    this.logger.log('Inicializando SpotifyAuthService', {
+      hasClientId: !!this.clientId,
+      hasClientSecret: !!this.clientSecret,
+      clientIdLength: this.clientId?.length || 0,
+      clientSecretLength: this.clientSecret?.length || 0,
+      fromConfigService: {
+        clientId: !!this.configService.get<string>('SPOTIFY_CLIENT_ID'),
+        clientSecret: !!this.configService.get<string>('SPOTIFY_CLIENT_SECRET'),
+      },
+      fromProcessEnv: {
+        clientId: !!process.env.SPOTIFY_CLIENT_ID,
+        clientSecret: !!process.env.SPOTIFY_CLIENT_SECRET,
+      },
+    });
 
     if (!this.clientId || !this.clientSecret) {
       this.logger.warn('SPOTIFY_CLIENT_ID ou SPOTIFY_CLIENT_SECRET não configurados. Integração com Spotify não funcionará.');
     } else {
-      this.logger.debug('Credenciais do Spotify carregadas', {
+      this.logger.debug('Credenciais do Spotify carregadas com sucesso', {
         hasClientId: !!this.clientId,
         hasClientSecret: !!this.clientSecret,
         clientIdLength: this.clientId.length,
