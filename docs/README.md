@@ -15,6 +15,9 @@ Bem-vindo à documentação completa do Gwan Events Backend, uma plataforma comp
 - [Documentação da API](./api/overview.md)
 - [Fluxo Completo do Usuário](./api/user-journey-api-calls.md)
 
+### 🤖 Chatbot
+- [Fluxo de Chamadas do Chatbot](./chatbot/chatbot-flow.md)
+
 ### 🔌 MCP (Model Context Protocol)
 - [Visão Geral do MCP](./mcp/overview.md)
 - [Guia de Integração MCP](./mcp/integration.md)
@@ -28,6 +31,13 @@ Bem-vindo à documentação completa do Gwan Events Backend, uma plataforma comp
 ### 📊 Diagramas
 - [Arquitetura do Sistema](./diagrams/system-architecture.md)
 - [Fluxo do Usuário](./diagrams/user-journey-flow.md)
+- [Fluxo do Chatbot](./diagrams/chatbot-flow.md)
+
+### 📊 Monitoramento
+- [Visão Geral](./monitoring/overview.md)
+
+### 💾 Backup
+- [Visão Geral](./backup/overview.md)
 
 ## 🎯 Início Rápido
 
@@ -41,6 +51,10 @@ Bem-vindo à documentação completa do Gwan Events Backend, uma plataforma comp
 
 ### Para Integração MCP
 1. [Visão Geral do MCP](./mcp/overview.md)
+
+### Para Entender o Chatbot
+1. [Fluxo de Chamadas do Chatbot](./chatbot/chatbot-flow.md)
+2. [Diagramas do Chatbot](./diagrams/chatbot-flow.md)
 
 ## 🔗 Links Úteis
 

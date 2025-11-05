@@ -414,7 +414,24 @@ O chatbot utiliza **OpenAI GPT** com integração **MCP** para:
 - Buscar eventos por nome, categoria ou cidade
 - Fornecer detalhes completos de eventos
 - Listar preços de ingressos
+- Buscar artistas por nome ou estilo
 - Sugerir eventos com contexto do usuário
+- Integração WhatsApp com mensagens sequenciais formatadas
+
+### Tools Disponíveis
+
+**Eventos:**
+- `events.search` - Listar eventos (com filtros opcionais)
+- `search_events_by_query` - Busca exata por nome/código
+- `search_events_rag` - Busca semântica por significado/conceito
+- `get_event_by_id` - Detalhes completos de evento
+- `get_event_ticket_categories` - Preços de ingressos
+
+**Artistas:**
+- `list_artists` - Listar todos os artistas
+- `search_artists_by_query` - Busca exata por nome/username
+- `search_artists_rag` - Busca semântica por estilo/conceito
+- `get_artist_by_id` - Detalhes completos de artista
 
 ### Uso
 
@@ -428,11 +445,18 @@ Content-Type: application/json
     "city": "São Paulo",
     "date": "2025-10-29",
     "language": "pt-BR"
-  }
+  },
+  "channel": "web" // ou "whatsapp"
 }
 ```
 
-### Fluxo
+### Documentação Completa
+
+Para entender em detalhes o fluxo completo do chatbot, consulte:
+- 📖 [Fluxo de Chamadas do Chatbot](./docs/chatbot/chatbot-flow.md) - Documentação completa
+- 📊 [Diagramas do Chatbot](./docs/diagrams/chatbot-flow.md) - Diagramas Mermaid detalhados
+
+### Fluxo Simplificado
 
 ```mermaid
 sequenceDiagram
