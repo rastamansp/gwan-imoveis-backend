@@ -63,11 +63,20 @@ import { CreateOrFindConversationUseCase } from './application/use-cases/create-
 import { SaveMessageUseCase } from './application/use-cases/save-message.use-case';
 import { RegisterUserViaWhatsappUseCase } from './application/use-cases/register-user-via-whatsapp.use-case';
 import { GetUserTicketsByEventUseCase } from './application/use-cases/get-user-tickets-by-event.use-case';
+import { forwardRef } from '@nestjs/common';
 
 @Global()
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Event, Ticket, Payment, TicketCategory, Scanner, Artist, Conversation, Message]),
+    forwardRef(() => {
+      const { WhatsappWebhookModule } = require('../whatsapp-webhook/whatsapp-webhook.module');
+      return WhatsappWebhookModule;
+    }),
+    forwardRef(() => {
+      const { ChatModule } = require('../chat/chat.module');
+      return ChatModule;
+    }),
   ],
   providers: [
     // Logger

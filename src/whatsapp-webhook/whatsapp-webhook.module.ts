@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { WhatsappWebhookController } from './whatsapp-webhook.controller';
 import { WhatsappWebhookService } from './whatsapp-webhook.service';
@@ -8,10 +8,10 @@ import { EvolutionApiService } from './services/evolution-api.service';
 import { RegistrationService } from './services/registration.service';
 
 @Module({
-  imports: [ConfigModule, SharedModule, ChatModule],
+  imports: [ConfigModule, forwardRef(() => SharedModule), forwardRef(() => ChatModule)],
   controllers: [WhatsappWebhookController],
   providers: [WhatsappWebhookService, EvolutionApiService, RegistrationService],
-  exports: [WhatsappWebhookService],
+  exports: [WhatsappWebhookService, EvolutionApiService],
 })
 export class WhatsappWebhookModule {}
 

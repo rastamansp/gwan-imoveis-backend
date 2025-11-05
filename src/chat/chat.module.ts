@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
@@ -10,7 +10,7 @@ import { SuggestionsService } from './services/suggestions.service';
 import { SharedModule } from '../shared/shared.module';
 
 @Module({
-  imports: [ConfigModule, SharedModule],
+  imports: [ConfigModule, forwardRef(() => SharedModule)],
   controllers: [ChatController],
   providers: [
     ChatService,
@@ -20,7 +20,7 @@ import { SharedModule } from '../shared/shared.module';
     PaginationService,
     SuggestionsService,
   ],
-  exports: [ChatService], // Exportar para permitir uso em outros módulos
+  exports: [ChatService, WhatsAppFormatterService], // Exportar para permitir uso em outros módulos
 })
 export class ChatModule {}
 

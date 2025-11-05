@@ -639,7 +639,7 @@ export class WhatsAppFormatterService {
   /**
    * Formata mensagem de ingressos do usuário para um evento
    */
-  private async formatUserTicketsMessage(rawResponse: string, rawData: any, toolsUsed: any[]): Promise<FormattedResponse> {
+  public async formatUserTicketsMessage(rawResponse: string, rawData: any, toolsUsed: any[]): Promise<FormattedResponse> {
     // Extrair dados do evento e ingressos
     let event: any = null;
     let tickets: any[] = [];
