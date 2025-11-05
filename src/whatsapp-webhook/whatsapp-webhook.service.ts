@@ -10,7 +10,7 @@ import { SaveMessageUseCase } from '../shared/application/use-cases/save-message
 import { IUserRepository } from '../shared/domain/interfaces/user-repository.interface';
 import { IConversationRepository } from '../shared/domain/interfaces/conversation-repository.interface';
 import { IQRCodeService } from '../shared/application/interfaces/qrcode.interface';
-import { extractPhoneNumberFromRemoteJid, normalizeNumberForEvolutionSDK } from '../shared/infrastructure/utils/whatsapp.utils.js';
+import { extractPhoneNumberFromRemoteJid, normalizeNumberForEvolutionSDK } from '../shared/infrastructure/utils/whatsapp.utils';
 import { MessageDirection } from '../shared/domain/value-objects/message-direction.enum';
 import { MessageChannel } from '../shared/domain/value-objects/message-channel.enum';
 import { RegistrationService } from './services/registration.service';
