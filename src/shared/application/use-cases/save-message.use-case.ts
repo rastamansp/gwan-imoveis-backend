@@ -4,6 +4,7 @@ import { IMessageRepository } from '../../domain/interfaces/message-repository.i
 import { IConversationRepository } from '../../domain/interfaces/conversation-repository.interface';
 import { ILogger } from '../interfaces/logger.interface';
 import { MessageDirection } from '../../domain/value-objects/message-direction.enum';
+import { MessageChannel } from '../../domain/value-objects/message-channel.enum';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface SaveMessageCommand {
@@ -12,6 +13,7 @@ export interface SaveMessageCommand {
   direction: MessageDirection;
   messageId?: string | null;
   phoneNumber?: string | null;
+  channel?: MessageChannel | null;
   timestamp?: Date;
   response?: string | null;
   toolsUsed?: any[] | null;
@@ -62,6 +64,7 @@ export class SaveMessageUseCase {
         command.timestamp || new Date(),
         command.messageId || null,
         phoneNumber || null,
+        command.channel || null,
         command.response || null,
         command.toolsUsed || null,
       );

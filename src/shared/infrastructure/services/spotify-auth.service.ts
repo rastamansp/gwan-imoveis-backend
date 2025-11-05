@@ -1,5 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import axios, { AxiosError } from 'axios';
 
 interface TokenResponse {
@@ -14,11 +16,12 @@ export class SpotifyAuthService {
   private readonly clientId: string;
   private readonly clientSecret: string;
   private readonly tokenUrl = 'https://accounts.spotify.com/api/token';
-  
-  private cachedToken: string | null = null;
-  private tokenExpiresAt: number = 0;
+  private readonly cacheKey = 'spotify:access_token';
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+  ) {
     // Tentar obter das variáveis de ambiente diretamente também (fallback)
     this.clientId = this.configService.get<string>('SPOTIFY_CLIENT_ID') || process.env.SPOTIFY_CLIENT_ID || '';
     this.clientSecret = this.configService.get<string>('SPOTIFY_CLIENT_SECRET') || process.env.SPOTIFY_CLIENT_SECRET || '';
@@ -52,14 +55,22 @@ export class SpotifyAuthService {
   }
 
   /**
-   * Obtém um token de acesso válido (usa cache se disponível)
+   * Obtém um token de acesso válido (usa cache Redis se disponível)
    * @returns Token de acesso para a API do Spotify
    */
   async getAccessToken(): Promise<string> {
-    // Verificar se temos um token válido em cache
-    if (this.cachedToken && Date.now() < this.tokenExpiresAt) {
-      this.logger.debug('Usando token em cache');
-      return this.cachedToken;
+    // Verificar se temos um token válido em cache Redis
+    try {
+      const cachedToken = await this.cacheManager.get<string>(this.cacheKey);
+      if (cachedToken) {
+        this.logger.debug('Usando token em cache Redis');
+        return cachedToken;
+      }
+    } catch (error) {
+      // Se Redis não estiver disponível, continuar sem cache
+      this.logger.warn('[CACHE] Erro ao verificar cache Redis, continuando sem cache', {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
 
     // Obter novo token
@@ -98,13 +109,20 @@ export class SpotifyAuthService {
 
       const { access_token, expires_in } = response.data;
 
-      // Cachear token (subtrair 60 segundos para garantir renovação antes de expirar)
-      this.cachedToken = access_token;
-      this.tokenExpiresAt = Date.now() + (expires_in - 60) * 1000;
-
-      this.logger.debug('Token obtido com sucesso', {
-        expiresIn: expires_in,
-      });
+      // Cachear token no Redis (subtrair 60 segundos para garantir renovação antes de expirar)
+      const ttl = expires_in - 60; // TTL em segundos
+      try {
+        await this.cacheManager.set(this.cacheKey, access_token, ttl);
+        this.logger.debug('Token cacheado no Redis', {
+          expiresIn: expires_in,
+          ttl,
+        });
+      } catch (error) {
+        // Se Redis não estiver disponível, continuar sem cache
+        this.logger.warn('[CACHE] Erro ao salvar token no cache Redis, continuando sem cache', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
 
       return access_token;
     } catch (error) {

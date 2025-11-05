@@ -98,3 +98,6 @@ temp/
 
 # OS generated files
 Thumbs.db
+
+# Swagger token (temporary file)
+.swagger-token.txt

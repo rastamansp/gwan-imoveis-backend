@@ -62,6 +62,7 @@ import { FetchAndUpdateArtistFromSpotifyUseCase } from './application/use-cases/
 import { CreateOrFindConversationUseCase } from './application/use-cases/create-or-find-conversation.use-case';
 import { SaveMessageUseCase } from './application/use-cases/save-message.use-case';
 import { RegisterUserViaWhatsappUseCase } from './application/use-cases/register-user-via-whatsapp.use-case';
+import { GetUserTicketsByEventUseCase } from './application/use-cases/get-user-tickets-by-event.use-case';
 
 @Global()
 @Module({
@@ -153,6 +154,7 @@ import { RegisterUserViaWhatsappUseCase } from './application/use-cases/register
     CreateOrFindConversationUseCase,
     SaveMessageUseCase,
     RegisterUserViaWhatsappUseCase,
+    GetUserTicketsByEventUseCase,
   ],
   exports: [
     'ILogger',
@@ -195,6 +197,7 @@ import { RegisterUserViaWhatsappUseCase } from './application/use-cases/register
     CreateOrFindConversationUseCase,
     SaveMessageUseCase,
     RegisterUserViaWhatsappUseCase,
+    GetUserTicketsByEventUseCase,
   ],
 })
 export class SharedModule {}

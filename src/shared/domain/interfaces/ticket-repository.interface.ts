@@ -6,6 +6,7 @@ export interface ITicketRepository {
   findAll(): Promise<Ticket[]>;
   findByUserId(userId: string): Promise<Ticket[]>;
   findByEventId(eventId: string): Promise<Ticket[]>;
+  findByUserIdAndEventId(userId: string, eventId: string): Promise<Ticket[]>;
   findByQrCodeData(qrCodeData: string): Promise<Ticket | null>;
   findByQrCode(qrCode: string): Promise<Ticket | null>;
   update(id: string, ticket: Ticket): Promise<Ticket | null>;

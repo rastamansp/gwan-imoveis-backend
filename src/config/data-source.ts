@@ -11,7 +11,7 @@ const AppDataSource = new DataSource({
   entities: [User, Event],
   migrations: ['src/migrations/*.ts'],
   synchronize: false,
-  logging: true,
+  logging: false, // Desabilitar logging de queries SQL
   ssl: false,
 });
 

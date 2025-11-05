@@ -31,6 +31,18 @@ export class TicketTypeOrmRepository implements ITicketRepository {
     return await this.ticketRepository.find({ where: { eventId } });
   }
 
+  async findByUserIdAndEventId(userId: string, eventId: string): Promise<Ticket[]> {
+    return await this.ticketRepository.find({ 
+      where: { 
+        userId,
+        eventId,
+      },
+      order: {
+        purchasedAt: 'DESC',
+      },
+    });
+  }
+
   async findByQrCodeData(qrCodeData: string): Promise<Ticket | null> {
     return await this.ticketRepository.findOne({ where: { qrCodeData } });
   }

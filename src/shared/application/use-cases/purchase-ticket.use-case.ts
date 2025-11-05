@@ -10,6 +10,7 @@ import { EventNotFoundException } from '../../domain/exceptions/event-not-found.
 import { UserNotFoundException } from '../../domain/exceptions/user-not-found.exception';
 import { InvalidOperationException } from '../../domain/exceptions/invalid-operation.exception';
 import { TicketStatus } from '../../domain/value-objects/ticket-status.enum';
+import { DocumentType } from '../../domain/value-objects/document-type.enum';
 import { v4 as uuidv4 } from 'uuid';
 import * as QRCode from 'qrcode';
 
@@ -50,6 +51,9 @@ export class PurchaseTicketUseCase {
       categoryId: createTicketDto.categoryId,
       quantity: createTicketDto.quantity,
       userId,
+      hasParticipants: !!(createTicketDto.participants && createTicketDto.participants.length > 0),
+      participantsCount: createTicketDto.participants?.length || 0,
+      paymentMethod: createTicketDto.paymentMethod || 'não especificado',
       hasHolderInfo: !!(createTicketDto.holderFirstName && createTicketDto.holderLastName),
       timestamp: new Date().toISOString(),
     });
@@ -109,9 +113,42 @@ export class PurchaseTicketUseCase {
       // ============================================
       // Ordem de execução: 1. Validações → 2. Criação dos tickets → 3. Salvamento → 4. Atualização evento/categoria
       const tickets: Ticket[] = [];
+      
+      // Validar quantidade de participantes se fornecido
+      if (createTicketDto.participants && createTicketDto.participants.length !== createTicketDto.quantity) {
+        throw new InvalidOperationException(
+          'Purchase tickets',
+          `Number of participants (${createTicketDto.participants.length}) must match quantity (${createTicketDto.quantity})`
+        );
+      }
+
       for (let i = 0; i < createTicketDto.quantity; i++) {
         const qrCodeData = `TICKET_${uuidv4()}_${event.date.toISOString()}_${userId}`;
         const qrCodeImage = await QRCode.toDataURL(qrCodeData);
+
+        // Priorizar dados do participante no array, caso contrário usar campos legados ou dados do usuário
+        const participant = createTicketDto.participants?.[i];
+        const holderFirstName = participant?.firstName || createTicketDto.holderFirstName || user.name?.split(' ')[0] || null;
+        const holderLastName = participant?.lastName || createTicketDto.holderLastName || user.name?.split(' ').slice(1).join(' ') || null;
+        
+        // Extrair tipo de documento do formato do documento (CPF, CNPJ, etc)
+        let documentType = createTicketDto.documentType;
+        let documentNumber = participant?.document || createTicketDto.documentNumber || null;
+        
+        // Se temos documento mas não tipo, tentar inferir do formato
+        if (documentNumber && !documentType) {
+          // Remove formatação para análise
+          const cleanDoc = documentNumber.replace(/[.\-/]/g, '');
+          if (cleanDoc.length === 11) {
+            documentType = DocumentType.CPF;
+          } else if (cleanDoc.length === 14) {
+            // CNPJ tem 14 dígitos, usar OUTRO já que não temos CNPJ no enum
+            documentType = DocumentType.OUTRO;
+          }
+        }
+
+        // Usar email do participante se disponível, senão usar email do usuário
+        const ticketEmail = participant?.email || user.email;
 
         const ticket = Ticket.create(
           createTicketDto.eventId,
@@ -122,14 +159,14 @@ export class PurchaseTicketUseCase {
           event.location,
           category.name,
           user.name,
-          user.email,
+          ticketEmail,
           category.price,
           qrCodeImage,
           qrCodeData,
-          createTicketDto.holderFirstName,
-          createTicketDto.holderLastName,
-          createTicketDto.documentType,
-          createTicketDto.documentNumber,
+          holderFirstName,
+          holderLastName,
+          documentType || null,
+          documentNumber,
         );
 
         tickets.push(ticket);

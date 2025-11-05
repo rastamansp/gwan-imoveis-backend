@@ -95,9 +95,11 @@ export class WhatsappWebhookController {
     @Headers() headers: Record<string, string>,
     @Req() req: RawBodyRequest<Request>,
   ): Promise<{ success: boolean; message: string }> {
+    const requestId = `req-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    
     // Log inicial usando Logger do NestJS (sempre aparece)
-    this.nestLogger.log('🔔 [WEBHOOK] Endpoint chamado - Webhook recebido');
-    console.log('🔔 [WEBHOOK] Console.log - Payload completo recebido:', JSON.stringify(body, null, 2));
+    this.nestLogger.log(`🔔 [WEBHOOK] Endpoint chamado - Webhook recebido - RequestId: ${requestId}`);
+    console.log(`🔔 [WEBHOOK] Console.log - Payload completo recebido - RequestId: ${requestId}:`, JSON.stringify(body, null, 2));
 
     // Normalizar o payload para o formato esperado (Evolution API pode usar diferentes formatos)
     const webhook: EvolutionWebhookDto = {
@@ -111,13 +113,18 @@ export class WhatsappWebhookController {
       apikey: body.apikey || body.apikey,
     };
 
+    // Extrair messageId do payload para rastreamento
+    const messageIdFromPayload = body?.data?.key?.id || body?.data?.id || 'Sem ID';
+
     // Log inicial para verificar se o endpoint está sendo chamado
     this.logger.info('🔔 Webhook recebido no endpoint', {
+      requestId,
       event: webhook.event,
       instance: webhook.instance,
       timestamp: webhook.date_time || new Date().toISOString(),
       sender: webhook.sender,
       server_url: webhook.server_url,
+      messageIdFromPayload,
     });
 
     // Log dos headers recebidos (podem conter informações importantes)
@@ -132,10 +139,12 @@ export class WhatsappWebhookController {
       // Processar webhook
       await this.whatsappWebhookService.processWebhook(webhook);
 
-      this.nestLogger.log('[SUCCESS] [WEBHOOK] Webhook processado com sucesso');
+      this.nestLogger.log(`[SUCCESS] [WEBHOOK] Webhook processado com sucesso - RequestId: ${requestId}`);
       this.logger.info('[SUCCESS] Webhook processado com sucesso', {
+        requestId,
         event: webhook.event,
         instance: webhook.instance,
+        messageIdFromPayload,
       });
 
       return {
@@ -143,8 +152,10 @@ export class WhatsappWebhookController {
         message: 'Webhook processado com sucesso',
       };
     } catch (error) {
-      this.nestLogger.error('[ERROR] [WEBHOOK] Erro ao processar webhook', error instanceof Error ? error.stack : String(error));
+      this.nestLogger.error(`[ERROR] [WEBHOOK] Erro ao processar webhook - RequestId: ${requestId}`, error instanceof Error ? error.stack : String(error));
       this.logger.error('[ERROR] Erro ao processar webhook', {
+        requestId,
+        messageIdFromPayload,
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
         webhook: JSON.stringify(webhook, null, 2),

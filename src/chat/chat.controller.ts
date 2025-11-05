@@ -8,6 +8,7 @@ import { SaveMessageUseCase } from '../shared/application/use-cases/save-message
 import { IConversationRepository } from '../shared/domain/interfaces/conversation-repository.interface';
 import { IUserRepository } from '../shared/domain/interfaces/user-repository.interface';
 import { MessageDirection } from '../shared/domain/value-objects/message-direction.enum';
+import { MessageChannel } from '../shared/domain/value-objects/message-channel.enum';
 
 @ApiTags('Chat')
 @ApiExtraModels(ChatResponseDto)
@@ -99,8 +100,8 @@ export class ChatController {
       conversationId = conversation.id;
     }
 
-    // Chamar serviço de chat
-    const result = await this.chatService.chat(body.message, body.userCtx);
+    // Chamar serviço de chat com canal WEB
+    const result = await this.chatService.chat(body.message, body.userCtx, MessageChannel.WEB);
 
     // Salvar mensagens se tiver conversa
     if (conversationId) {
@@ -115,6 +116,7 @@ export class ChatController {
         direction: MessageDirection.INCOMING,
         messageId: null, // Mensagem via API não tem messageId do WhatsApp
         phoneNumber: messagePhoneNumber,
+        channel: MessageChannel.WEB,
         timestamp: new Date(),
       });
 
@@ -125,16 +127,18 @@ export class ChatController {
         direction: MessageDirection.OUTGOING,
         messageId: null,
         phoneNumber: messagePhoneNumber,
+        channel: MessageChannel.WEB,
         timestamp: new Date(),
         response: result.answer,
         toolsUsed: result.toolsUsed || null,
       });
     }
 
-    // Retornar resposta com sessionId
+    // Retornar resposta com sessionId e dados formatados
     return {
       ...result,
       sessionId: conversationId || undefined,
+      formattedResponse: result.formattedResponse,
     };
   }
 }

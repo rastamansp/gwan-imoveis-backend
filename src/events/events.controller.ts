@@ -50,12 +50,6 @@ export class EventsController {
     private readonly eventContentService: EventContentService,
   ) {}
 
-  @Get('test')
-  @ApiOperation({ summary: 'Teste de endpoint' })
-  async test(): Promise<{ message: string }> {
-    return { message: 'Events endpoint funcionando' };
-  }
-
   @Get()
   @ApiOperation({ summary: 'Listar todos os eventos' })
   @ApiResponse({ status: 200, description: 'Lista de eventos obtida com sucesso' })

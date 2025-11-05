@@ -75,11 +75,113 @@ export async function bootstrap() {
     .setTitle('Gwan Shop API')
     .setDescription('API da plataforma de eventos e venda de ingressos')
     .setVersion('1.0')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        description: 'Digite o token JWT (sem o prefixo "Bearer ")',
+        in: 'header',
+      },
+      'bearer', // Nome do esquema de segurança
+    )
     .build();
   
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  
+  // Token permanente para testes no Swagger (usuário ADMIN)
+  // Gerado via: npm run generate:swagger-token
+  const SWAGGER_TEST_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGd3YW4uY29tLmJyIiwic3ViIjoiYjAzZThlOWYtMmU1MC00YTY2LWIxN2YtN2JjNzdmYmI0ZmM2Iiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzYyMjc2Njk5LCJleHAiOjMxNzMwNjcxOTA5OX0.CpxSFzZvx796Avz8daw3tPld5ifmLJ7aebQqMyQJmRo';
+  
+  SwaggerModule.setup('api', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true, // Salvar token entre sessões
+    },
+    customSiteTitle: 'Gwan Shop API - Documentação',
+    customCss: `
+      .swagger-ui .topbar { display: none; }
+      .swagger-ui .info { margin: 20px 0; }
+      .swagger-ui .auth-wrapper { margin: 10px 0; }
+    `,
+    customJs: `
+      (function() {
+        const token = '${SWAGGER_TEST_TOKEN}';
+        let attempts = 0;
+        const maxAttempts = 50; // Tentar por até 5 segundos
+        
+        function preauthorizeToken() {
+          attempts++;
+          
+          try {
+            // Método 1: Usar preauthorizeApiKey (método oficial do Swagger UI)
+            if (typeof window.ui !== 'undefined' && window.ui.preauthorizeApiKey) {
+              window.ui.preauthorizeApiKey('bearer', token);
+              console.log('✅ Token pré-autorizado via preauthorizeApiKey');
+              
+              // Verificar se o token foi realmente aplicado
+              setTimeout(function() {
+                const authBtn = document.querySelector('button.authorize');
+                if (authBtn && authBtn.classList.contains('locked')) {
+                  console.log('✅ Token aplicado com sucesso - botão Authorize está bloqueado');
+                } else {
+                  console.log('⚠️ Token pode não ter sido aplicado corretamente');
+                }
+              }, 1000);
+              return;
+            }
+            
+            // Método 2: Se preauthorizeApiKey não funcionou, tentar preencher o modal manualmente
+            if (attempts < maxAttempts) {
+              setTimeout(preauthorizeToken, 100);
+            } else {
+              // Última tentativa: abrir o modal e preencher
+              const authorizeButton = document.querySelector('button.authorize');
+              if (authorizeButton) {
+                authorizeButton.click();
+                setTimeout(function() {
+                  const modalInput = document.querySelector('.auth-container input[type="text"], .auth-container input[type="password"]');
+                  if (modalInput) {
+                    modalInput.value = token;
+                    modalInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    modalInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    
+                    // Clicar no botão de autorizar
+                    setTimeout(function() {
+                      const authorizeBtn = document.querySelector('.auth-container button.btn-done, .auth-container button[type="button"]');
+                      if (authorizeBtn) {
+                        authorizeBtn.click();
+                        console.log('✅ Token preenchido e autorizado via modal');
+                      }
+                    }, 200);
+                  }
+                }, 300);
+              }
+            }
+          } catch (e) {
+            console.log('Erro ao pré-preencher token (tentativa ' + attempts + '):', e);
+            if (attempts < maxAttempts) {
+              setTimeout(preauthorizeToken, 100);
+            }
+          }
+        }
+        
+        // Aguardar carregamento completo da página
+        if (document.readyState === 'complete') {
+          setTimeout(preauthorizeToken, 1000);
+        } else {
+          window.addEventListener('load', function() {
+            setTimeout(preauthorizeToken, 1000);
+          });
+        }
+        
+        // Também tentar quando o Swagger UI estiver pronto
+        window.addEventListener('DOMContentLoaded', function() {
+          setTimeout(preauthorizeToken, 1500);
+        });
+      })();
+    `,
+  });
 
   const port = process.env.PORT || 3001;
   await app.listen(port);

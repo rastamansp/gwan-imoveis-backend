@@ -16,6 +16,7 @@ import { ChatModule } from './chat/chat.module';
 import { HealthModule } from './health/health.module';
 import { ArtistsModule } from './artists/artists.module';
 import { WhatsappWebhookModule } from './whatsapp-webhook/whatsapp-webhook.module';
+import { RedisCacheModule } from './shared/cache/cache.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { WhatsappWebhookModule } from './whatsapp-webhook/whatsapp-webhook.modul
       useFactory: getTypeOrmConfig,
       inject: [ConfigService],
     }),
+    RedisCacheModule,
     SharedModule,
     AuthModule,
     EventsModule,

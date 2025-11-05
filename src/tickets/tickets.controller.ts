@@ -1,8 +1,9 @@
 import { Controller, Get, Post, Put, Param, Body, Query, UseGuards, Request, HttpCode, Inject } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiExtension, ApiParam } from '@nestjs/swagger';
 import { PurchaseTicketUseCase } from '../shared/application/use-cases/purchase-ticket.use-case';
 import { ValidateTicketUseCase } from '../shared/application/use-cases/validate-ticket.use-case';
+import { GetUserTicketsByEventUseCase } from '../shared/application/use-cases/get-user-tickets-by-event.use-case';
 import { CreateTicketDto } from '../shared/presentation/dtos/create-ticket.dto';
 import { ValidateTicketDto } from '../shared/presentation/dtos/validate-ticket.dto';
 import { TransferTicketDto } from '../shared/presentation/dtos/transfer-ticket.dto';
@@ -20,6 +21,7 @@ export class TicketsController {
   constructor(
     private readonly purchaseTicketUseCase: PurchaseTicketUseCase,
     private readonly validateTicketUseCase: ValidateTicketUseCase,
+    private readonly getUserTicketsByEventUseCase: GetUserTicketsByEventUseCase,
     @Inject('ITicketRepository')
     private readonly ticketRepository: ITicketRepository,
     @Inject('ILogger')
@@ -119,6 +121,79 @@ export class TicketsController {
       const duration = Date.now() - startTime;
       this.logger.error('Erro ao carregar ingressos do usuário', {
         userId,
+        error: error.message,
+        duration
+      });
+      throw error;
+    }
+  }
+
+  @Get('my-tickets/:eventId')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Obter ingressos do usuário logado para um evento específico' })
+  @ApiResponse({ status: 200, description: 'Ingressos do usuário obtidos com sucesso' })
+  @ApiParam({ name: 'eventId', description: 'ID do evento (UUID)' })
+  @ApiExtension('x-mcp', {
+    enabled: true,
+    toolName: 'get_user_tickets_by_event',
+    description: 'Obtém ingressos do usuário para um evento específico. O userId será obtido do contexto.',
+    parameters: {
+      eventId: { type: 'string', description: 'ID do evento (UUID)' },
+      userId: { type: 'string', description: 'ID do usuário (UUID) - obtido do contexto do WhatsApp' },
+    },
+  })
+  async getMyTicketsByEvent(@Param('eventId') eventId: string, @Request() req: any, @Query('userId') userIdQuery?: string): Promise<{ tickets: any[]; event: any }> {
+    const startTime = Date.now();
+    // Usar userId do query se disponível (via MCP), caso contrário usar do JWT
+    const userId = userIdQuery || req.user?.id;
+
+    this.logger.info('Carregando ingressos do usuário para evento específico', { userId, eventId });
+
+    try {
+      const result = await this.getUserTicketsByEventUseCase.execute(userId, eventId);
+      
+      // Não gerar QR codes base64 aqui para evitar payloads grandes
+      // QR codes serão gerados dinamicamente no WhatsAppFormatterService quando necessário
+      // Para APIs REST, usar endpoint /api/tickets/:id/qrcode se necessário
+      const ticketsWithUrl = result.tickets.map((ticket) => {
+        const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:3001';
+        const codeForValidation = ticket.qrCodeData || ticket.qrCode || ticket.id;
+        const validationUrl = `${apiBaseUrl}/api/tickets/validate?code=${encodeURIComponent(codeForValidation)}&apiKey=org_${ticket.eventId.slice(0, 8)}`;
+        
+        return {
+          ...TicketResponseDto.fromEntity(ticket),
+          // Não incluir qrCode base64 (muito grande ~5-10KB por ticket)
+          // QR code pode ser obtido via endpoint /api/tickets/:id/qrcode se necessário
+          qrCodeUrl: validationUrl,
+        };
+      });
+
+      const duration = Date.now() - startTime;
+      this.logger.info('Ingressos do usuário para evento carregados com sucesso', { 
+        userId, 
+        eventId,
+        ticketCount: ticketsWithUrl.length,
+        duration 
+      });
+
+      return { 
+        tickets: ticketsWithUrl,
+        event: {
+          id: result.event.id,
+          title: result.event.title,
+          date: result.event.date,
+          location: result.event.location,
+          address: result.event.address,
+          city: result.event.city,
+          state: result.event.state,
+        },
+      };
+
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.logger.error('Erro ao carregar ingressos do usuário para evento', {
+        userId,
+        eventId,
         error: error.message,
         duration
       });

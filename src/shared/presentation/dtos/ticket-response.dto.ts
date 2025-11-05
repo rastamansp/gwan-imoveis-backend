@@ -36,8 +36,8 @@ export class TicketResponseDto {
   @ApiProperty()
   price: number;
 
-  @ApiProperty()
-  qrCode: string;
+  @ApiProperty({ required: false, description: 'QR Code em base64 (apenas quando solicitado explicitamente)' })
+  qrCode?: string;
 
   @ApiProperty()
   qrCodeData: string;
@@ -69,7 +69,7 @@ export class TicketResponseDto {
   @ApiProperty({ required: false, description: 'Número do documento de identificação' })
   documentNumber?: string | null;
 
-  static fromEntity(ticket: Ticket): TicketResponseDto {
+  static fromEntity(ticket: Ticket, includeQRCode: boolean = false): TicketResponseDto {
     const dto = new TicketResponseDto();
     dto.id = ticket.id;
     dto.eventId = ticket.eventId;
@@ -82,7 +82,10 @@ export class TicketResponseDto {
     dto.userName = ticket.userName;
     dto.userEmail = ticket.userEmail;
     dto.price = ticket.price;
-    dto.qrCode = ticket.qrCode;
+    // Apenas incluir qrCode se explicitamente solicitado (para reduzir tamanho do payload)
+    if (includeQRCode && ticket.qrCode) {
+      dto.qrCode = ticket.qrCode;
+    }
     dto.qrCodeData = ticket.qrCodeData;
     dto.status = ticket.status;
     dto.purchaseDate = ticket.purchasedAt;

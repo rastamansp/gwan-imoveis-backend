@@ -24,7 +24,7 @@ export const getTypeOrmConfig = (configService: ConfigService): TypeOrmModuleOpt
     entities: ['dist/**/*.entity.js'],
     migrations: ['dist/migrations/*.js'],
     synchronize: configService.get<string>('NODE_ENV') !== 'production',
-    logging: configService.get<string>('NODE_ENV') === 'development',
+    logging: false, // Desabilitar logging de queries SQL
     ssl: false,  // Desabilitar SSL explicitamente
   };
 };

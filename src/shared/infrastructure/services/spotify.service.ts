@@ -1,4 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import axios, { AxiosError } from 'axios';
 import { ISpotifyService, SpotifyArtistData } from '../../application/interfaces/spotify-service.interface';
 import { SpotifyAuthService } from './spotify-auth.service';
@@ -54,11 +56,14 @@ interface SpotifyRelatedArtistsResponse {
 export class SpotifyService implements ISpotifyService {
   private readonly logger = new Logger(SpotifyService.name);
   private readonly apiBaseUrl = 'https://api.spotify.com/v1';
+  private readonly cacheTtl = 60 * 60; // 1 hora em segundos
 
   constructor(
     private readonly spotifyAuthService: SpotifyAuthService,
     @Inject('ILogger')
     private readonly appLogger: ILogger,
+    @Inject(CACHE_MANAGER)
+    private readonly cacheManager: Cache,
   ) {}
 
   extractArtistIdFromUrl(spotifyUrl: string): string {
@@ -86,11 +91,32 @@ export class SpotifyService implements ISpotifyService {
 
   async fetchArtistData(spotifyId: string): Promise<SpotifyArtistData> {
     const startTime = Date.now();
+    const cacheKey = `spotify:artist:${spotifyId}`;
     
     this.appLogger.info('Iniciando busca de dados do artista no Spotify', {
       spotifyId,
       timestamp: new Date().toISOString(),
     });
+
+    // Verificar cache antes de fazer requisições
+    try {
+      const cachedData = await this.cacheManager.get<SpotifyArtistData>(cacheKey);
+      if (cachedData) {
+        const duration = Date.now() - startTime;
+        this.appLogger.info('Dados do artista obtidos do cache Redis', {
+          spotifyId,
+          artistName: cachedData.name,
+          duration,
+        });
+        return cachedData;
+      }
+    } catch (error) {
+      // Se Redis não estiver disponível, continuar sem cache
+      this.appLogger.warn('[CACHE] Erro ao verificar cache Redis, continuando sem cache', {
+        spotifyId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
 
     try {
       // Obter token de acesso
@@ -110,6 +136,21 @@ export class SpotifyService implements ISpotifyService {
         albums,
         relatedArtists,
       };
+
+      // Salvar no cache Redis
+      try {
+        await this.cacheManager.set(cacheKey, spotifyData, this.cacheTtl);
+        this.appLogger.debug('Dados do artista cacheados no Redis', {
+          spotifyId,
+          ttl: this.cacheTtl,
+        });
+      } catch (error) {
+        // Se Redis não estiver disponível, continuar sem cache
+        this.appLogger.warn('[CACHE] Erro ao salvar no cache Redis, continuando sem cache', {
+          spotifyId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
 
       const duration = Date.now() - startTime;
       this.appLogger.info('Dados do artista obtidos com sucesso do Spotify', {
