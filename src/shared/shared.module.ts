@@ -9,6 +9,10 @@ import { Scanner } from './domain/entities/scanner.entity';
 import { Artist } from './domain/entities/artist.entity';
 import { Conversation } from './domain/entities/conversation.entity';
 import { Message } from './domain/entities/message.entity';
+import { UserCredit } from './domain/entities/user-credit.entity';
+import { Product } from './domain/entities/product.entity';
+import { Order } from './domain/entities/order.entity';
+import { OrderItem } from './domain/entities/order-item.entity';
 import { ConsoleLoggerService } from './infrastructure/logger/console-logger.service';
 import { UserTypeOrmRepository } from './infrastructure/repositories/user-typeorm.repository';
 import { EventTypeOrmRepository } from './infrastructure/repositories/event-typeorm.repository';
@@ -18,6 +22,9 @@ import { PaymentTypeOrmRepository } from './infrastructure/repositories/payment-
 import { ArtistTypeOrmRepository } from './infrastructure/repositories/artist-typeorm.repository';
 import { ConversationTypeOrmRepository } from './infrastructure/repositories/conversation-typeorm.repository';
 import { MessageTypeOrmRepository } from './infrastructure/repositories/message-typeorm.repository';
+import { UserCreditTypeOrmRepository } from './infrastructure/repositories/user-credit-typeorm.repository';
+import { ProductTypeOrmRepository } from './infrastructure/repositories/product-typeorm.repository';
+import { OrderTypeOrmRepository, OrderItemTypeOrmRepository } from './infrastructure/repositories/order-typeorm.repository';
 import { QRCodeService } from './infrastructure/services/qrcode.service';
 import { EmbeddingService } from './infrastructure/services/embedding.service';
 import { EventContentService } from './infrastructure/services/event-content.service';
@@ -36,6 +43,9 @@ import { ITicketCategoryRepository } from './domain/interfaces/ticket-category-r
 import { IArtistRepository } from './domain/interfaces/artist-repository.interface';
 import { IConversationRepository } from './domain/interfaces/conversation-repository.interface';
 import { IMessageRepository } from './domain/interfaces/message-repository.interface';
+import { IUserCreditRepository } from './domain/interfaces/user-credit-repository.interface';
+import { IProductRepository } from './domain/interfaces/product-repository.interface';
+import { IOrderRepository, IOrderItemRepository } from './domain/interfaces/order-repository.interface';
 import { RegisterUserUseCase } from './application/use-cases/register-user.use-case';
 import { LoginUserUseCase } from './application/use-cases/login-user.use-case';
 import { CreateEventUseCase } from './application/use-cases/create-event.use-case';
@@ -63,12 +73,18 @@ import { CreateOrFindConversationUseCase } from './application/use-cases/create-
 import { SaveMessageUseCase } from './application/use-cases/save-message.use-case';
 import { RegisterUserViaWhatsappUseCase } from './application/use-cases/register-user-via-whatsapp.use-case';
 import { GetUserTicketsByEventUseCase } from './application/use-cases/get-user-tickets-by-event.use-case';
+import { AddCreditUseCase } from './application/use-cases/add-credit.use-case';
+import { GetUserBalanceUseCase } from './application/use-cases/get-user-balance.use-case';
+import { CreateProductUseCase } from './application/use-cases/create-product.use-case';
+import { GetEventProductsUseCase } from './application/use-cases/get-event-products.use-case';
+import { PurchaseProductsUseCase } from './application/use-cases/purchase-products.use-case';
+import { ValidateProductQRUseCase } from './application/use-cases/validate-product-qr.use-case';
 import { forwardRef } from '@nestjs/common';
 
 @Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Event, Ticket, Payment, TicketCategory, Scanner, Artist, Conversation, Message]),
+    TypeOrmModule.forFeature([User, Event, Ticket, Payment, TicketCategory, Scanner, Artist, Conversation, Message, UserCredit, Product, Order, OrderItem]),
     forwardRef(() => {
       const { WhatsappWebhookModule } = require('../whatsapp-webhook/whatsapp-webhook.module');
       return WhatsappWebhookModule;
@@ -76,6 +92,10 @@ import { forwardRef } from '@nestjs/common';
     forwardRef(() => {
       const { ChatModule } = require('../chat/chat.module');
       return ChatModule;
+    }),
+    forwardRef(() => {
+      const { ProductsModule } = require('../products/products.module');
+      return ProductsModule;
     }),
   ],
   providers: [
@@ -135,6 +155,22 @@ import { forwardRef } from '@nestjs/common';
       provide: 'IMessageRepository',
       useClass: MessageTypeOrmRepository,
     },
+    {
+      provide: 'IUserCreditRepository',
+      useClass: UserCreditTypeOrmRepository,
+    },
+    {
+      provide: 'IProductRepository',
+      useClass: ProductTypeOrmRepository,
+    },
+    {
+      provide: 'IOrderRepository',
+      useClass: OrderTypeOrmRepository,
+    },
+    {
+      provide: 'IOrderItemRepository',
+      useClass: OrderItemTypeOrmRepository,
+    },
 
     // Use Cases
     RegisterUserUseCase,
@@ -164,6 +200,12 @@ import { forwardRef } from '@nestjs/common';
     SaveMessageUseCase,
     RegisterUserViaWhatsappUseCase,
     GetUserTicketsByEventUseCase,
+    AddCreditUseCase,
+    GetUserBalanceUseCase,
+    CreateProductUseCase,
+    GetEventProductsUseCase,
+    PurchaseProductsUseCase,
+    ValidateProductQRUseCase,
   ],
   exports: [
     'ILogger',
@@ -180,6 +222,10 @@ import { forwardRef } from '@nestjs/common';
     'IArtistRepository',
     'IConversationRepository',
     'IMessageRepository',
+    'IUserCreditRepository',
+    'IProductRepository',
+    'IOrderRepository',
+    'IOrderItemRepository',
     RegisterUserUseCase,
     LoginUserUseCase,
     CreateEventUseCase,
@@ -207,6 +253,12 @@ import { forwardRef } from '@nestjs/common';
     SaveMessageUseCase,
     RegisterUserViaWhatsappUseCase,
     GetUserTicketsByEventUseCase,
+    AddCreditUseCase,
+    GetUserBalanceUseCase,
+    CreateProductUseCase,
+    GetEventProductsUseCase,
+    PurchaseProductsUseCase,
+    ValidateProductQRUseCase,
   ],
 })
 export class SharedModule {}

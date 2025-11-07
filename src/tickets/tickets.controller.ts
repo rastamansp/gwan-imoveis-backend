@@ -12,6 +12,9 @@ import { TicketQRCodeResponseDto } from '../shared/presentation/dtos/ticket-qrco
 import { ITicketRepository } from '../shared/domain/interfaces/ticket-repository.interface';
 import { ILogger } from '../shared/application/interfaces/logger.interface';
 import { IQRCodeService } from '../shared/application/interfaces/qrcode.interface';
+import { IOrderRepository } from '../shared/domain/interfaces/order-repository.interface';
+import { GetEventProductsUseCase } from '../shared/application/use-cases/get-event-products.use-case';
+import { GetUserBalanceUseCase } from '../shared/application/use-cases/get-user-balance.use-case';
 import { Ticket } from '../shared/domain/entities/ticket.entity';
 import { TicketStatus } from '../shared/domain/value-objects/ticket-status.enum';
 
@@ -22,8 +25,12 @@ export class TicketsController {
     private readonly purchaseTicketUseCase: PurchaseTicketUseCase,
     private readonly validateTicketUseCase: ValidateTicketUseCase,
     private readonly getUserTicketsByEventUseCase: GetUserTicketsByEventUseCase,
+    private readonly getEventProductsUseCase: GetEventProductsUseCase,
+    private readonly getUserBalanceUseCase: GetUserBalanceUseCase,
     @Inject('ITicketRepository')
     private readonly ticketRepository: ITicketRepository,
+    @Inject('IOrderRepository')
+    private readonly orderRepository: IOrderRepository,
     @Inject('ILogger')
     private readonly logger: ILogger,
     @Inject('IQRCodeService')
@@ -266,10 +273,12 @@ export class TicketsController {
   @ApiResponse({ status: 200, description: 'Ingresso validado com sucesso' })
   @ApiQuery({ name: 'code', required: true, description: 'Código do ingresso' })
   @ApiQuery({ name: 'apiKey', required: true, description: 'API Key do organizador' })
+  @ApiQuery({ name: 'redirect', required: false, description: 'Se "comanda", retorna dados da comanda após validação' })
   async validateByCode(
     @Query('code') code: string,
     @Query('apiKey') apiKey: string,
-  ): Promise<{ valid: boolean; message: string; ticket?: any }> {
+    @Query('redirect') redirect?: string,
+  ): Promise<{ valid: boolean; message: string; ticket?: any; comanda?: any }> {
     const startTime = Date.now();
 
     this.logger.info('Iniciando validação de ingresso por app mobile', {
@@ -333,7 +342,7 @@ export class TicketsController {
         duration
       });
 
-      return {
+      const response: any = {
         valid: true,
         message: 'Ingresso válido',
         ticket: {
@@ -344,6 +353,56 @@ export class TicketsController {
           purchasedAt: ticket.purchasedAt
         }
       };
+
+      // Se redirect=comanda, incluir dados da comanda
+      if (redirect === 'comanda') {
+        try {
+          // Obter saldo de créditos
+          const { balance } = await this.getUserBalanceUseCase.execute(ticket.userId);
+          
+          // Obter produtos do evento
+          const products = await this.getEventProductsUseCase.execute(ticket.eventId, true);
+          
+          // Obter pedidos do usuário no evento
+          const orders = await this.orderRepository.findByUserIdAndEventId(ticket.userId, ticket.eventId);
+          
+          response.comanda = {
+            balance,
+            products: products.map(p => ({
+              id: p.id,
+              name: p.name,
+              description: p.description,
+              price: p.getPrice(),
+              category: p.category,
+              image: p.image,
+            })),
+            orders: orders.map(o => ({
+              id: o.id,
+              totalAmount: o.getTotalAmount(),
+              status: o.status,
+              createdAt: o.createdAt,
+              items: o.items?.map(item => ({
+                id: item.id,
+                productId: item.productId,
+                quantity: item.quantity,
+                unitPrice: Number(item.unitPrice),
+                totalPrice: item.getTotalPrice(),
+                qrCodeData: item.qrCodeData,
+                qrCodeImage: item.qrCodeImage,
+                status: item.status,
+                validatedAt: item.validatedAt,
+              })) || [],
+            })),
+          };
+        } catch (error) {
+          this.logger.warn('Erro ao carregar dados da comanda', {
+            ticketId: ticket.id,
+            error: error.message,
+          });
+        }
+      }
+
+      return response;
 
     } catch (error) {
       const duration = Date.now() - startTime;
