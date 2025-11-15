@@ -12,26 +12,37 @@ export async function bootstrap() {
   });
 
   // Configuração de CORS
-  const corsOrigins = process.env.NODE_ENV === 'production' 
-    ? [
-        'https://events.gwan.com.br',
-        'https://www.events.gwan.com.br',
-        'http://events.gwan.com.br',
-        'http://www.events.gwan.com.br',
-        'https://api-events.gwan.com.br',
-        'https://www.api-events.gwan.com.br',
-        'http://api-events.gwan.com.br',
-        'http://www.api-events.gwan.com.br'
-      ]
+  const corsOriginsEnv = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
+    : null;
+
+  const corsOrigins = process.env.NODE_ENV === 'production'
+    ? (corsOriginsEnv && corsOriginsEnv.length > 0
+        ? corsOriginsEnv
+        : [
+            'https://events.gwan.com.br',
+            'https://www.events.gwan.com.br',
+            'http://events.gwan.com.br',
+            'http://www.events.gwan.com.br',
+            'https://api-events.gwan.com.br',
+            'https://www.api-events.gwan.com.br',
+            'http://api-events.gwan.com.br',
+            'http://www.api-events.gwan.com.br',
+            // Domínios principais do site (incluindo bot Jaiminho)
+            'https://gwan.com.br',
+            'https://www.gwan.com.br',
+            'http://gwan.com.br',
+            'http://www.gwan.com.br',
+          ])
     : [
         'http://localhost:3000',
-        'http://localhost:3001', 
+        'http://localhost:3001',
         'http://localhost:5173',
         'http://127.0.0.1:3000',
         'http://127.0.0.1:3001',
         'http://127.0.0.1:5173',
         'file://',
-        'null'
+        'null',
       ];
 
   app.enableCors({
