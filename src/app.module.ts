@@ -17,6 +17,7 @@ import { HealthModule } from './health/health.module';
 import { ArtistsModule } from './artists/artists.module';
 import { WhatsappWebhookModule } from './whatsapp-webhook/whatsapp-webhook.module';
 import { ProductsModule } from './products/products.module';
+import { ChatHealthModule } from './chat-health/chat-health.module';
 import { RedisCacheModule } from './shared/cache/cache.module';
 
 @Module({
@@ -45,6 +46,7 @@ import { RedisCacheModule } from './shared/cache/cache.module';
     ArtistsModule,
     WhatsappWebhookModule,
     ProductsModule,
+    ChatHealthModule,
   ],
 })
 export class AppModule {}

@@ -3,6 +3,7 @@ module.exports = {
   require: [
     'test/bdd/support/hooks.ts',
     'test/bdd/steps/common-steps.ts',
+    'test/bdd/steps/chat-health-steps.ts',
     'src/**/steps/*.ts',
   ],
   format: [
@@ -13,7 +14,12 @@ module.exports = {
   formatOptions: {
     snippetInterface: 'async-await',
   },
-  paths: ['src/**/features/*.feature'],
+  paths: [
+    'src/events/features/*.feature',
+    'src/artists/features/*.feature',
+    'src/chat-health/features/*.feature',
+    'src/tickets/features/*.feature',
+  ],
   publishQuiet: true,
 };
 

@@ -97,20 +97,34 @@ function getApiClient(this: RestApiWorld): RestApiClient {
 
 Given('que a API está disponível', async function (this: RestApiWorld) {
   try {
-    // Health endpoint não está em /api, mas na raiz
-    const healthUrl = process.env.TEST_BASE_URL 
-      ? process.env.TEST_BASE_URL.replace('/api', '/health')
-      : 'http://localhost:3001/health';
+    // Tentar health endpoint primeiro
+    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3001';
+    const healthUrl = `${baseUrl}/health`;
     
-    const response = await axios.get(healthUrl, { timeout: 5000 });
-    if (response.status !== 200) {
-      throw new Error('API não está respondendo corretamente');
+    try {
+      const response = await axios.get(healthUrl, { timeout: 5000 });
+      if (response.status === 200) {
+        this.attach('✅ API está disponível (health check)', 'text/plain');
+        return;
+      }
+    } catch (healthError) {
+      // Se health não funcionar, tentar endpoint de API
     }
-    this.attach('✅ API está disponível', 'text/plain');
-  } catch (error) {
-    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3001/api';
+    
+    // Tentar endpoint de API como fallback
+    const apiUrl = `${baseUrl}/api/events`;
+    const response = await axios.get(apiUrl, { timeout: 5000, validateStatus: () => true });
+    if (response.status === 200 || response.status === 401 || response.status === 403) {
+      // 401/403 significa que a API está respondendo, apenas precisa de autenticação
+      this.attach('✅ API está disponível (endpoint de eventos)', 'text/plain');
+      return;
+    }
+    
+    throw new Error('API não está respondendo corretamente');
+  } catch (error: any) {
+    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3001';
     throw new Error(
-      `API não está disponível em ${baseUrl}. Certifique-se de que a aplicação está rodando.`,
+      `API não está disponível em ${baseUrl}. Certifique-se de que a aplicação está rodando. Erro: ${error.message}`,
     );
   }
 });
@@ -217,6 +231,41 @@ Then('as categorias devem ser criadas com sucesso', function (this: RestApiWorld
 When(
   'compro {string} ingressos da categoria {string} para o evento criado',
   async function (this: RestApiWorld, quantity: string, categoryName: string) {
+    if (!this.createdEvent?.id) {
+      throw new Error('Evento não foi criado.');
+    }
+
+    if (!this.createdCategories || this.createdCategories.length === 0) {
+      throw new Error('Nenhuma categoria foi criada.');
+    }
+
+    const category = this.createdCategories.find((cat: any) => cat.name === categoryName);
+    if (!category) {
+      throw new Error(`Categoria "${categoryName}" não encontrada`);
+    }
+
+    const client = getApiClient.call(this);
+    const result = await client.post('/tickets', {
+      eventId: this.createdEvent.id,
+      categoryId: category.id,
+      quantity: parseInt(quantity, 10),
+    });
+    const { data, status } = result;
+
+    if (status === 201 || status === 200) {
+      this.createdTickets = Array.isArray(data) ? data : [];
+      this.attach(`Tickets criados: ${JSON.stringify(this.createdTickets, null, 2)}`, 'application/json');
+    } else {
+      throw new Error(`Erro ao comprar ingressos: status ${status}`);
+    }
+  },
+);
+
+// Step para compra no singular (compatibilidade com features)
+When(
+  'compro {string} ingresso da categoria {string} para o evento criado',
+  async function (this: RestApiWorld, quantity: string, categoryName: string) {
+    // Reutilizar a mesma lógica do step plural
     if (!this.createdEvent?.id) {
       throw new Error('Evento não foi criado.');
     }

@@ -8,6 +8,26 @@ export interface ChatResponse {
   }>;
 }
 
+export interface ChatHealthResponse {
+  answer: string;
+  disease?: {
+    name: string;
+    description: string;
+    causes?: string | null;
+    treatment?: string | null;
+    plants?: string | null;
+  } | null;
+  similarity?: number;
+  searchMethod: 'exact' | 'partial' | 'semantic' | 'hybrid';
+  alternatives?: Array<{
+    name: string;
+    description: string;
+    similarity: number;
+  }>;
+  sessionId?: string;
+  formattedResponse?: any;
+}
+
 export interface TestContext {
   lastResponse?: ChatResponse;
   lastStatus?: number;
@@ -16,6 +36,8 @@ export interface TestContext {
     message: string;
     response?: ChatResponse;
   }>;
+  chatHealthResponse?: ChatHealthResponse; // Resposta do chat-health
+  sessionId?: string; // SessionId para chat-health
 }
 
 /**
@@ -29,6 +51,8 @@ export class TestWorld extends World implements TestContext {
     message: string;
     response?: ChatResponse;
   }> = [];
+  public chatHealthResponse?: ChatHealthResponse; // Resposta do chat-health
+  public sessionId?: string; // SessionId para chat-health
 
   /**
    * Limpar contexto após cada cenário
@@ -38,6 +62,8 @@ export class TestWorld extends World implements TestContext {
     this.lastStatus = undefined;
     this.lastError = undefined;
     this.chatHistory = [];
+    this.chatHealthResponse = undefined;
+    this.sessionId = undefined;
   }
 
   /**

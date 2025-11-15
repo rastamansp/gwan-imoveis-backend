@@ -108,3 +108,19 @@ Then('a resposta deve mencionar eventos da categoria {string}', function (
   }
 });
 
+Then('a resposta deve listar eventos', function (this: TestWorld) {
+  if (!this.lastResponse) {
+    throw new Error('Nenhuma resposta foi recebida do chatbot');
+  }
+
+  // Verificar se a resposta contém informações sobre eventos
+  const eventKeywords = ['evento', 'eventos', 'show', 'shows', 'festival', 'festivais'];
+  const foundKeyword = eventKeywords.some((keyword) =>
+    this.lastResponse!.answer.toLowerCase().includes(keyword),
+  );
+
+  if (!foundKeyword) {
+    throw new Error('A resposta não menciona eventos');
+  }
+});
+

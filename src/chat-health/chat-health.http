@@ -1,0 +1,116 @@
+### Chat Health API - Testes
+
+@baseUrl = http://localhost:3001
+
+### 1) Consulta simples sobre doença
+POST {{baseUrl}}/api/chat-health
+Content-Type: application/json
+
+{
+  "query": "dor de cabeça e febre"
+}
+
+### 2) Consulta por nome de doença (busca exata)
+POST {{baseUrl}}/api/chat-health
+Content-Type: application/json
+
+{
+  "query": "FEBRE"
+}
+
+### 3) Consulta sobre sintomas (busca semântica)
+POST {{baseUrl}}/api/chat-health
+Content-Type: application/json
+
+{
+  "query": "tenho dor no estômago e náusea"
+}
+
+### 4) Consulta sobre plantas medicinais
+POST {{baseUrl}}/api/chat-health
+Content-Type: application/json
+
+{
+  "query": "quais plantas são indicadas para gripe?"
+}
+
+### 5) Consulta sobre tratamento
+POST {{baseUrl}}/api/chat-health
+Content-Type: application/json
+
+{
+  "query": "como tratar dor de cabeça?"
+}
+
+### 6) Consulta com sessão existente
+POST {{baseUrl}}/api/chat-health
+Content-Type: application/json
+
+{
+  "query": "quais plantas são indicadas para gripe?",
+  "sessionId": "550e8400-e29b-41d4-a716-446655440000"
+}
+
+### 7) Consulta com número de telefone
+POST {{baseUrl}}/api/chat-health
+Content-Type: application/json
+
+{
+  "query": "tratamento para dor de estômago",
+  "phoneNumber": "5511999999999"
+}
+
+### 8) Consulta com contexto do usuário
+POST {{baseUrl}}/api/chat-health
+Content-Type: application/json
+
+{
+  "query": "dor de cabeça",
+  "userCtx": {
+    "userId": "550e8400-e29b-41d4-a716-446655440000"
+  }
+}
+
+### 9) Consulta sobre causas de doença
+POST {{baseUrl}}/api/chat-health
+Content-Type: application/json
+
+{
+  "query": "quais são as causas da febre?"
+}
+
+### 10) Consulta genérica (deve retornar busca semântica)
+POST {{baseUrl}}/api/chat-health
+Content-Type: application/json
+
+{
+  "query": "mal estar e cansaço"
+}
+
+### 12) Fluxo em duas etapas com sessionId
+### 12.1) Primeira mensagem (sem sessionId) - copiar o sessionId da resposta
+POST {{baseUrl}}/api/chat-health
+Content-Type: application/json
+
+{
+  "query": "dor de cabeça e febre"
+}
+
+### 12.2) Segunda mensagem reutilizando o mesmo sessionId
+### Substitua {{sessionId}} pelo valor retornado na resposta anterior
+POST {{baseUrl}}/api/chat-health
+Content-Type: application/json
+
+{
+  "query": "e se a febre não passar em 3 dias?",
+  "sessionId": "{{sessionId}}"
+}
+
+### 11) Consulta que não deve encontrar resultado
+POST {{baseUrl}}/api/chat-health
+Content-Type: application/json
+
+{
+  "query": "doença inexistente xyz123"
+}
+

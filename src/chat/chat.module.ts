@@ -20,7 +20,7 @@ import { SharedModule } from '../shared/shared.module';
     PaginationService,
     SuggestionsService,
   ],
-  exports: [ChatService, WhatsAppFormatterService], // Exportar para permitir uso em outros módulos
+  exports: [ChatService, WhatsAppFormatterService, ResponseFormatterService], // Exportar para permitir uso em outros módulos
 })
 export class ChatModule {}
 

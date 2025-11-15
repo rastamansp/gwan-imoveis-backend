@@ -98,3 +98,19 @@ Then('a resposta deve mencionar redes sociais do artista', function (this: TestW
   }
 });
 
+Then('a resposta deve listar artistas', function (this: TestWorld) {
+  if (!this.lastResponse) {
+    throw new Error('Nenhuma resposta foi recebida do chatbot');
+  }
+
+  // Verificar se a resposta contém informações sobre artistas
+  const artistKeywords = ['artista', 'artistas', 'músico', 'músicos', 'banda', 'bandas'];
+  const foundKeyword = artistKeywords.some((keyword) =>
+    this.lastResponse!.answer.toLowerCase().includes(keyword),
+  );
+
+  if (!foundKeyword) {
+    throw new Error('A resposta não menciona artistas');
+  }
+});
+
