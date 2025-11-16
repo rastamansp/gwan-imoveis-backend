@@ -7,8 +7,6 @@ services:
       dockerfile: Dockerfile
     container_name: gwan-imoveis-backend
     restart: unless-stopped
-    env_file:
-      - .env.production
     environment:
       # Configurações básicas
       - NODE_ENV=production
