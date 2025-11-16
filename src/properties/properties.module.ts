@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PropertiesController } from './properties.controller';
+import { PropertyImagesController } from './property-images.controller';
 import { Property } from '../shared/domain/entities/property.entity';
 import { PropertyTypeOrmRepository } from '../shared/infrastructure/repositories/property-typeorm.repository';
 import { IPropertyRepository } from '../shared/domain/interfaces/property-repository.interface';
@@ -12,7 +13,7 @@ import { ListPropertiesUseCase } from '../shared/application/use-cases/list-prop
 
 @Module({
   imports: [TypeOrmModule.forFeature([Property])],
-  controllers: [PropertiesController],
+  controllers: [PropertiesController, PropertyImagesController],
   providers: [
     {
       provide: 'IPropertyRepository',

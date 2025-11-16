@@ -7,23 +7,24 @@ services:
       dockerfile: Dockerfile
     container_name: gwan-imoveis-backend
     restart: unless-stopped
+    env_file:
+      - .env.production
     environment:
       # Configurações básicas
       - NODE_ENV=production
       - PORT=3001
       
-      # Database
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
+      # API Base URL
+      - API_BASE_URL=https://api-imoveis.gwan.com.br
+      
+      # Database (usando DATABASE_URL completa)
+      - DATABASE_URL=${DATABASE_URL}
       
       # JWT
       - JWT_SECRET=${JWT_SECRET}
       
       # CORS para frontend
-      - CORS_ORIGINS=https://imoveis.gwan.com.br,https://www.imoveis.gwan.com.br,https://api-imoveis.gwan.com.br
+      - CORS_ORIGINS=${CORS_ORIGINS}
       
       # MCP Server
       - MCP_BASE_URL=https://api-imoveis.gwan.com.br
@@ -32,7 +33,26 @@ services:
       
       # OpenAI (para chatbot)
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_MODEL=gpt-4o-mini
+      - OPENAI_MODEL=${OPENAI_MODEL}
+      - OPENAI_EMBEDDING_MODEL=${OPENAI_EMBEDDING_MODEL}
+      - EMBEDDING_DIMENSION=${EMBEDDING_DIMENSION}
+      
+      # Evolution API (WhatsApp)
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
+      - EVOLUTION_INSTANCE=${EVOLUTION_INSTANCE}
+      - EVOLUTION_INSTANCE_URL=${EVOLUTION_INSTANCE_URL}
+      - EVOLUTION_INSTANCE_NAME=${EVOLUTION_INSTANCE_NAME}
+      
+      # MinIO (Storage de Imagens)
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_PORT=${MINIO_PORT}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - MINIO_BUCKET=${MINIO_BUCKET}
+      - MINIO_USE_SSL=${MINIO_USE_SSL}
+      
+      # Redis Cache (se necessário)
+      - REDIS_URL=${REDIS_URL}
       
     volumes:
       - logs_data:/app/logs

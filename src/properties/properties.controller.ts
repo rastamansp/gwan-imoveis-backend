@@ -36,8 +36,6 @@ import { ListPropertiesUseCase } from '../shared/application/use-cases/list-prop
 
 @ApiTags('Imóveis')
 @Controller('properties')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class PropertiesController {
   constructor(
     private readonly createPropertyUseCase: CreatePropertyUseCase,
@@ -49,7 +47,8 @@ export class PropertiesController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(CorretorOrAdminGuard)
+  @UseGuards(JwtAuthGuard, CorretorOrAdminGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Criar novo imóvel',
     description:
@@ -112,7 +111,12 @@ export class PropertiesController {
   @ApiResponse({ status: 400, description: 'Dados inválidos - Validação falhou' })
   @ApiExtraModels(CreatePropertyDto, PropertyResponseDto)
   async create(@Body() createPropertyDto: CreatePropertyDto, @Request() req: any): Promise<PropertyResponseDto> {
-    const property = await this.createPropertyUseCase.execute(createPropertyDto, req.user.sub);
+    // req.user é o objeto User completo retornado pelo JwtStrategy.validate()
+    const corretorId = req.user?.id || req.user?.sub;
+    if (!corretorId) {
+      throw new Error('Usuário não autenticado corretamente');
+    }
+    const property = await this.createPropertyUseCase.execute(createPropertyDto, corretorId);
     return PropertyResponseDto.fromEntity(property);
   }
 
@@ -120,7 +124,7 @@ export class PropertiesController {
   @ApiOperation({
     summary: 'Listar imóveis',
     description:
-      'Retorna uma lista de imóveis cadastrados. Suporta filtros opcionais por cidade, tipo, faixa de preço e corretor. Requer autenticação JWT.',
+      'Retorna uma lista de imóveis cadastrados. Suporta filtros opcionais por cidade, tipo, faixa de preço e corretor. Endpoint público, não requer autenticação.',
   })
   @ApiQuery({ name: 'city', required: false, description: 'Filtrar por cidade', example: 'São Sebastião' })
   @ApiQuery({ name: 'type', required: false, description: 'Filtrar por tipo', enum: ['CASA', 'APARTAMENTO', 'TERRENO', 'SALA_COMERCIAL'] })
@@ -131,7 +135,6 @@ export class PropertiesController {
     description: 'Lista de imóveis obtida com sucesso',
     type: [PropertyResponseDto],
   })
-  @ApiResponse({ status: 401, description: 'Não autorizado - Token JWT inválido ou ausente' })
   @ApiExtraModels(PropertyResponseDto)
   async findAll(
     @Query('city') city?: string,
@@ -154,7 +157,7 @@ export class PropertiesController {
   @Get(':id')
   @ApiOperation({
     summary: 'Obter imóvel por ID',
-    description: 'Retorna os dados completos de um imóvel específico identificado pelo UUID. Requer autenticação JWT.',
+    description: 'Retorna os dados completos de um imóvel específico identificado pelo UUID. Endpoint público, não requer autenticação.',
   })
   @ApiParam({
     name: 'id',
@@ -167,7 +170,6 @@ export class PropertiesController {
     type: PropertyResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Imóvel não encontrado' })
-  @ApiResponse({ status: 401, description: 'Não autorizado - Token JWT inválido ou ausente' })
   @ApiExtraModels(PropertyResponseDto)
   async findOne(@Param('id') id: string): Promise<PropertyResponseDto> {
     const property = await this.getPropertyByIdUseCase.execute(id);
@@ -176,7 +178,8 @@ export class PropertiesController {
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(CorretorOrAdminGuard)
+  @UseGuards(JwtAuthGuard, CorretorOrAdminGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Atualizar imóvel',
     description:
@@ -232,13 +235,19 @@ export class PropertiesController {
     @Body() updatePropertyDto: UpdatePropertyDto,
     @Request() req: any,
   ): Promise<PropertyResponseDto> {
-    const property = await this.updatePropertyUseCase.execute(id, updatePropertyDto, req.user.sub);
+    // req.user é o objeto User completo retornado pelo JwtStrategy.validate()
+    const corretorId = req.user?.id || req.user?.sub;
+    if (!corretorId) {
+      throw new Error('Usuário não autenticado corretamente');
+    }
+    const property = await this.updatePropertyUseCase.execute(id, updatePropertyDto, corretorId);
     return PropertyResponseDto.fromEntity(property);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(CorretorOrAdminGuard)
+  @UseGuards(JwtAuthGuard, CorretorOrAdminGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Deletar imóvel',
     description:
@@ -262,7 +271,12 @@ export class PropertiesController {
   @ApiResponse({ status: 403, description: 'Permissão negada - Apenas o dono do imóvel ou ADMIN podem deletar' })
   @ApiResponse({ status: 401, description: 'Não autorizado - Token JWT inválido ou ausente' })
   async delete(@Param('id') id: string, @Request() req: any): Promise<{ message: string }> {
-    await this.deletePropertyUseCase.execute(id, req.user.sub);
+    // req.user é o objeto User completo retornado pelo JwtStrategy.validate()
+    const corretorId = req.user?.id || req.user?.sub;
+    if (!corretorId) {
+      throw new Error('Usuário não autenticado corretamente');
+    }
+    await this.deletePropertyUseCase.execute(id, corretorId);
     return { message: 'Imóvel deletado com sucesso' };
   }
 }

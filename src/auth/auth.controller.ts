@@ -58,10 +58,11 @@ export class AuthController {
   @ApiOperation({ summary: 'Obter perfil do usuário' })
   @ApiResponse({ status: 200, description: 'Perfil obtido com sucesso' })
   async getProfile(@Request() req): Promise<UserResponseDto> {
-    const user = await this.userRepository.findById(req.user.sub);
-    if (!user) {
+    // req.user é o objeto User completo retornado pelo JwtStrategy.validate()
+    // Não precisa buscar novamente no banco
+    if (!req.user) {
       throw new Error('User not found');
     }
-    return UserResponseDto.fromEntity(user);
+    return UserResponseDto.fromEntity(req.user);
   }
 }

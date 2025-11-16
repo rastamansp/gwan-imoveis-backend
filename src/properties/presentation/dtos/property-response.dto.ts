@@ -112,6 +112,12 @@ export class PropertyResponseDto {
   })
   corretorId: string;
 
+  @ApiPropertyOptional({
+    description: 'URL da imagem de capa',
+    example: 'https://minio.gwan.com.br:9000/gwan-imoveis-uploads/properties/123/original-image.jpg',
+  })
+  coverImageUrl?: string;
+
   @ApiProperty({
     description: 'Data de criação',
     example: '2024-01-15T10:30:00.000Z',
@@ -144,6 +150,7 @@ export class PropertyResponseDto {
     dto.areaGourmet = property.areaGourmet;
     dto.mobiliado = property.mobiliado;
     dto.corretorId = property.corretorId;
+    dto.coverImageUrl = property.coverImageUrl;
     dto.createdAt = property.createdAt;
     dto.updatedAt = property.updatedAt;
     return dto;

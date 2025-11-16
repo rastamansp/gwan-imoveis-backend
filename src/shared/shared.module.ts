@@ -6,6 +6,7 @@ import { Message } from './domain/entities/message.entity';
 import { UserCredit } from './domain/entities/user-credit.entity';
 import { Agent } from './domain/entities/agent.entity';
 import { Property } from './domain/entities/property.entity';
+import { PropertyImage } from './domain/entities/property-image.entity';
 import { ConsoleLoggerService } from './infrastructure/logger/console-logger.service';
 import { UserTypeOrmRepository } from './infrastructure/repositories/user-typeorm.repository';
 import { ConversationTypeOrmRepository } from './infrastructure/repositories/conversation-typeorm.repository';
@@ -32,12 +33,25 @@ import { GetUserBalanceUseCase } from './application/use-cases/get-user-balance.
 import { GetOrSetUserPreferredAgentUseCase } from './application/use-cases/get-or-set-user-preferred-agent.use-case';
 import { ResolveConversationAgentUseCase } from './application/use-cases/resolve-conversation-agent.use-case';
 import { AgentTypeOrmRepository } from './infrastructure/repositories/agent-typeorm.repository';
+import { PropertyTypeOrmRepository } from './infrastructure/repositories/property-typeorm.repository';
+import { PropertyImageTypeOrmRepository } from './infrastructure/repositories/property-image-typeorm.repository';
+import { IPropertyRepository } from './domain/interfaces/property-repository.interface';
+import { MinioStorageService } from './infrastructure/services/minio-storage.service';
+import { ImageProcessorService } from './infrastructure/services/image-processor.service';
+import { IPropertyImageRepository } from './domain/interfaces/property-image-repository.interface';
+import { IStorageService } from './application/interfaces/storage-service.interface';
+import { IImageProcessorService } from './application/interfaces/image-processor-service.interface';
+import { CreatePropertyImageUseCase } from './application/use-cases/create-property-image.use-case';
+import { SetCoverImageUseCase } from './application/use-cases/set-cover-image.use-case';
+import { DeletePropertyImageUseCase } from './application/use-cases/delete-property-image.use-case';
+import { ListPropertyImagesUseCase } from './application/use-cases/list-property-images.use-case';
+import { ReorderPropertyImagesUseCase } from './application/use-cases/reorder-property-images.use-case';
 import { forwardRef } from '@nestjs/common';
 
 @Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Conversation, Message, UserCredit, Agent, Property]),
+    TypeOrmModule.forFeature([User, Conversation, Message, UserCredit, Agent, Property, PropertyImage]),
     forwardRef(() => {
       const { WhatsappWebhookModule } = require('../whatsapp-webhook/whatsapp-webhook.module');
       return WhatsappWebhookModule;
@@ -85,6 +99,22 @@ import { forwardRef } from '@nestjs/common';
       provide: 'IAgentRepository',
       useClass: AgentTypeOrmRepository,
     },
+    {
+      provide: 'IPropertyRepository',
+      useClass: PropertyTypeOrmRepository,
+    },
+    {
+      provide: 'IPropertyImageRepository',
+      useClass: PropertyImageTypeOrmRepository,
+    },
+    {
+      provide: 'IStorageService',
+      useClass: MinioStorageService,
+    },
+    {
+      provide: 'IImageProcessorService',
+      useClass: ImageProcessorService,
+    },
 
     // Use Cases
     RegisterUserUseCase,
@@ -97,6 +127,11 @@ import { forwardRef } from '@nestjs/common';
     GetUserBalanceUseCase,
     GetOrSetUserPreferredAgentUseCase,
     ResolveConversationAgentUseCase,
+    CreatePropertyImageUseCase,
+    SetCoverImageUseCase,
+    DeletePropertyImageUseCase,
+    ListPropertyImagesUseCase,
+    ReorderPropertyImagesUseCase,
   ],
   exports: [
     'ILogger',
@@ -107,6 +142,10 @@ import { forwardRef } from '@nestjs/common';
     'IMessageRepository',
     'IUserCreditRepository',
     'IAgentRepository',
+    'IPropertyRepository',
+    'IPropertyImageRepository',
+    'IStorageService',
+    'IImageProcessorService',
     RegisterUserUseCase,
     LoginUserUseCase,
     PromoteUserToCorretorUseCase,
@@ -117,6 +156,11 @@ import { forwardRef } from '@nestjs/common';
     GetUserBalanceUseCase,
     GetOrSetUserPreferredAgentUseCase,
     ResolveConversationAgentUseCase,
+    CreatePropertyImageUseCase,
+    SetCoverImageUseCase,
+    DeletePropertyImageUseCase,
+    ListPropertyImagesUseCase,
+    ReorderPropertyImagesUseCase,
   ],
 })
 export class SharedModule {}

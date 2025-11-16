@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { PropertyType } from '../value-objects/property-type.enum';
 import { User } from './user.entity';
+import { PropertyImage } from './property-image.entity';
 
 @Entity('properties')
 export class Property {
@@ -64,6 +65,14 @@ export class Property {
   @JoinColumn({ name: 'corretorId' })
   corretor: User;
 
+  // Imagem de capa
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  coverImageUrl?: string;
+
+  // Relacionamento com imagens
+  @OneToMany(() => PropertyImage, (image) => image.property)
+  images: PropertyImage[];
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -92,6 +101,10 @@ export class Property {
     }
     this.area = newArea;
     this.updatedAt = new Date();
+  }
+
+  public getCoverImage(): string | null {
+    return this.coverImageUrl || null;
   }
 }
 
