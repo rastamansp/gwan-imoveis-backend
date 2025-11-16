@@ -18,11 +18,58 @@ export class MinioStorageService implements IStorageService, OnModuleInit {
 
   async onModuleInit() {
     const endpoint = this.configService.get<string>('MINIO_ENDPOINT');
-    const port = this.configService.get<number>('MINIO_PORT');
+    const port = this.configService.get<number>('MINIO_PORT', 443);
     const useSSL = this.configService.get<string>('MINIO_USE_SSL') === 'true';
     const accessKey = this.configService.get<string>('MINIO_ACCESS_KEY');
     const secretKey = this.configService.get<string>('MINIO_SECRET_KEY');
     this.bucketName = this.configService.get<string>('MINIO_BUCKET');
+
+    // Validar variáveis obrigatórias
+    if (!endpoint) {
+      const error = new Error('MINIO_ENDPOINT não configurado. Verifique as variáveis de ambiente.');
+      this.logger.error('Erro ao inicializar MinIO', {
+        endpoint,
+        port,
+        accessKey: accessKey ? '***' : undefined,
+        secretKey: secretKey ? '***' : undefined,
+        bucket: this.bucketName,
+        error: error.message,
+      });
+      throw error;
+    }
+
+    if (!accessKey || !secretKey) {
+      const error = new Error('MINIO_ACCESS_KEY ou MINIO_SECRET_KEY não configurados. Verifique as variáveis de ambiente.');
+      this.logger.error('Erro ao inicializar MinIO', {
+        endpoint,
+        port,
+        accessKey: accessKey ? '***' : undefined,
+        secretKey: secretKey ? '***' : undefined,
+        bucket: this.bucketName,
+        error: error.message,
+      });
+      throw error;
+    }
+
+    if (!this.bucketName) {
+      const error = new Error('MINIO_BUCKET não configurado. Verifique as variáveis de ambiente.');
+      this.logger.error('Erro ao inicializar MinIO', {
+        endpoint,
+        port,
+        bucket: this.bucketName,
+        error: error.message,
+      });
+      throw error;
+    }
+
+    this.logger.info('Inicializando MinIO Client', {
+      endpoint,
+      port,
+      useSSL,
+      bucket: this.bucketName,
+      accessKeyConfigured: !!accessKey,
+      secretKeyConfigured: !!secretKey,
+    });
 
     this.minioClient = new MinioClient({
       endPoint: endpoint,
