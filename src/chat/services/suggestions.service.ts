@@ -8,48 +8,28 @@ export class SuggestionsService {
    */
   generateSuggestions(responseType: ResponseType, context?: any): string[] {
     switch (responseType) {
-      case 'event_list':
+      case 'property_list':
         return [
-          'Ver detalhes de um evento',
-          'Ver preços de ingressos',
-          'Filtrar por categoria',
-          'Buscar eventos em outra cidade',
+          'Ver detalhes de um imóvel',
+          'Filtrar por tipo',
+          'Filtrar por preço',
+          'Buscar imóveis em outra cidade',
         ];
 
-      case 'event_detail':
-        const suggestions: string[] = ['Ver ingressos disponíveis'];
-        if (context?.hasArtists) {
-          suggestions.push('Ver artistas do evento');
-        }
-        suggestions.push('Buscar eventos similares');
-        return suggestions;
-
-      case 'artist_list':
+      case 'property_detail':
         return [
-          'Ver detalhes de um artista',
-          'Ver eventos do artista',
-          'Buscar mais artistas',
-        ];
-
-      case 'artist_detail':
-        return [
-          'Ver eventos do artista',
-          'Ver redes sociais',
-          'Buscar artistas similares',
-        ];
-
-      case 'ticket_prices':
-        return [
-          'Ver detalhes do evento',
-          'Ver categorias disponíveis',
-          'Compartilhar evento',
+          'Ver mais imagens',
+          'Ver outros imóveis do corretor',
+          'Buscar imóveis similares',
+          'Ver imóveis na mesma cidade',
         ];
 
       default:
         return [
           'Como posso ajudar?',
-          'Ver eventos disponíveis',
-          'Listar artistas',
+          'Listar imóveis disponíveis',
+          'Buscar imóveis por cidade',
+          'Ver imóveis por tipo',
         ];
     }
   }
@@ -61,17 +41,15 @@ export class SuggestionsService {
     const baseSuggestions = this.generateSuggestions(responseType, data);
     
     // Adicionar sugestões específicas baseadas nos dados
-    if (responseType === 'event_list' && data?.events?.length > 0) {
-      // Se houver eventos, adicionar sugestão para ver detalhes do primeiro
-      if (data.events[0]?.id) {
-        baseSuggestions.unshift(`Ver detalhes do evento "${data.events[0].title || 'primeiro'}"`);
+    if (responseType === 'property_list' && data?.properties?.length > 0) {
+      // Se houver imóveis, adicionar sugestão para ver detalhes do primeiro
+      if (data.properties[0]?.id) {
+        baseSuggestions.unshift(`Ver detalhes do imóvel "${data.properties[0].title || 'primeiro'}"`);
       }
-    }
-    
-    if (responseType === 'artist_list' && data?.artists?.length > 0) {
-      // Se houver artistas, adicionar sugestão para ver detalhes do primeiro
-      if (data.artists[0]?.id) {
-        baseSuggestions.unshift(`Ver detalhes do artista "${data.artists[0].artisticName || 'primeiro'}"`);
+    } else if (responseType === 'property_list' && Array.isArray(data) && data.length > 0) {
+      // Se data for um array direto de propriedades
+      if (data[0]?.id) {
+        baseSuggestions.unshift(`Ver detalhes do imóvel "${data[0].title || 'primeiro'}"`);
       }
     }
     

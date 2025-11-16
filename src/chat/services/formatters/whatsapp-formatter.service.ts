@@ -30,22 +30,15 @@ export class WhatsAppFormatterService {
   async format(rawResponse: string, toolsUsed: { name: string; arguments?: Record<string, unknown> }[], rawData?: any): Promise<FormattedResponse> {
     const responseType = this.detectResponseType(toolsUsed);
     
-    this.logger.debug('Formatando resposta para WhatsApp', {
-      responseType,
-      toolsUsedCount: toolsUsed?.length || 0,
-      lastTool: toolsUsed?.length > 0 ? toolsUsed[toolsUsed.length - 1].name : 'none',
-      hasRawData: !!rawData,
-      rawDataType: rawData ? typeof rawData : 'undefined',
-      rawDataIsArray: Array.isArray(rawData),
-      rawDataKeys: rawData && typeof rawData === 'object' ? Object.keys(rawData) : [],
-    });
-    
     try {
       switch (responseType) {
+        case 'property_list':
+          return await this.formatPropertyList(rawResponse, rawData, toolsUsed);
         
+        case 'property_detail':
+          return await this.formatPropertyDetail(rawResponse, rawData, toolsUsed);
         
         default:
-          this.logger.debug('Usando formato genérico', { responseType, toolsUsed });
           return this.formatGeneric(rawResponse, toolsUsed);
       }
     } catch (error) {
@@ -66,111 +59,16 @@ export class WhatsAppFormatterService {
 
     const lastTool = toolsUsed[toolsUsed.length - 1].name.toLowerCase();
     
-    if (lastTool.includes('list_events') || 
-        lastTool.includes('events.search') || 
-        lastTool.includes('events_search') ||
-        lastTool.includes('search_events')) {
-      return 'event_list';
+    if (lastTool.includes('list_properties')) {
+      return 'property_list';
     }
     
-    if (lastTool.includes('get_event_by_id') || lastTool.includes('event_detail')) {
-      return 'event_detail';
-    }
-    
-    if (lastTool.includes('list_artists') || lastTool.includes('artists.list') || lastTool.includes('search_artists')) {
-      return 'artist_list';
-    }
-    
-    if (lastTool.includes('get_artist_by_id') || lastTool.includes('artist_detail')) {
-      return 'artist_detail';
-    }
-    
-    if (lastTool.includes('ticket') || lastTool.includes('price')) {
-      // Verificar se é busca de ingressos do usuário
-      if (lastTool.includes('user_tickets') || lastTool.includes('get_user_tickets')) {
-        return 'user_tickets';
-      }
-      return 'ticket_prices';
+    if (lastTool.includes('get_property_by_id') || lastTool.includes('property_detail')) {
+      return 'property_detail';
     }
     
     return 'generic';
   }
-
-  private async formatEventList(rawResponse: string, rawData: any, toolsUsed: any[]): Promise<FormattedResponse> {
-    let events: any[] = [];
-    
-    this.logger.debug('Formatando lista de eventos', {
-      rawDataType: rawData ? typeof rawData : 'undefined',
-      rawDataIsArray: Array.isArray(rawData),
-      rawDataKeys: rawData && typeof rawData === 'object' ? Object.keys(rawData) : [],
-    });
-    
-    // Tentar extrair eventos dos dados
-    if (rawData && Array.isArray(rawData)) {
-      events = rawData;
-    } else if (rawData?.events) {
-      events = Array.isArray(rawData.events) ? rawData.events : [rawData.events];
-    } else if (rawData?.data) {
-      events = Array.isArray(rawData.data) ? rawData.data : [rawData.data];
-    } else if (rawData && typeof rawData === 'object') {
-      // Tentar encontrar arrays dentro do objeto
-      for (const key of Object.keys(rawData)) {
-        if (Array.isArray(rawData[key])) {
-          events = rawData[key];
-          break;
-        }
-      }
-    }
-
-    this.logger.debug('Eventos extraídos', {
-      eventsCount: events.length,
-      eventIds: events.slice(0, 5).map((e: any) => e?.id || e?.eventId || 'no-id'),
-    });
-
-    // Remover duplicatas baseado no ID do evento
-    const uniqueEvents = events.filter((event, index, self) => {
-      const eventId = event.id || event.eventId;
-      if (!eventId) return false; // Remover eventos sem ID
-      return index === self.findIndex(e => (e.id || e.eventId) === eventId);
-    });
-
-    this.logger.debug('Eventos após remoção de duplicatas', {
-      originalCount: events.length,
-      uniqueCount: uniqueEvents.length,
-      duplicatesRemoved: events.length - uniqueEvents.length,
-    });
-
-    // Limitar quantidade de eventos
-    const limitedEvents = uniqueEvents.slice(0, this.defaultEventLimit);
-    
-    // Se não há eventos, retornar mensagem apropriada
-    if (limitedEvents.length === 0) {
-      this.logger.warn('Nenhum evento encontrado em rawData', { rawData });
-      return {
-        answer: '❌ Não encontrei eventos cadastrados no momento.',
-        data: {
-          type: 'event_list',
-          items: [],
-          rawData: rawData,
-        },
-      };
-    }
-    
-    // TODO: Atualizar para trabalhar com imóveis quando o módulo for implementado
-    // Por enquanto, retorna resposta genérica
-    this.logger.warn('formatEventList chamado - será atualizado para imóveis', { events: limitedEvents });
-    return {
-      answer: rawResponse || 'Lista de itens disponíveis',
-      data: {
-        type: 'generic',
-        items: limitedEvents,
-        rawData: limitedEvents,
-      },
-    };
-  }
-
-
-  
 
   private formatGeneric(rawResponse: string, toolsUsed: any[]): FormattedResponse {
     return {
@@ -181,84 +79,154 @@ export class WhatsAppFormatterService {
     };
   }
 
-  private formatEventCaption(event: any): string {
-    const caption = `${event.title || 'Evento'}\n`;
-    let details = '';
+  private async formatPropertyList(rawResponse: string, rawData: any, toolsUsed: any[]): Promise<FormattedResponse> {
+    let properties: any[] = [];
     
-    if (event.date) {
-      const date = new Date(event.date);
-      details += `📅 ${date.toLocaleDateString('pt-BR')}\n`;
-    }
-    
-    if (event.location) {
-      details += `📍 ${event.location}\n`;
-    }
-    
-    const fullCaption = caption + details;
-    return fullCaption.length > this.maxCaptionLength 
-      ? fullCaption.substring(0, this.maxCaptionLength - 3) + '...' 
-      : fullCaption;
-  }
-
-  private formatArtistCaption(artist: any): string {
-    // TODO: Atualizar para trabalhar com imóveis quando o módulo for implementado
-    return `Artista: ${artist.artisticName || artist.name || 'Sem nome'}`;
-  }
-
-  // Função removida - será atualizada para imóveis
-  /*
-  private formatArtistWithDetails(artist: Artist): string {
-    let text = `🎤 *Artista: ${artist.artisticName || artist.name || 'Sem nome'}*\n\n`;
-
-    // Redes Sociais
-    const socialNetworks: string[] = [];
-    if (artist.instagramUsername) socialNetworks.push(`Instagram: @${artist.instagramUsername}`);
-    if (artist.youtubeUsername) socialNetworks.push(`YouTube: @${artist.youtubeUsername}`);
-    if (artist.xUsername) socialNetworks.push(`X/Twitter: @${artist.xUsername}`);
-    if (artist.spotifyUsername) socialNetworks.push(`Spotify: @${artist.spotifyUsername}`);
-    if (artist.tiktokUsername) socialNetworks.push(`TikTok: @${artist.tiktokUsername}`);
-
-    if (socialNetworks.length > 0) {
-      text += `📱 *Redes Sociais:*\n${socialNetworks.join('\n')}\n\n`;
+    if (rawData && Array.isArray(rawData)) {
+      properties = rawData;
+    } else if (rawData?.properties) {
+      properties = Array.isArray(rawData.properties) ? rawData.properties : [rawData.properties];
+    } else if (rawData?.data) {
+      properties = Array.isArray(rawData.data) ? rawData.data : [rawData.data];
     }
 
-    // Dados do Spotify (se disponível)
-    const spotifyData = artist.metadata?.spotify;
-    if (spotifyData) {
-      if (spotifyData.followers?.total !== undefined) {
-        const followers = spotifyData.followers.total.toLocaleString('pt-BR');
-        text += `👥 *Seguidores:* ${followers}\n`;
+    // Limitar quantidade de propriedades
+    const limitedProperties = properties.slice(0, this.defaultEventLimit);
+    
+    if (limitedProperties.length === 0) {
+      return {
+        answer: '❌ Não encontrei imóveis cadastrados no momento.',
+        data: {
+          type: 'property_list',
+          items: [],
+        },
+      };
+    }
+
+    // Formatar lista de propriedades
+    let message = `🏠 *Encontrei ${properties.length} imóvel(is):*\n\n`;
+    
+    limitedProperties.forEach((p: any, index: number) => {
+      const price = p.price ? `R$ ${Number(p.price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Preço sob consulta';
+      const type = p.type || 'Imóvel';
+      const purpose = p.purpose ? (p.purpose === 'RENT' ? 'Aluguel' : p.purpose === 'SALE' ? 'Venda' : 'Investimento') : '';
+      const city = p.city || '';
+      const neighborhood = p.neighborhood || '';
+      const area = p.area ? `${p.area}m²` : '';
+      const bedrooms = p.bedrooms ? `${p.bedrooms} quarto(s)` : '';
+      const bathrooms = p.bathrooms ? `${p.bathrooms} banheiro(s)` : '';
+      
+      message += `${index + 1}. *${p.title || 'Sem título'}*\n`;
+      message += `   ${type}${purpose ? ` - ${purpose}` : ''}${city ? ` - ${city}` : ''}${neighborhood ? `, ${neighborhood}` : ''}\n`;
+      message += `   💰 ${price}\n`;
+      if (area || bedrooms || bathrooms) {
+        const details = [area, bedrooms, bathrooms].filter(Boolean).join(' • ');
+        message += `   📐 ${details}\n`;
       }
       
-      if (spotifyData.popularity !== undefined) {
-        text += `⭐ *Popularidade:* ${spotifyData.popularity}/100\n`;
+      // Comodidades
+      const amenities: string[] = [];
+      if (p.piscina) amenities.push('🏊 Piscina');
+      if (p.hidromassagem) amenities.push('💆 Hidromassagem');
+      if (p.frenteMar) amenities.push('🌊 Frente Mar');
+      if (p.jardim) amenities.push('🌳 Jardim');
+      if (p.areaGourmet) amenities.push('🍖 Área Gourmet');
+      if (p.mobiliado) amenities.push('🛋️ Mobiliado');
+      
+      if (amenities.length > 0) {
+        message += `   ${amenities.join(' • ')}\n`;
       }
       
-      if (spotifyData.genres && Array.isArray(spotifyData.genres) && spotifyData.genres.length > 0) {
-        text += `🎵 *Gêneros:*\n${spotifyData.genres.join(', ')}\n\n`;
-      }
+      message += `   🔗 ${this.frontendUrl}imoveis/${p.id}\n\n`;
+    });
+
+    if (properties.length > this.defaultEventLimit) {
+      message += `\n_... e mais ${properties.length - this.defaultEventLimit} imóvel(is)_`;
     }
 
-    // Eventos
-    if (artist.events && artist.events.length > 0) {
-      const eventNames = artist.events.map(e => e.title).join(', ');
-      text += `🎪 *Eventos:*\n${eventNames}\n`;
-    } else {
-      text += `🎪 *Eventos:*\nNenhum evento cadastrado no momento.\n`;
-    }
-
-    // Link para a página do artista
-    const baseUrl = this.frontendUrl.endsWith('/') ? this.frontendUrl : `${this.frontendUrl}/`;
-    const artistLink = `${baseUrl}artists/${artist.id}`;
-    text += `\n🔗 ${artistLink}`;
-
-    // Limitar tamanho do caption
-    if (text.length > this.maxCaptionLength) {
-      text = text.substring(0, this.maxCaptionLength - 3) + '...';
-    }
-
-    return text;
+    return {
+      answer: message,
+      data: {
+        type: 'property_list',
+        items: limitedProperties,
+        rawData: properties,
+      },
+    };
   }
-  */
+
+  private async formatPropertyDetail(rawResponse: string, rawData: any, toolsUsed: any[]): Promise<FormattedResponse> {
+    const property = rawData && !Array.isArray(rawData) ? rawData : (rawData?.[0] || rawData?.data?.[0] || rawData?.property);
+    
+    if (!property) {
+      return this.formatGeneric(rawResponse, toolsUsed);
+    }
+
+    // Formatar detalhes completos do imóvel
+    let message = `🏠 *${property.title || 'Imóvel'}*\n\n`;
+    
+    const price = property.price ? `R$ ${Number(property.price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Preço sob consulta';
+    const type = property.type || 'Imóvel';
+    const purpose = property.purpose ? (property.purpose === 'RENT' ? 'Aluguel' : property.purpose === 'SALE' ? 'Venda' : 'Investimento') : '';
+    const city = property.city || '';
+    const neighborhood = property.neighborhood || '';
+    
+    message += `💰 *Preço:* ${price}\n`;
+    message += `📍 *Localização:* ${type}${purpose ? ` - ${purpose}` : ''}${city ? ` - ${city}` : ''}${neighborhood ? `, ${neighborhood}` : ''}\n\n`;
+    
+    // Características
+    if (property.area || property.bedrooms || property.bathrooms || property.garageSpaces) {
+      message += `📐 *Características:*\n`;
+      if (property.area) message += `   • Área: ${property.area}m²\n`;
+      if (property.bedrooms) message += `   • ${property.bedrooms} quarto(s)\n`;
+      if (property.bathrooms) message += `   • ${property.bathrooms} banheiro(s)\n`;
+      if (property.garageSpaces) message += `   • ${property.garageSpaces} vaga(s) de garagem\n`;
+      message += `\n`;
+    }
+    
+    // Comodidades
+    const amenities: string[] = [];
+    if (property.piscina) amenities.push('🏊 Piscina');
+    if (property.hidromassagem) amenities.push('💆 Hidromassagem');
+    if (property.frenteMar) amenities.push('🌊 Frente Mar');
+    if (property.jardim) amenities.push('🌳 Jardim');
+    if (property.areaGourmet) amenities.push('🍖 Área Gourmet');
+    if (property.mobiliado) amenities.push('🛋️ Mobiliado');
+    
+    if (amenities.length > 0) {
+      message += `✨ *Comodidades:*\n${amenities.join(' • ')}\n\n`;
+    }
+    
+    // Descrição
+    if (property.description) {
+      const description = property.description.length > 200 
+        ? property.description.substring(0, 200) + '...' 
+        : property.description;
+      message += `📝 *Descrição:*\n${description}\n\n`;
+    }
+    
+    // Corretor
+    if (property.corretor) {
+      message += `👤 *Corretor:* ${property.corretor.name || property.corretor.email}\n\n`;
+    }
+    
+    // Link
+    message += `🔗 ${this.frontendUrl}imoveis/${property.id}`;
+
+    return {
+      answer: message,
+      data: {
+        type: 'property_detail',
+        items: [property],
+        rawData: property,
+      },
+      media: property.coverImageUrl ? [{
+        type: 'image' as const,
+        url: property.coverImageUrl,
+        caption: message.length > this.maxCaptionLength 
+          ? message.substring(0, this.maxCaptionLength - 3) + '...' 
+          : message,
+      }] : undefined,
+    };
+  }
 }
 

@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { MessageChannel } from '../shared/domain/value-objects/message-channel.enum';
@@ -10,6 +10,7 @@ type OpenAIMessage = any;
 
 @Injectable()
 export class ChatService {
+  private readonly logger = new Logger(ChatService.name);
   private readonly openaiApiKey: string;
   private readonly openaiModel: string;
   private readonly mcpBridgeBase: string;
@@ -24,7 +25,22 @@ export class ChatService {
   ) {
     this.openaiApiKey = this.config.get<string>('OPENAI_API_KEY')!;
     this.openaiModel = this.config.get<string>('OPENAI_MODEL') || 'gpt-4o-mini';
-    this.mcpBridgeBase = this.config.get<string>('MCP_BRIDGE_BASE') || 'http://localhost:3001/api/mcp';
+    
+    // Usar MCP_BRIDGE_BASE se definido, senão construir a partir de MCP_BASE_URL ou PORT
+    const mcpBridgeBaseEnv = this.config.get<string>('MCP_BRIDGE_BASE');
+    const mcpBaseUrl = this.config.get<string>('MCP_BASE_URL');
+    const port = this.config.get<string>('PORT') || '3001';
+    
+    if (mcpBridgeBaseEnv) {
+      this.mcpBridgeBase = mcpBridgeBaseEnv;
+    } else if (mcpBaseUrl) {
+      // Se MCP_BASE_URL estiver definido, usar ele + /api/mcp
+      this.mcpBridgeBase = `${mcpBaseUrl}/api/mcp`;
+    } else {
+      // Fallback: usar localhost com a porta do servidor
+      this.mcpBridgeBase = `http://localhost:${port}/api/mcp`;
+    }
+    
     this.mcpServerToken = this.config.get<string>('MCP_AUTH_TOKEN');
   }
 
@@ -61,28 +77,10 @@ export class ChatService {
         const mcpToolName = this.mapAgentToolToMcp(toolName);
 
         // Validação preventiva de UUID quando a tool exige 'id'
-        if (mcpToolName === 'get_event_by_id' || mcpToolName === 'get_event_ticket_categories') {
+        if (mcpToolName === 'get_property_by_id') {
           const candidateId = String((args as any)?.id || '');
           if (!this.isValidUuid(candidateId)) {
-            const answer = 'ID de evento inválido. Forneça um UUID válido ou peça para listar eventos para escolher um ID.';
-            return { answer, toolsUsed };
-          }
-        }
-        if (mcpToolName === 'get_user_tickets_by_event') {
-          const candidateId = String((args as any)?.eventId || '');
-          if (!this.isValidUuid(candidateId)) {
-            const answer = 'ID de evento inválido. Forneça um UUID válido ou peça para listar eventos para escolher um ID.';
-            return { answer, toolsUsed };
-          }
-          // Adicionar userId do contexto se disponível
-          if (userCtx?.userId) {
-            (args as any).userId = userCtx.userId;
-          }
-        }
-        if (mcpToolName === 'get_artist_by_id') {
-          const candidateId = String((args as any)?.id || '');
-          if (!this.isValidUuid(candidateId)) {
-            const answer = 'ID de artista inválido. Forneça um UUID válido ou peça para listar artistas para escolher um ID.';
+            const answer = 'ID de imóvel inválido. Forneça um UUID válido ou peça para listar imóveis para escolher um ID.';
             return { answer, toolsUsed };
           }
         }
@@ -93,27 +91,6 @@ export class ChatService {
 
           // Filtrar campos sensíveis ou desnecessários antes de serializar
           let filteredResult = result;
-          
-          // Se for lista de artistas (não busca por ID), remover campo spotify
-          // get_artist_by_id mantém os dados completos do Spotify
-          if (mcpToolName === 'list_artists' || mcpToolName === 'search_artists_by_query' || mcpToolName === 'search_artists_rag') {
-            filteredResult = this.filterSpotifyFromArtists(result);
-          }
-
-          // Para get_user_tickets_by_event, remover qrCode base64 se existir (muito grande)
-          if (mcpToolName === 'get_user_tickets_by_event') {
-            if (filteredResult && typeof filteredResult === 'object') {
-              if (Array.isArray(filteredResult.tickets)) {
-                filteredResult.tickets = filteredResult.tickets.map((ticket: any) => {
-                  const { qrCode, ...ticketWithoutQR } = ticket;
-                  return ticketWithoutQR;
-                });
-              } else if (filteredResult.tickets && typeof filteredResult.tickets === 'object') {
-                const { qrCode, ...ticketWithoutQR } = filteredResult.tickets;
-                filteredResult.tickets = ticketWithoutQR;
-              }
-            }
-          }
 
           // Serializar resultado para JSON string
           let resultContent = JSON.stringify(filteredResult);
@@ -203,29 +180,6 @@ export class ChatService {
               const mcpToolName = this.mapAgentToolToMcp(lastToolName);
               const answer = this.buildAnswerFromToolResults(mcpToolName, [rawData]);
               
-              // Para get_user_tickets_by_event, sempre formatar mesmo sem resposta do OpenAI
-              if (mcpToolName === 'get_user_tickets_by_event' || !answer) {
-                // Criar resposta padrão para formatação estruturada
-                const defaultAnswer = 'Aqui estão seus ingressos para o evento solicitado.';
-                
-                // Formatar resposta se canal foi especificado
-                let formattedResponse: FormattedResponse | undefined;
-                if (channel) {
-                  formattedResponse = await this.responseFormatter.formatResponse(
-                    defaultAnswer, 
-                    channel, 
-                    toolsUsed, 
-                    rawData
-                  );
-                }
-                
-                return { 
-                  answer: answer || defaultAnswer, 
-                  toolsUsed, 
-                  formattedResponse 
-                };
-              }
-              
               if (answer) {
                 // Formatar resposta se canal foi especificado
                 let formattedResponse: FormattedResponse | undefined;
@@ -247,7 +201,7 @@ export class ChatService {
       iteration++;
     }
 
-    const answer = completion?.choices?.[0]?.message?.content || 'Sem resposta.';
+    let answer = completion?.choices?.[0]?.message?.content || 'Sem resposta.';
     
     // Extrair dados brutos das ferramentas usadas para formatação
     let rawData: any = null;
@@ -258,21 +212,18 @@ export class ChatService {
       }
     }
     
-    // Log detalhado para debug de artistas
-    if (toolsUsed.some(t => t.name.includes('artist'))) {
-      console.log('Debug - Extração de dados de artistas:', {
-        toolsUsed: toolsUsed.map(t => t.name),
-        rawDataType: rawData ? typeof rawData : 'undefined',
-        rawDataIsArray: Array.isArray(rawData),
-        rawDataLength: Array.isArray(rawData) ? rawData.length : rawData ? Object.keys(rawData).length : 0,
-        rawDataSample: rawData ? (Array.isArray(rawData) ? rawData.slice(0, 2) : JSON.stringify(rawData).substring(0, 200)) : 'null',
-      });
-    }
     
     // Formatar resposta se canal foi especificado
     let formattedResponse: FormattedResponse | undefined;
     if (channel) {
       formattedResponse = await this.responseFormatter.formatResponse(answer, channel, toolsUsed, rawData);
+      
+      // Se o formatter gerou um Markdown específico, usar ele como answer
+      // Isso permite que o cliente web renderize o Markdown corretamente
+      if (formattedResponse?.answer && formattedResponse.answer !== answer) {
+        // O formatter gerou um Markdown formatado, usar ele
+        answer = formattedResponse.answer;
+      }
     }
     
     return { answer, toolsUsed, formattedResponse };
@@ -280,92 +231,39 @@ export class ChatService {
 
   private buildSystemPrompt(): string {
     return [
-      'Você é um assistente especializado em eventos da plataforma Gwan Events.',
+      'Você é um assistente especializado em imóveis da plataforma Litoral Imóveis.',
       'Responda às perguntas do usuário e utilize ferramentas quando precisar de dados atualizados.',
       '',
       'FERRAMENTAS DISPONÍVEIS:',
       '',
-      'EVENTOS:',
-      '- events.search: Lista todos os eventos (com filtros opcionais: category, city)',
-      '- get_event_by_id: Obtém detalhes completos de um evento específico pelo ID',
-      '- get_event_ticket_categories: Lista categorias de ingressos e preços de um evento',
-      '- get_ticket_prices_by_event: Alias para get_event_ticket_categories',
-      '- get_user_tickets_by_event: Obtém ingressos do usuário para um evento específico. Use quando usuário solicitar seus ingressos de um evento (ex: "me envie o ingresso do evento", "mostre meus ingressos para o evento"). O userId é obtido automaticamente do contexto.',
-      '- search_events_by_query: Busca EXATA por nome de evento ou código amigável',
-      '- search_events_rag: Busca SEMÂNTICA por significado/conceito/categoria',
+        'IMÓVEIS:',
+        '- list_properties: Lista imóveis cadastrados com filtros opcionais (cidade, tipo, finalidade, preço mínimo/máximo, corretor)',
+        '  * Filtros disponíveis:',
+        '    - city: Filtrar por cidade (ex: "São Sebastião")',
+        '    - type: Filtrar por tipo (CASA, APARTAMENTO, TERRENO, SALA_COMERCIAL)',
+        '    - purpose: Filtrar por finalidade (RENT=Aluguel, SALE=Venda, INVESTMENT=Investimento)',
+        '    - minPrice: Preço mínimo (ex: 300000)',
+        '    - maxPrice: Preço máximo (ex: 1000000)',
+        '    - corretorId: Filtrar por corretor específico (UUID)',
+        '  * Exemplos de uso:',
+        '    - "Liste imóveis em São Sebastião" → usar city="São Sebastião"',
+        '    - "Mostre casas à venda" → usar type="CASA", purpose="SALE"',
+        '    - "Busque imóveis para aluguel" → usar purpose="RENT"',
+        '    - "Busque imóveis entre 300 mil e 500 mil" → usar minPrice=300000, maxPrice=500000',
+        '    - "Imóveis com piscina" → usar list_properties e filtrar resultados por comodidades',
+      '- get_property_by_id: Obtém detalhes completos de um imóvel específico pelo UUID',
+      '  * Use quando o usuário solicitar detalhes de um imóvel específico ou mencionar um ID',
+      '  * Exemplos: "Mostre os detalhes do imóvel {id}", "Quero ver mais informações sobre esse imóvel"',
       '',
-      'ARTISTAS:',
-      '- list_artists: Lista todos os artistas cadastrados',
-      '- get_artist_by_id: Obtém detalhes completos de um artista específico pelo ID (inclui eventos vinculados)',
-      '- search_artists_by_query: Busca EXATA por artista usando filtros (nome artístico, nome completo, redes sociais)',
-      '- search_artists_rag: Busca SEMÂNTICA de artistas por significado/conceito/estilo',
+      'CAMPOS DISPONÍVEIS EM IMÓVEIS:',
+      '- Informações básicas: título, descrição, tipo, finalidade (RENT=Aluguel, SALE=Venda, INVESTMENT=Investimento), preço, cidade, bairro',
+      '- Características: área (m²), quartos, banheiros, vagas de garagem',
+      '- Comodidades: piscina, hidromassagem, frente mar, jardim, área gourmet, mobiliado',
+      '- Imagens: imagem de capa e galeria de imagens',
+      '- Corretor: informações do corretor responsável',
       '',
-      'REGRAS PARA ESCOLHER ENTRE search_events_by_query E search_events_rag (EVENTOS):',
-      '',
-      'USE search_events_by_query QUANDO:',
-      '1. Query contém CÓDIGO no formato EVT-XXXXXX (ex: "EVT-ABC123", "código EVT-XYZ789")',
-      '2. Query é um NOME ESPECÍFICO de evento (1-4 palavras que parecem título exato):',
-      '   - Exemplos: "Culto", "Festival de Rock", "Show do Artista X", "Culto de Ação de Graças"',
-      '   - Palavras como "Festival", "Show", "Culto" SOZINHAS ou com complemento específico',
-      '3. Query menciona NOME PRÓPRIO de artista, banda ou pessoa específica',
-      '4. Query parece ser TÍTULO FORMAL de evento (inicia com maiúscula, formato nome próprio)',
-      '',
-      'USE search_events_rag QUANDO:',
-      '1. Query é uma DESCRIÇÃO GENÉRICA sem nome específico:',
-      '   - Exemplos: "eventos de música", "shows infantis", "festas para casais"',
-      '2. Query combina MÚLTIPLOS CRITÉRIOS (categoria + localização + data):',
-      '   - Exemplos: "música em são paulo", "shows de rock este fim de semana", "eventos culturais em rio"',
-      '3. Query é FRASE NATURAL/CONVERSACIONAL:',
-      '   - Exemplos: "quero ver shows", "preciso de eventos para família", "eventos legais", "quais eventos tem hoje?"',
-      '4. Query busca por CONCEITO/CATEGORIA/ESTILO:',
-      '   - Exemplos: "festas ao ar livre", "eventos grátis", "shows para crianças", "eventos esportivos"',
-      '5. Query contém PREPOSIÇÕES DESCRITIVAS (de, para, com, em):',
-      '   - Exemplos: "eventos DE música", "shows PARA família", "festivais EM são paulo"',
-      '',
-      'ESTRATÉGIA EM CASO DE DÚVIDA:',
-      '- Se query é CURTA (1-3 palavras) e parece nome próprio → tente search_events_by_query primeiro',
-      '- Se query é LONGA ou contém preposições/descrições → use search_events_rag',
-      '- Se não encontrar resultados com search_events_by_query → tente search_events_rag como fallback',
-      '',
-      'EXEMPLOS PRÁTICOS:',
-      '- "Culto" → search_events_by_query (nome curto, possível título)',
-      '- "eventos de culto" → search_events_rag (descrição com preposição)',
-      '- "Rock" → search_events_by_query (nome possível)',
-      '- "eventos de rock" → search_events_rag (descrição genérica)',
-      '- "Festival de Rock" → search_events_by_query (título formal possível)',
-      '- "festival de música em são paulo" → search_events_rag (múltiplos critérios + descrição)',
-      '- "EVT-ABC123" → search_events_by_query (código específico)',
-      '- "shows para crianças" → search_events_rag (característica/conceito)',
-      '',
-      'REGRAS PARA ESCOLHER ENTRE search_artists_by_query E search_artists_rag (ARTISTAS):',
-      '',
-      'USE search_artists_by_query QUANDO:',
-      '1. Query é NOME ARTÍSTICO ESPECÍFICO conhecido (ex: "Nome Artístico", "Artista X")',
-      '2. Query menciona NOME COMPLETO específico (ex: "João Silva", "Maria Santos")',
-      '3. Query menciona USERNAME de rede social específico (ex: "artistname" no Instagram)',
-      '4. Query curta (1-3 palavras) que parece NOME PRÓPRIO',
-      '',
-      'USE search_artists_rag QUANDO:',
-      '1. Query é DESCRIÇÃO GENÉRICA sem nome específico:',
-      '   - Exemplos: "artista de música gospel", "cantor sertanejo", "banda de rock"',
-      '2. Query combina CARACTERÍSTICAS/ESTILO:',
-      '   - Exemplos: "artista cristão", "músico evangélico", "cantor de música popular"',
-      '3. Query é FRASE CONVERSACIONAL:',
-      '   - Exemplos: "quero encontrar artistas cristãos", "preciso de artistas para evento", "artistas que tocam rock"',
-      '4. Query busca por CONCEITO/CATEGORIA/ESTILO:',
-      '   - Exemplos: "artistas gospel", "bandas sertanejas", "cantores de MPB"',
-      '',
-      'EXEMPLOS PRÁTICOS DE ARTISTAS:',
-      '- "Nome Artístico" → search_artists_by_query (nome específico)',
-      '- "artista de música gospel" → search_artists_rag (descrição genérica)',
-      '- "João Silva" → search_artists_by_query (nome completo)',
-      '- "cantor sertanejo" → search_artists_rag (categoria/estilo)',
-      '- "artistname" (username) → search_artists_by_query (username específico)',
-      '- "artistas para evento cristão" → search_artists_rag (descrição conversacional)',
-      '',
-      'Quando retornar dados, seja objetivo e, se útil, sintetize os resultados:',
-      '- Para eventos: título, data, local, preço',
-      '- Para artistas: nome artístico, nome completo, biografia resumida, eventos vinculados',
+        'Quando retornar dados, seja objetivo e, se útil, sintetize os resultados:',
+        '- Para imóveis: título, tipo, finalidade (Aluguel/Venda/Investimento), cidade, bairro, preço, área, quartos, banheiros, comodidades principais',
     ].join('\n');
   }
 
@@ -379,13 +277,37 @@ export class ChatService {
       {
         type: 'function',
         function: {
-          name: 'events_search',
-          description: 'Lista eventos com filtros opcionais (alias: events.search).',
+          name: 'list_properties',
+          description: 'Lista imóveis cadastrados com filtros opcionais (cidade, tipo, faixa de preço, corretor).',
           parameters: {
             type: 'object',
             properties: {
-              category: { type: 'string', description: 'Categoria do evento (ex.: Música)' },
-              city: { type: 'string', description: 'Cidade (ex.: São Paulo)' },
+              city: { 
+                type: 'string', 
+                description: 'Filtrar por cidade (ex: "São Sebastião")' 
+              },
+              type: { 
+                type: 'string', 
+                description: 'Filtrar por tipo (CASA, APARTAMENTO, TERRENO, SALA_COMERCIAL)',
+                enum: ['CASA', 'APARTAMENTO', 'TERRENO', 'SALA_COMERCIAL'],
+              },
+              purpose: { 
+                type: 'string', 
+                description: 'Filtrar por finalidade (RENT=Aluguel, SALE=Venda, INVESTMENT=Investimento)',
+                enum: ['RENT', 'SALE', 'INVESTMENT'],
+              },
+              minPrice: { 
+                type: 'number', 
+                description: 'Preço mínimo (ex: 300000)' 
+              },
+              maxPrice: { 
+                type: 'number', 
+                description: 'Preço máximo (ex: 1000000)' 
+              },
+              corretorId: { 
+                type: 'string', 
+                description: 'Filtrar por corretor específico (UUID)' 
+              },
             },
           },
         },
@@ -393,183 +315,17 @@ export class ChatService {
       {
         type: 'function',
         function: {
-          name: 'get_event_by_id',
-          description: 'Obter detalhes de um evento pelo ID.',
+          name: 'get_property_by_id',
+          description: 'Obter detalhes completos de um imóvel pelo ID (UUID).',
           parameters: {
             type: 'object',
             properties: {
-              id: { type: 'string' },
-            },
-            required: ['id'],
-          },
-        },
-      },
-      {
-        type: 'function',
-        function: {
-          name: 'get_event_ticket_categories',
-          description: 'Listar categorias de ingresso de um evento (inclui preços por categoria).',
-          parameters: {
-            type: 'object',
-            properties: {
-              id: { type: 'string' },
-            },
-            required: ['id'],
-          },
-        },
-      },
-      {
-        type: 'function',
-        function: {
-          name: 'get_ticket_prices_by_event',
-          description: 'Obter preços de ingressos por evento (alias para categorias do evento).',
-          parameters: {
-            type: 'object',
-            properties: {
-              id: { type: 'string' },
-            },
-            required: ['id'],
-          },
-        },
-      },
-      {
-        type: 'function',
-        function: {
-          name: 'get_user_tickets_by_event',
-          description: 'Obter ingressos do usuário para um evento específico. Use quando usuário solicitar seus ingressos de um evento (ex: "me envie o ingresso do evento", "mostre meus ingressos para o evento"). O userId será obtido automaticamente do contexto do WhatsApp.',
-          parameters: {
-            type: 'object',
-            properties: {
-              eventId: { 
+              id: { 
                 type: 'string',
-                description: 'ID do evento (UUID)',
+                description: 'ID do imóvel (UUID)',
               },
-            },
-            required: ['eventId'],
-          },
-        },
-      },
-      {
-        type: 'function',
-        function: {
-          name: 'search_events_by_query',
-          description: 'Busca EXATA por nome de evento ou código. Use APENAS quando: 1) Query contém código EVT-XXXXXX, 2) Query é nome específico de evento (1-4 palavras como título), 3) Query menciona artista/banda específica. Exemplos válidos: "Culto", "EVT-ABC123", "Festival de Rock", "Show do Artista X". NÃO use para descrições genéricas.',
-          parameters: {
-            type: 'object',
-            properties: {
-              query: {
-                type: 'string',
-                description: 'Nome exato do evento ou código no formato EVT-XXXXXX',
-              },
-            },
-            required: ['query'],
-          },
-        },
-      },
-      {
-        type: 'function',
-        function: {
-          name: 'search_events_rag',
-          description: 'Busca SEMÂNTICA por significado/conceito. Use quando: 1) Query é descrição genérica (ex: "eventos de música"), 2) Combina múltiplos critérios (ex: "shows em são paulo"), 3) É frase conversacional (ex: "quero ver shows"), 4) Contém preposições (ex: "eventos DE rock"), 5) Busca por conceito/categoria (ex: "festas para casais"). Use esta ferramenta para buscar por significado, não por nome exato.',
-          parameters: {
-            type: 'object',
-            properties: {
-              query: {
-                type: 'string',
-                description: 'Query descritiva de busca semântica. Exemplos: "shows de música", "eventos infantis", "festas ao ar livre em são paulo", "eventos culturais este fim de semana"',
-              },
-              limit: {
-                type: 'number',
-                description: 'Número máximo de resultados (opcional, padrão: 10, máximo: 50)',
-              },
-            },
-            required: ['query'],
-          },
-        },
-      },
-      {
-        type: 'function',
-        function: {
-          name: 'list_artists',
-          description: 'Lista todos os artistas cadastrados no sistema.',
-          parameters: {
-            type: 'object',
-            properties: {},
-          },
-        },
-      },
-      {
-        type: 'function',
-        function: {
-          name: 'get_artist_by_id',
-          description: 'Obter detalhes completos de um artista pelo ID. Retorna informações do artista incluindo eventos nos quais participa.',
-          parameters: {
-            type: 'object',
-            properties: {
-              id: { type: 'string', description: 'ID do artista (UUID)' },
             },
             required: ['id'],
-          },
-        },
-      },
-      {
-        type: 'function',
-        function: {
-          name: 'search_artists_by_query',
-          description: 'Busca EXATA por artista usando filtros específicos. Use quando: 1) Query é nome artístico específico conhecido, 2) Query menciona nome completo específico, 3) Query menciona username de rede social específico, 4) Query curta (1-3 palavras) que parece nome próprio. Exemplos: "Nome Artístico", "João Silva", "artistname" (username). NÃO use para descrições genéricas.',
-          parameters: {
-            type: 'object',
-            properties: {
-              artisticName: {
-                type: 'string',
-                description: 'Nome artístico do artista (busca parcial case-insensitive)',
-              },
-              name: {
-                type: 'string',
-                description: 'Nome completo do artista (busca parcial case-insensitive)',
-              },
-              instagramUsername: {
-                type: 'string',
-                description: 'Nome de usuário do Instagram',
-              },
-              youtubeUsername: {
-                type: 'string',
-                description: 'Nome de usuário do YouTube',
-              },
-              xUsername: {
-                type: 'string',
-                description: 'Nome de usuário do X/Twitter',
-              },
-              spotifyUsername: {
-                type: 'string',
-                description: 'Nome de usuário do Spotify',
-              },
-              tiktokUsername: {
-                type: 'string',
-                description: 'Nome de usuário do TikTok',
-              },
-            },
-          },
-        },
-      },
-      {
-        type: 'function',
-        function: {
-          name: 'search_artists_rag',
-          description: 'Busca SEMÂNTICA de artistas por similaridade. Use quando: 1) Query é descrição genérica (ex: "artista de música gospel"), 2) Query combina características (ex: "cantor sertanejo", "banda de rock"), 3) Query é frase conversacional (ex: "quero encontrar artistas cristãos"), 4) Busca por conceito/estilo/categoria. Use esta ferramenta para buscar por significado, não por nome exato.',
-          parameters: {
-            type: 'object',
-            properties: {
-              query: {
-                type: 'string',
-                description: 'Query descritiva de busca semântica. Exemplos: "artista de música gospel", "cantor sertanejo", "banda de rock", "músico cristão"',
-              },
-              limit: {
-                type: 'number',
-                description: 'Número máximo de resultados (opcional, padrão: 10, máximo: 50)',
-              },
-            },
-            required: ['query'],
           },
         },
       },
@@ -577,15 +333,8 @@ export class ChatService {
   }
 
   private mapAgentToolToMcp(name: string): string {
-    if (name === 'events_search' || name === 'events.search') return 'list_events';
-    if (name === 'get_ticket_prices_by_event' || name === 'events.ticket_prices') return 'get_event_ticket_categories';
-    if (name === 'get_user_tickets_by_event' || name === 'user.tickets_by_event') return 'get_user_tickets_by_event';
-    if (name === 'search_events_by_query' || name === 'events.search_query') return 'search_events_by_query';
-    if (name === 'search_events_rag' || name === 'events.search_rag' || name === 'events.semantic_search') return 'search_events_rag';
-    if (name === 'list_artists' || name === 'artists.list') return 'list_artists';
-    if (name === 'get_artist_by_id' || name === 'artists.get_by_id') return 'get_artist_by_id';
-    if (name === 'search_artists_by_query' || name === 'artists.search_query') return 'search_artists_by_query';
-    if (name === 'search_artists_rag' || name === 'artists.search_rag' || name === 'artists.semantic_search') return 'search_artists_rag';
+    // O nome já está no formato correto (list_properties, get_property_by_id)
+    // Não precisa mapear, apenas retornar o nome
     return name;
   }
 
@@ -594,17 +343,54 @@ export class ChatService {
       const body: any = { name, arguments: args };
       if (this.mcpServerToken) body.authToken = this.mcpServerToken;
       const url = `${this.mcpBridgeBase}/tools/call`;
+      
       const res = await axios.post(url, body, { timeout: this.requestTimeoutMs });
       
       // Verificar se a resposta contém erro
       if (res.data?.error) {
+        this.logger.error('[CHAT] Erro na resposta do MCP', {
+          name,
+          error: res.data.error,
+        });
         throw new Error(res.data.error);
       }
       
-      return res.data?.result || res.data;
+      const result = res.data?.result || res.data;
+      return result;
     } catch (error) {
+      const errorDetails: any = {
+        name,
+        args,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        isAxiosError: axios.isAxiosError(error),
+      };
+      
       if (axios.isAxiosError(error)) {
-        const errorMessage = error.response?.data?.error || error.message || 'Erro desconhecido ao chamar ferramenta';
+        errorDetails.axiosStatus = error.response?.status;
+        errorDetails.axiosStatusText = error.response?.statusText;
+        errorDetails.axiosData = error.response?.data;
+        errorDetails.axiosHeaders = error.response?.headers;
+        errorDetails.requestUrl = error.config?.url;
+        errorDetails.requestMethod = error.config?.method;
+        errorDetails.requestData = error.config?.data;
+        errorDetails.code = error.code;
+        errorDetails.message = error.message;
+        errorDetails.stack = error.stack;
+        
+        // Log completo do erro
+        this.logger.error('[CHAT] Erro completo ao chamar tool MCP', {
+          ...errorDetails,
+          fullError: JSON.stringify(errorDetails, null, 2),
+        });
+      } else {
+        this.logger.error('[CHAT] Erro ao chamar tool MCP (não é AxiosError)', errorDetails);
+      }
+      
+      if (axios.isAxiosError(error)) {
+        const errorMessage = error.response?.data?.error || 
+                           error.response?.data?.message || 
+                           error.message || 
+                           'Erro desconhecido ao chamar ferramenta';
         throw new Error(`Erro ao chamar ferramenta ${name}: ${errorMessage}`);
       }
       throw error;
@@ -620,13 +406,32 @@ export class ChatService {
     const body = {
       model: this.openaiModel,
       messages,
-      tools,
-      tool_choice: 'auto',
+      tools: tools && tools.length > 0 ? tools : undefined,
+      tool_choice: tools && tools.length > 0 ? 'auto' : undefined,
       temperature: 0.2,
     } as any;
 
-    const res = await axios.post(url, body, { headers, timeout: this.requestTimeoutMs });
-    return res.data;
+    try {
+      const res = await axios.post(url, body, { headers, timeout: this.requestTimeoutMs });
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const errorDetails = {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          requestBody: {
+            model: body.model,
+            messagesCount: body.messages?.length,
+            toolsCount: body.tools?.length,
+            tools: body.tools,
+          },
+        };
+        this.logger.error('[ERROR] Erro ao chamar OpenAI API', errorDetails);
+        throw new Error(`Erro ao chamar OpenAI: ${error.response?.data?.error?.message || error.message}`);
+      }
+      throw error;
+    }
   }
 
   private buildFallbackAnswerFromTools(toolsUsed: { name: string; arguments?: Record<string, unknown> }[]): string {
@@ -642,34 +447,32 @@ export class ChatService {
       // Se o primeiro resultado já for um array, usar diretamente
       const firstResult = results[0];
       
-      if (toolName === 'list_artists' || toolName === 'artists.list') {
-        const artists = Array.isArray(firstResult) ? firstResult : (firstResult?.data || firstResult?.artists || []);
-        if (artists.length === 0) {
-          return 'Não há artistas cadastrados no sistema no momento.';
+      if (toolName === 'list_properties') {
+        const properties = Array.isArray(firstResult) ? firstResult : (firstResult?.data || firstResult?.properties || []);
+        if (properties.length === 0) {
+          return 'Não há imóveis cadastrados no sistema no momento.';
         }
-        const artistNames = artists.slice(0, 10).map((a: any) => 
-          a.artisticName || a.name || a.id
-        ).join(', ');
-        const moreText = artists.length > 10 ? ` (e mais ${artists.length - 10} artista(s))` : '';
-        return `Encontrei ${artists.length} artista(s) cadastrado(s): ${artistNames}${moreText}.`;
+        const propertyTitles = properties.slice(0, 10).map((p: any) => {
+          const price = p.price ? `R$ ${Number(p.price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '';
+          const type = p.type || '';
+          const city = p.city || '';
+          return `${p.title || p.id}${type ? ` (${type})` : ''}${city ? ` - ${city}` : ''}${price ? ` - ${price}` : ''}`;
+        }).join(', ');
+        const moreText = properties.length > 10 ? ` (e mais ${properties.length - 10} imóvel(is))` : '';
+        return `Encontrei ${properties.length} imóvel(is) cadastrado(s): ${propertyTitles}${moreText}.`;
       }
 
-      if (toolName === 'list_events' || toolName === 'events.search') {
-        const events = Array.isArray(firstResult) ? firstResult : (firstResult?.data || firstResult?.events || []);
-        if (events.length === 0) {
-          return 'Não há eventos cadastrados no sistema no momento.';
+      if (toolName === 'get_property_by_id') {
+        const property = Array.isArray(firstResult) ? firstResult[0] : (firstResult?.data || firstResult?.property || firstResult);
+        if (!property) {
+          return 'Imóvel não encontrado.';
         }
-        const eventTitles = events.slice(0, 10).map((e: any) => 
-          e.title || e.name || e.id
-        ).join(', ');
-        const moreText = events.length > 10 ? ` (e mais ${events.length - 10} evento(s))` : '';
-        return `Encontrei ${events.length} evento(s) cadastrado(s): ${eventTitles}${moreText}.`;
-      }
-
-      if (toolName === 'get_user_tickets_by_event' || toolName === 'user.tickets_by_event') {
-        // Para ingressos do usuário, deixar o formato ser feito pelo WhatsAppFormatterService
-        // Retornar null para que o sistema use o formato estruturado
-        return null;
+        const price = property.price ? `R$ ${Number(property.price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '';
+        const area = property.area ? `${property.area}m²` : '';
+        const bedrooms = property.bedrooms ? `${property.bedrooms} quarto(s)` : '';
+        const bathrooms = property.bathrooms ? `${property.bathrooms} banheiro(s)` : '';
+        const details = [price, area, bedrooms, bathrooms].filter(Boolean).join(', ');
+        return `Imóvel: ${property.title || property.id}${property.type ? ` (${property.type})` : ''}${property.city ? ` - ${property.city}` : ''}${details ? `. ${details}` : ''}.`;
       }
 
       // Para outras ferramentas, retornar null para usar fallback padrão
@@ -742,10 +545,6 @@ export class ChatService {
                   const partialJson = content.substring(arrayStart, arrayEnd);
                   try {
                     data = JSON.parse(partialJson);
-                    console.log('Recuperado JSON parcial:', { 
-                      length: partialJson.length,
-                      itemCount: Array.isArray(data) ? data.length : 0 
-                    });
                   } catch {
                     // Se ainda falhar, retornar null
                     return null;
@@ -769,18 +568,10 @@ export class ChatService {
           }
           
           // Tratar estruturas específicas de retorno de tools
-          // Para get_user_tickets_by_event, retornar objeto completo { tickets, event }
-          if (data.tickets && typeof data.tickets === 'object') {
-            // Retornar objeto completo para formatação estruturada
-            return data;
-          }
           
-          // Se tiver propriedade 'events', 'artists' ou 'data', usar ela
-          if (data.events) {
-            return Array.isArray(data.events) ? data.events : [data.events];
-          }
-          if (data.artists) {
-            return Array.isArray(data.artists) ? data.artists : [data.artists];
+          // Se tiver propriedade 'properties' ou 'data', usar ela
+          if (data.properties) {
+            return Array.isArray(data.properties) ? data.properties : [data.properties];
           }
           if (data.data) {
             return Array.isArray(data.data) ? data.data : [data.data];
@@ -798,11 +589,7 @@ export class ChatService {
           
           return data;
         } catch (parseError) {
-          // Logar erro de parsing para debug
-          console.error('Erro ao fazer parse do resultado da ferramenta:', {
-            content: typeof m.content === 'string' ? m.content.substring(0, 200) : m.content,
-            error: parseError instanceof Error ? parseError.message : String(parseError),
-          });
+          // Ignorar erros de parsing silenciosamente
           return null;
         }
       }).filter(Boolean);
@@ -826,43 +613,6 @@ export class ChatService {
     return null;
   }
 
-  /**
-   * Remove campos relacionados ao Spotify dos dados de artistas
-   */
-  private filterSpotifyFromArtists(data: any): any {
-    if (!data) return data;
-
-    // Se for array de artistas
-    if (Array.isArray(data)) {
-      return data.map(artist => this.removeSpotifyFields(artist));
-    }
-
-    // Se for um único artista
-    return this.removeSpotifyFields(data);
-  }
-
-  /**
-   * Remove campos relacionados ao Spotify de um objeto artista
-   */
-  private removeSpotifyFields(artist: any): any {
-    if (!artist || typeof artist !== 'object') return artist;
-
-    // Criar cópia do objeto sem os campos spotify
-    // NÃO remover metadata completamente, apenas o campo spotify dentro dele
-    const { spotify, spotifyUsername, metadata, ...filteredArtist } = artist;
-
-    // Se metadata existir e tiver campo spotify, remover apenas o spotify
-    if (metadata && typeof metadata === 'object') {
-      const { spotify: spotifyMetadata, ...filteredMetadata } = metadata;
-      // Manter metadata mesmo que só tenha spotify removido
-      filteredArtist.metadata = filteredMetadata;
-    } else if (artist.metadata) {
-      // Se metadata existe mas não é objeto, manter como está
-      filteredArtist.metadata = artist.metadata;
-    }
-
-    return filteredArtist;
-  }
 }
 
 

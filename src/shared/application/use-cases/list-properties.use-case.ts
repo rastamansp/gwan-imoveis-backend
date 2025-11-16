@@ -6,6 +6,7 @@ import { ILogger } from '../interfaces/logger.interface';
 export interface ListPropertiesFilters {
   city?: string;
   type?: string;
+  purpose?: string;
   minPrice?: number;
   maxPrice?: number;
   corretorId?: string;
@@ -55,6 +56,11 @@ export class ListPropertiesUseCase {
     // Aplicar outros filtros se necessário
     if (filters.type && !filters.corretorId && !filters.city) {
       properties = properties.filter((p) => p.type === filters.type);
+    }
+
+    // Aplicar filtro por purpose se fornecido
+    if (filters.purpose) {
+      properties = properties.filter((p) => p.purpose === filters.purpose);
     }
 
     return properties;

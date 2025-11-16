@@ -23,12 +23,6 @@ export class ResponseFormatterService {
     toolsUsed: { name: string; arguments?: Record<string, unknown> }[],
     rawData?: any,
   ): Promise<FormattedResponse> {
-    this.logger.debug('Formatando resposta', {
-      channel,
-      toolsUsedCount: toolsUsed?.length || 0,
-      hasRawData: !!rawData,
-    });
-
     try {
       switch (channel) {
         case MessageChannel.WHATSAPP:

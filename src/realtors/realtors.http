@@ -1,0 +1,51 @@
+### Variáveis
+@baseUrl = http://localhost:3009/api
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImpvYW8uc2FudG9zQGVtYWlsLmNvbSIsInN1YiI6Ijk4YzQ5NGEzLWU4YmQtNGI0My1iMTY0LTUwZWVjMThhZjRjZiIsInJvbGUiOiJDT1JSRVRPUiIsImlhdCI6MTc2MzMyNTYyNCwiZXhwIjoxNzYzNDEyMDI0fQ.1mrv7qGYgQu91Y37soX8aag2EvmbtCtnyBomZ0ime28
+
+### Obter meu perfil de corretor (requer CORRETOR ou ADMIN)
+GET {{baseUrl}}/realtors/me
+Authorization: Bearer {{token}}
+
+### Atualizar meu perfil de corretor - Informações básicas (requer CORRETOR ou ADMIN)
+PUT {{baseUrl}}/realtors/me
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nomeFantasia": "Imóveis Premium Litoral",
+  "nomeContato": "João Silva",
+  "telefone": "11999999999",
+  "email": "contato@imoveispremium.com.br"
+}
+
+### Atualizar meu perfil de corretor - Redes sociais (requer CORRETOR ou ADMIN)
+PUT {{baseUrl}}/realtors/me
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "instagram": "https://instagram.com/imoveispremium",
+  "facebook": "https://facebook.com/imoveispremium",
+  "linkedin": "https://linkedin.com/in/joaosilva",
+  "whatsappBusiness": "11999999999"
+}
+
+### Atualizar meu perfil de corretor - Atualização completa (requer CORRETOR ou ADMIN)
+PUT {{baseUrl}}/realtors/me
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nomeFantasia": "Imóveis Premium Litoral",
+  "nomeContato": "João Silva",
+  "telefone": "11999999999",
+  "email": "contato@imoveispremium.com.br",
+  "instagram": "https://instagram.com/imoveispremium",
+  "facebook": "https://facebook.com/imoveispremium",
+  "linkedin": "https://linkedin.com/in/joaosilva",
+  "whatsappBusiness": "11999999999"
+}
+
+### Obter corretor do imóvel (PÚBLICO - não requer autenticação)
+GET {{baseUrl}}/properties/{{propertyId}}/realtor
+

@@ -29,20 +29,11 @@ export class WebFormatterService {
     
     try {
       switch (responseType) {
-        case 'event_list':
-          return await this.formatEventList(rawResponse, rawData, toolsUsed);
+        case 'property_list':
+          return this.formatPropertyList(rawResponse, rawData, toolsUsed);
         
-        case 'event_detail':
-          return await this.formatEventDetail(rawResponse, rawData, toolsUsed);
-        
-        case 'artist_list':
-          return this.formatArtistList(rawResponse, rawData, toolsUsed);
-        
-        case 'artist_detail':
-          return this.formatArtistDetail(rawResponse, rawData, toolsUsed);
-        
-        case 'ticket_prices':
-          return this.formatTicketPrices(rawResponse, rawData, toolsUsed);
+        case 'property_detail':
+          return this.formatPropertyDetail(rawResponse, rawData, toolsUsed);
         
         default:
           return this.formatGeneric(rawResponse, toolsUsed);
@@ -63,68 +54,71 @@ export class WebFormatterService {
 
     const lastTool = toolsUsed[toolsUsed.length - 1].name.toLowerCase();
     
-    if (lastTool.includes('list_events') || 
-        lastTool.includes('events.search') || 
-        lastTool.includes('events_search') ||
-        lastTool.includes('search_events')) {
-      return 'event_list';
+    if (lastTool.includes('list_properties')) {
+      return 'property_list';
     }
     
-    if (lastTool.includes('get_event_by_id') || lastTool.includes('event_detail')) {
-      return 'event_detail';
-    }
-    
-    if (lastTool.includes('list_artists') || lastTool.includes('artists.list') || lastTool.includes('search_artists')) {
-      return 'artist_list';
-    }
-    
-    if (lastTool.includes('get_artist_by_id') || lastTool.includes('artist_detail')) {
-      return 'artist_detail';
-    }
-    
-    if (lastTool.includes('ticket') || lastTool.includes('price')) {
-      return 'ticket_prices';
+    if (lastTool.includes('get_property_by_id') || lastTool.includes('property_detail')) {
+      return 'property_detail';
     }
     
     return 'generic';
   }
 
-  private async formatEventList(rawResponse: string, rawData: any, toolsUsed: any[]): Promise<FormattedResponse> {
-    // TODO: Atualizar para trabalhar com imóveis quando o módulo for implementado
-    // Por enquanto, retorna resposta genérica
-    this.logger.warn('formatEventList chamado - será atualizado para imóveis', { rawData });
-    return this.formatGeneric(rawResponse, toolsUsed);
-  }
-
-  private async formatEventDetail(rawResponse: string, rawData: any, toolsUsed: any[]): Promise<FormattedResponse> {
-    // TODO: Atualizar para trabalhar com imóveis quando o módulo for implementado
-    // Por enquanto, retorna resposta genérica
-    this.logger.warn('formatEventDetail chamado - será atualizado para imóveis', { rawData });
-    return this.formatGeneric(rawResponse, toolsUsed);
-  }
-
-  private formatArtistList(rawResponse: string, rawData: any, toolsUsed: any[]): FormattedResponse {
-    let artists: any[] = [];
+  private formatPropertyList(rawResponse: string, rawData: any, toolsUsed: any[]): FormattedResponse {
+    let properties: any[] = [];
     
     if (rawData && Array.isArray(rawData)) {
-      artists = rawData;
-    } else if (rawData?.artists) {
-      artists = Array.isArray(rawData.artists) ? rawData.artists : [rawData.artists];
+      properties = rawData;
+    } else if (rawData?.properties) {
+      properties = Array.isArray(rawData.properties) ? rawData.properties : [rawData.properties];
     } else if (rawData?.data) {
-      artists = Array.isArray(rawData.data) ? rawData.data : [rawData.data];
+      properties = Array.isArray(rawData.data) ? rawData.data : [rawData.data];
     }
 
     const page = 1;
     const pageSize = 10;
-    const { items: paginatedArtists, pagination } = this.paginationService.paginateItems(artists, page, pageSize);
+    const { items: paginatedProperties, pagination } = this.paginationService.paginateItems(properties, page, pageSize);
 
-    const suggestions = this.suggestionsService.generateContextualSuggestions('artist_list', { artists: paginatedArtists });
+    // Gerar Markdown formatado para visualização no cliente web
+    const markdownAnswer = this.generatePropertyListMarkdown(paginatedProperties, properties.length);
+
+    // Incluir apenas dados essenciais para listagem (otimizado para reduzir payload)
+    const optimizedProperties = paginatedProperties.map((p: any) => ({
+      // Dados essenciais para listagem
+      id: p.id,
+      title: p.title,
+      type: p.type,
+      purpose: p.purpose || null,
+      price: p.price ? Number(p.price) : null,
+      city: p.city,
+      neighborhood: p.neighborhood,
+      area: p.area ? Number(p.area) : null,
+      bedrooms: p.bedrooms || null,
+      bathrooms: p.bathrooms || null,
+      garageSpaces: p.garageSpaces || null,
+      // Comodidades resumidas (apenas as que estão ativas)
+      amenities: (() => {
+        const active: string[] = [];
+        if (p.piscina) active.push('piscina');
+        if (p.hidromassagem) active.push('hidromassagem');
+        if (p.frenteMar) active.push('frenteMar');
+        if (p.jardim) active.push('jardim');
+        if (p.areaGourmet) active.push('areaGourmet');
+        if (p.mobiliado) active.push('mobiliado');
+        return active;
+      })(),
+      coverImageUrl: p.coverImageUrl || null,
+      url: `${this.frontendUrl}imoveis/${p.id}`,
+    }));
+
+    const suggestions = this.suggestionsService.generateContextualSuggestions('property_list', { properties: paginatedProperties });
 
     return {
-      answer: rawResponse,
+      answer: markdownAnswer, // Resposta em Markdown
       data: {
-        type: 'artist_list',
-        items: paginatedArtists,
+        type: 'property_list',
+        items: optimizedProperties, // Dados otimizados para listagem
         pagination: {
           current: pagination.current,
           total: pagination.total,
@@ -132,53 +126,229 @@ export class WebFormatterService {
           hasMore: pagination.hasMore,
         },
         suggestions,
-        rawData: artists,
+        // rawData removido para reduzir payload - use get_property_by_id para detalhes completos
       },
+      media: optimizedProperties
+        .filter((p: any) => p.coverImageUrl)
+        .map((p: any) => ({
+          type: 'image' as const,
+          url: p.coverImageUrl,
+          caption: p.title,
+        })),
     };
   }
 
-  private formatArtistDetail(rawResponse: string, rawData: any, toolsUsed: any[]): FormattedResponse {
-    const artist = rawData && !Array.isArray(rawData) ? rawData : (rawData?.[0] || rawData?.data?.[0]);
+  /**
+   * Gera Markdown formatado para lista de propriedades
+   */
+  private generatePropertyListMarkdown(properties: any[], totalCount: number): string {
+    if (properties.length === 0) {
+      return 'Não há imóveis cadastrados no momento.';
+    }
+
+    let markdown = `## 🏠 Imóveis Encontrados (${totalCount})\n\n`;
+
+    properties.forEach((p: any, index: number) => {
+      const price = p.price ? `**R$ ${Number(p.price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}**` : 'Preço sob consulta';
+      const type = p.type || 'Imóvel';
+      const purpose = p.purpose ? (p.purpose === 'RENT' ? 'Aluguel' : p.purpose === 'SALE' ? 'Venda' : 'Investimento') : '';
+      const city = p.city || '';
+      const neighborhood = p.neighborhood || '';
+      const area = p.area ? `${Number(p.area).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²` : '';
+      
+      markdown += `### ${index + 1}. ${p.title || 'Sem título'}\n\n`;
+      markdown += `- **Tipo:** ${type}\n`;
+      if (purpose) markdown += `- **Finalidade:** ${purpose}\n`;
+      if (city) markdown += `- **Cidade:** ${city}\n`;
+      if (neighborhood) markdown += `- **Bairro:** ${neighborhood}\n`;
+      markdown += `- **Preço:** ${price}\n`;
+      if (area) markdown += `- **Área:** ${area}\n`;
+      if (p.bedrooms) markdown += `- **Quartos:** ${p.bedrooms}\n`;
+      if (p.bathrooms) markdown += `- **Banheiros:** ${p.bathrooms}\n`;
+      if (p.garageSpaces) markdown += `- **Vagas:** ${p.garageSpaces}\n`;
+      
+      // Comodidades
+      const amenities: string[] = [];
+      if (p.piscina) amenities.push('🏊 Piscina');
+      if (p.hidromassagem) amenities.push('💆 Hidromassagem');
+      if (p.frenteMar) amenities.push('🌊 Frente Mar');
+      if (p.jardim) amenities.push('🌳 Jardim');
+      if (p.areaGourmet) amenities.push('🍖 Área Gourmet');
+      if (p.mobiliado) amenities.push('🛋️ Mobiliado');
+      
+      if (amenities.length > 0) {
+        markdown += `- **Comodidades:** ${amenities.join(', ')}\n`;
+      }
+      
+      // Imagem de capa
+      if (p.coverImageUrl) {
+        markdown += `\n![${p.title || 'Imóvel'}](${p.coverImageUrl})\n`;
+      }
+      
+      // Link para detalhes
+      markdown += `\n[Ver detalhes](${this.frontendUrl}imoveis/${p.id})\n\n`;
+      markdown += '---\n\n';
+    });
+
+    if (totalCount > properties.length) {
+      markdown += `\n*Mostrando ${properties.length} de ${totalCount} imóveis*\n`;
+    }
+
+    return markdown;
+  }
+
+  private formatPropertyDetail(rawResponse: string, rawData: any, toolsUsed: any[]): FormattedResponse {
+    const property = rawData && !Array.isArray(rawData) ? rawData : (rawData?.[0] || rawData?.data?.[0] || rawData?.property);
     
-    if (!artist) {
+    if (!property) {
       return this.formatGeneric(rawResponse, toolsUsed);
     }
 
-    const suggestions = this.suggestionsService.generateContextualSuggestions('artist_detail', artist);
+    // Gerar Markdown formatado para visualização no cliente web
+    const markdownAnswer = this.generatePropertyDetailMarkdown(property);
+
+    // Objeto completo do imóvel para personalização pelo canal
+    const completeProperty = {
+      // Dados completos do imóvel
+      id: property.id,
+      title: property.title,
+      description: property.description || null,
+      type: property.type,
+      purpose: property.purpose || null,
+      price: property.price ? Number(property.price) : null,
+      city: property.city,
+      neighborhood: property.neighborhood,
+      area: property.area ? Number(property.area) : null,
+      bedrooms: property.bedrooms || null,
+      bathrooms: property.bathrooms || null,
+      garageSpaces: property.garageSpaces || null,
+      amenities: {
+        piscina: property.piscina || false,
+        hidromassagem: property.hidromassagem || false,
+        frenteMar: property.frenteMar || false,
+        jardim: property.jardim || false,
+        areaGourmet: property.areaGourmet || false,
+        mobiliado: property.mobiliado || false,
+      },
+      coverImageUrl: property.coverImageUrl || null,
+      images: property.images || [],
+      corretor: property.corretor ? {
+        id: property.corretor.id,
+        name: property.corretor.name,
+        email: property.corretor.email,
+        phone: property.corretor.phone || null,
+      } : null,
+      createdAt: property.createdAt || null,
+      updatedAt: property.updatedAt || null,
+      // Campos formatados para conveniência
+      priceFormatted: property.price ? `R$ ${Number(property.price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null,
+      areaFormatted: property.area ? `${Number(property.area).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²` : null,
+      url: `${this.frontendUrl}imoveis/${property.id}`,
+    };
+
+    const suggestions = this.suggestionsService.generateContextualSuggestions('property_detail', completeProperty);
+
+    // Preparar mídia (imagem de capa + outras imagens)
+    const media: Array<{ type: 'image'; url: string; caption?: string }> = [];
+    if (completeProperty.coverImageUrl) {
+      media.push({
+        type: 'image',
+        url: completeProperty.coverImageUrl,
+        caption: completeProperty.title,
+      });
+    }
+    if (Array.isArray(completeProperty.images) && completeProperty.images.length > 0) {
+      completeProperty.images.forEach((img: any) => {
+        if (img.url && img.url !== completeProperty.coverImageUrl) {
+          media.push({
+            type: 'image',
+            url: img.url,
+            caption: `${completeProperty.title} - Imagem ${media.length}`,
+          });
+        }
+      });
+    }
 
     return {
-      answer: rawResponse,
+      answer: markdownAnswer, // Resposta em Markdown
       data: {
-        type: 'artist_detail',
-        items: [artist],
+        type: 'property_detail',
+        items: [completeProperty], // Objeto completo para personalização
         suggestions,
-        rawData: artist,
+        rawData: property, // Dados brutos completos
       },
+      media: media.length > 0 ? media : undefined,
     };
   }
 
-  private formatTicketPrices(rawResponse: string, rawData: any, toolsUsed: any[]): FormattedResponse {
-    let categories: any[] = [];
+  /**
+   * Gera Markdown formatado para detalhes de uma propriedade
+   */
+  private generatePropertyDetailMarkdown(property: any): string {
+    const price = property.price ? `**R$ ${Number(property.price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}**` : 'Preço sob consulta';
+    const type = property.type || 'Imóvel';
+    const area = property.area ? `${Number(property.area).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²` : '';
     
-    if (rawData && Array.isArray(rawData)) {
-      categories = rawData;
-    } else if (rawData?.categories) {
-      categories = Array.isArray(rawData.categories) ? rawData.categories : [rawData.categories];
-    } else if (rawData?.data) {
-      categories = Array.isArray(rawData.data) ? rawData.data : [rawData.data];
+    let markdown = `# ${property.title || 'Imóvel'}\n\n`;
+    
+    // Imagem de capa
+    if (property.coverImageUrl) {
+      markdown += `![${property.title || 'Imóvel'}](${property.coverImageUrl})\n\n`;
     }
+    
+    markdown += `## 📋 Informações Básicas\n\n`;
+    markdown += `- **Tipo:** ${type}\n`;
+    markdown += `- **Preço:** ${price}\n`;
+    if (area) markdown += `- **Área:** ${area}\n`;
+    if (property.city) markdown += `- **Cidade:** ${property.city}\n`;
+    if (property.neighborhood) markdown += `- **Bairro:** ${property.neighborhood}\n`;
+    if (property.bedrooms) markdown += `- **Quartos:** ${property.bedrooms}\n`;
+    if (property.bathrooms) markdown += `- **Banheiros:** ${property.bathrooms}\n`;
+    if (property.garageSpaces) markdown += `- **Vagas de Garagem:** ${property.garageSpaces}\n`;
+    
+    // Comodidades
+    const amenities: string[] = [];
+    if (property.piscina) amenities.push('🏊 Piscina');
+    if (property.hidromassagem) amenities.push('💆 Hidromassagem');
+    if (property.frenteMar) amenities.push('🌊 Frente Mar');
+    if (property.jardim) amenities.push('🌳 Jardim');
+    if (property.areaGourmet) amenities.push('🍖 Área Gourmet');
+    if (property.mobiliado) amenities.push('🛋️ Mobiliado');
+    
+    if (amenities.length > 0) {
+      markdown += `\n## 🎯 Comodidades\n\n`;
+      markdown += amenities.join(' • ') + '\n\n';
+    }
+    
+    // Descrição
+    if (property.description) {
+      markdown += `## 📝 Descrição\n\n`;
+      markdown += `${property.description}\n\n`;
+    }
+    
+    // Corretor
+    if (property.corretor) {
+      markdown += `## 👤 Corretor\n\n`;
+      markdown += `- **Nome:** ${property.corretor.name || 'N/A'}\n`;
+      if (property.corretor.email) markdown += `- **Email:** ${property.corretor.email}\n`;
+      if (property.corretor.phone) markdown += `- **Telefone:** ${property.corretor.phone}\n`;
+      markdown += '\n';
+    }
+    
+    // Galeria de imagens
+    if (Array.isArray(property.images) && property.images.length > 0) {
+      markdown += `## 🖼️ Galeria de Imagens\n\n`;
+      property.images.forEach((img: any, index: number) => {
+        if (img.url) {
+          markdown += `![Imagem ${index + 1}](${img.url})\n\n`;
+        }
+      });
+    }
+    
+    // Link para visualização
+    markdown += `\n[Ver no site](${this.frontendUrl}imoveis/${property.id})\n`;
 
-    const suggestions = this.suggestionsService.generateContextualSuggestions('ticket_prices', { categories });
-
-    return {
-      answer: rawResponse,
-      data: {
-        type: 'ticket_prices',
-        items: categories,
-        suggestions,
-        rawData: categories,
-      },
-    };
+    return markdown;
   }
 
   private formatGeneric(rawResponse: string, toolsUsed: any[]): FormattedResponse {

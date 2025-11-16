@@ -18,7 +18,7 @@ export class PropertyTypeOrmRepository implements IPropertyRepository {
   async findById(id: string): Promise<Property | null> {
     return this.propertyRepository.findOne({
       where: { id },
-      relations: ['corretor'],
+      relations: ['corretor', 'corretor.realtorProfile'],
     });
   }
 

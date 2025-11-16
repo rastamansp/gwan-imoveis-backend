@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { PropertyType } from '../value-objects/property-type.enum';
+import { PropertyPurpose } from '../value-objects/property-purpose.enum';
 import { User } from './user.entity';
 import { PropertyImage } from './property-image.entity';
 
@@ -16,6 +17,9 @@ export class Property {
 
   @Column({ type: 'enum', enum: PropertyType })
   type: PropertyType;
+
+  @Column({ type: 'enum', enum: PropertyPurpose, default: PropertyPurpose.RENT })
+  purpose: PropertyPurpose;
 
   @Column({ type: 'decimal', precision: 12, scale: 2 })
   price: number;

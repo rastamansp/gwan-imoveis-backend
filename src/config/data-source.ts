@@ -8,6 +8,7 @@ import { UserCredit } from '../shared/domain/entities/user-credit.entity';
 import { Agent } from '../shared/domain/entities/agent.entity';
 import { Property } from '../shared/domain/entities/property.entity';
 import { PropertyImage } from '../shared/domain/entities/property-image.entity';
+import { RealtorProfile } from '../shared/domain/entities/realtor-profile.entity';
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -25,6 +26,7 @@ const AppDataSource = new DataSource({
     Agent,
     Property,
     PropertyImage,
+    RealtorProfile,
   ],
   migrations: ['src/migrations/*.ts'],
   synchronize: false,

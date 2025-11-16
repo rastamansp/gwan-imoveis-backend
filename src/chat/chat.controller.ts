@@ -26,34 +26,30 @@ export class ChatController {
 
   @Post()
   @HttpCode(200)
-  @ApiOperation({ summary: 'Agente conversacional (OpenAI + MCP bridge)' })
+  @ApiOperation({ summary: 'Agente conversacional (OpenAI + MCP bridge) - Consulta imóveis' })
   @ApiBody({
     description: 'Mensagem do usuário e contexto opcional',
     type: ChatRequestDto,
     examples: {
-      listaEventos: {
-        summary: 'Listar eventos com filtros',
-        value: { message: 'Liste eventos de Música em São Paulo' },
+      listaImoveis: {
+        summary: 'Listar imóveis em uma cidade',
+        value: { message: 'Liste imóveis em São Sebastião' },
       },
-      detalhesEvento: {
-        summary: 'Detalhes de um evento específico',
-        value: { message: 'Mostre os detalhes do evento ab1eb579-9fde-4a9b-b596-f0bc83649ac0' },
+      imoveisPorTipo: {
+        summary: 'Buscar imóveis por tipo',
+        value: { message: 'Mostre casas à venda' },
       },
-      comContexto: {
-        summary: 'Com contexto do usuário',
-        value: { message: 'Sugira eventos para hoje', userCtx: { city: 'São Paulo', date: '2025-10-29' } },
+      imoveisPorPreco: {
+        summary: 'Buscar imóveis por faixa de preço',
+        value: { message: 'Busque imóveis entre 300 mil e 500 mil' },
       },
-      precosEvento: {
-        summary: 'Preços de ingressos de um evento (por ID)',
-        value: { message: 'Quais os preços dos ingressos do evento ab1eb579-9fde-4a9b-b596-f0bc83649ac0?' },
+      detalhesImovel: {
+        summary: 'Detalhes de um imóvel específico',
+        value: { message: 'Mostre os detalhes do imóvel d4da01e3-2f5a-4edf-8fa3-71f262e04eb5' },
       },
-      buscaPorNome: {
-        summary: 'Buscar eventos por título/palavra-chave',
-        value: { message: 'Busque eventos com o nome Festival' },
-      },
-      buscaPorCodigo: {
-        summary: 'Buscar evento por código amigável',
-        value: { message: 'Encontre o evento com código EVT-A1B2C3' },
+      imoveisComComodidades: {
+        summary: 'Buscar imóveis com comodidades',
+        value: { message: 'Busque casas com piscina em Maresias' },
       },
     },
   })

@@ -39,6 +39,13 @@ export async function bootstrap() {
     'http://www.litoralimoveis.com.br',
     'https://imoveis.gwan.com.br',
     'https://www.imoveis.gwan.com.br',
+    'http://imoveis.gwan.com.br',
+    'http://www.imoveis.gwan.com.br',
+    // Domínios Gwan (caso necessário)
+    'https://gwan.com.br',
+    'https://www.gwan.com.br',
+    'http://gwan.com.br',
+    'http://www.gwan.com.br',
   ];
 
   // Se CORS_ORIGINS estiver definido, usar ele (mesmo em desenvolvimento)

@@ -10,6 +10,7 @@ import { UpdatePropertyUseCase } from '../shared/application/use-cases/update-pr
 import { DeletePropertyUseCase } from '../shared/application/use-cases/delete-property.use-case';
 import { GetPropertyByIdUseCase } from '../shared/application/use-cases/get-property-by-id.use-case';
 import { ListPropertiesUseCase } from '../shared/application/use-cases/list-properties.use-case';
+import { ListMyPropertiesUseCase } from '../shared/application/use-cases/list-my-properties.use-case';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Property])],
@@ -24,6 +25,7 @@ import { ListPropertiesUseCase } from '../shared/application/use-cases/list-prop
     DeletePropertyUseCase,
     GetPropertyByIdUseCase,
     ListPropertiesUseCase,
+    ListMyPropertiesUseCase,
   ],
   exports: ['IPropertyRepository'],
 })

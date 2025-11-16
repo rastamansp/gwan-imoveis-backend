@@ -22,6 +22,7 @@ import {
   ApiQuery,
   ApiOkResponse,
   ApiExtraModels,
+  ApiExtension,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CorretorOrAdminGuard } from '../auth/guards/corretor-or-admin.guard';
@@ -33,6 +34,7 @@ import { UpdatePropertyUseCase } from '../shared/application/use-cases/update-pr
 import { DeletePropertyUseCase } from '../shared/application/use-cases/delete-property.use-case';
 import { GetPropertyByIdUseCase } from '../shared/application/use-cases/get-property-by-id.use-case';
 import { ListPropertiesUseCase } from '../shared/application/use-cases/list-properties.use-case';
+import { ListMyPropertiesUseCase } from '../shared/application/use-cases/list-my-properties.use-case';
 
 @ApiTags('Imóveis')
 @Controller('properties')
@@ -43,6 +45,7 @@ export class PropertiesController {
     private readonly deletePropertyUseCase: DeletePropertyUseCase,
     private readonly getPropertyByIdUseCase: GetPropertyByIdUseCase,
     private readonly listPropertiesUseCase: ListPropertiesUseCase,
+    private readonly listMyPropertiesUseCase: ListMyPropertiesUseCase,
   ) {}
 
   @Post()
@@ -121,6 +124,11 @@ export class PropertiesController {
   }
 
   @Get()
+  @ApiExtension('x-mcp', {
+    enabled: true,
+    toolName: 'list_properties',
+    description: 'Lista imóveis cadastrados com filtros opcionais (cidade, tipo, faixa de preço, corretor)',
+  })
   @ApiOperation({
     summary: 'Listar imóveis',
     description:
@@ -128,6 +136,7 @@ export class PropertiesController {
   })
   @ApiQuery({ name: 'city', required: false, description: 'Filtrar por cidade', example: 'São Sebastião' })
   @ApiQuery({ name: 'type', required: false, description: 'Filtrar por tipo', enum: ['CASA', 'APARTAMENTO', 'TERRENO', 'SALA_COMERCIAL'] })
+  @ApiQuery({ name: 'purpose', required: false, description: 'Filtrar por finalidade', enum: ['RENT', 'SALE', 'INVESTMENT'], example: 'RENT' })
   @ApiQuery({ name: 'minPrice', required: false, description: 'Preço mínimo', example: 100000 })
   @ApiQuery({ name: 'maxPrice', required: false, description: 'Preço máximo', example: 1000000 })
   @ApiQuery({ name: 'corretorId', required: false, description: 'Filtrar por corretor', example: 'd4da01e3-2f5a-4edf-8fa3-71f262e04eb5' })
@@ -139,6 +148,7 @@ export class PropertiesController {
   async findAll(
     @Query('city') city?: string,
     @Query('type') type?: string,
+    @Query('purpose') purpose?: string,
     @Query('minPrice') minPrice?: string,
     @Query('maxPrice') maxPrice?: string,
     @Query('corretorId') corretorId?: string,
@@ -146,6 +156,7 @@ export class PropertiesController {
     const filters: any = {};
     if (city) filters.city = city;
     if (type) filters.type = type;
+    if (purpose) filters.purpose = purpose;
     if (minPrice) filters.minPrice = parseFloat(minPrice);
     if (maxPrice) filters.maxPrice = parseFloat(maxPrice);
     if (corretorId) filters.corretorId = corretorId;
@@ -154,7 +165,36 @@ export class PropertiesController {
     return properties.map((property) => PropertyResponseDto.fromEntity(property));
   }
 
+  @Get('my-properties')
+  @UseGuards(JwtAuthGuard, CorretorOrAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Listar meus imóveis',
+    description:
+      'Retorna uma lista de imóveis cadastrados pelo corretor autenticado. Apenas usuários com role CORRETOR ou ADMIN podem acessar. Requer autenticação JWT.',
+  })
+  @ApiOkResponse({
+    description: 'Lista de imóveis do corretor obtida com sucesso',
+    type: [PropertyResponseDto],
+  })
+  @ApiResponse({ status: 401, description: 'Não autorizado - Token JWT inválido ou ausente' })
+  @ApiResponse({ status: 403, description: 'Permissão negada - Apenas CORRETOR ou ADMIN podem acessar' })
+  @ApiExtraModels(PropertyResponseDto)
+  async findMyProperties(@Request() req: any): Promise<PropertyResponseDto[]> {
+    const corretorId = req.user?.id || req.user?.sub;
+    if (!corretorId) {
+      throw new Error('Usuário não autenticado corretamente');
+    }
+    const properties = await this.listMyPropertiesUseCase.execute(corretorId);
+    return properties.map((property) => PropertyResponseDto.fromEntity(property));
+  }
+
   @Get(':id')
+  @ApiExtension('x-mcp', {
+    enabled: true,
+    toolName: 'get_property_by_id',
+    description: 'Obtém detalhes completos de um imóvel específico pelo UUID',
+  })
   @ApiOperation({
     summary: 'Obter imóvel por ID',
     description: 'Retorna os dados completos de um imóvel específico identificado pelo UUID. Endpoint público, não requer autenticação.',

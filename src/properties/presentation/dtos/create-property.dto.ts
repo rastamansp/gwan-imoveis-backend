@@ -1,6 +1,7 @@
 import { IsString, IsNotEmpty, IsEnum, IsNumber, IsOptional, IsBoolean, Min, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PropertyType } from '../../../shared/domain/value-objects/property-type.enum';
+import { PropertyPurpose } from '../../../shared/domain/value-objects/property-purpose.enum';
 
 export class CreatePropertyDto {
   @ApiProperty({
@@ -29,6 +30,16 @@ export class CreatePropertyDto {
   @IsEnum(PropertyType)
   @IsNotEmpty()
   type: PropertyType;
+
+  @ApiPropertyOptional({
+    description: 'Finalidade do imóvel (RENT=Aluguel, SALE=Venda, INVESTMENT=Investimento). Se não fornecido, o padrão é RENT.',
+    enum: PropertyPurpose,
+    example: PropertyPurpose.RENT,
+    default: PropertyPurpose.RENT,
+  })
+  @IsOptional()
+  @IsEnum(PropertyPurpose)
+  purpose?: PropertyPurpose;
 
   @ApiProperty({
     description: 'Preço do imóvel em reais',

@@ -56,6 +56,9 @@ export class UpdatePropertyUseCase {
     if (updatePropertyDto.type !== undefined) {
       property.type = updatePropertyDto.type;
     }
+    if (updatePropertyDto.purpose !== undefined) {
+      property.purpose = updatePropertyDto.purpose;
+    }
     if (updatePropertyDto.price !== undefined) {
       property.updatePrice(updatePropertyDto.price);
     }

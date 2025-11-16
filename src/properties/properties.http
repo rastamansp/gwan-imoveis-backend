@@ -11,6 +11,7 @@ Authorization: Bearer {{token}}
   "title": "Casa de Praia Luxuosa com Vista para o Mar",
   "description": "Casa espaçosa com 3 quartos, 2 banheiros, área gourmet e piscina. Localizada em frente ao mar.",
   "type": "CASA",
+  "purpose": "SALE",
   "price": 850000.00,
   "neighborhood": "Maresias",
   "city": "São Sebastião",
@@ -26,7 +27,7 @@ Authorization: Bearer {{token}}
   "mobiliado": false
 }
 
-### Criar apartamento
+### Criar apartamento (sem purpose - usará padrão RENT)
 POST {{baseUrl}}/properties
 Content-Type: application/json
 Authorization: Bearer {{token}}
@@ -50,33 +51,55 @@ Authorization: Bearer {{token}}
   "mobiliado": true
 }
 
-### Listar todos os imóveis
+### Criar imóvel para investimento
+POST {{baseUrl}}/properties
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Terreno para Investimento",
+  "description": "Terreno estratégico para investimento imobiliário.",
+  "type": "TERRENO",
+  "purpose": "INVESTMENT",
+  "price": 500000.00,
+  "neighborhood": "Maresias",
+  "city": "São Sebastião",
+  "area": 300.00
+}
+
+### Listar todos os imóveis (PÚBLICO - não requer autenticação)
 GET {{baseUrl}}/properties
-Authorization: Bearer {{token}}
 
-### Listar imóveis por cidade
+### Listar imóveis por cidade (PÚBLICO - não requer autenticação)
 GET {{baseUrl}}/properties?city=São Sebastião
-Authorization: Bearer {{token}}
 
-### Listar imóveis por tipo
+### Listar imóveis por tipo (PÚBLICO - não requer autenticação)
 GET {{baseUrl}}/properties?type=CASA
-Authorization: Bearer {{token}}
 
-### Listar imóveis por faixa de preço
+### Listar imóveis por finalidade - Aluguel (PÚBLICO - não requer autenticação)
+GET {{baseUrl}}/properties?purpose=RENT
+
+### Listar imóveis por finalidade - Venda (PÚBLICO - não requer autenticação)
+GET {{baseUrl}}/properties?purpose=SALE
+
+### Listar imóveis por finalidade - Investimento (PÚBLICO - não requer autenticação)
+GET {{baseUrl}}/properties?purpose=INVESTMENT
+
+### Listar imóveis por faixa de preço (PÚBLICO - não requer autenticação)
 GET {{baseUrl}}/properties?minPrice=100000&maxPrice=500000
-Authorization: Bearer {{token}}
 
-### Listar imóveis por corretor
+### Listar imóveis por corretor (PÚBLICO - não requer autenticação)
 GET {{baseUrl}}/properties?corretorId=d4da01e3-2f5a-4edf-8fa3-71f262e04eb5
+
+### Listar imóveis com múltiplos filtros (PÚBLICO - não requer autenticação)
+GET {{baseUrl}}/properties?city=São Sebastião&type=CASA&purpose=SALE&minPrice=500000&maxPrice=1000000
+
+### Listar meus imóveis (PROTEGIDO - requer CORRETOR ou ADMIN)
+GET {{baseUrl}}/properties/my-properties
 Authorization: Bearer {{token}}
 
-### Listar imóveis com múltiplos filtros
-GET {{baseUrl}}/properties?city=São Sebastião&type=CASA&minPrice=500000&maxPrice=1000000
-Authorization: Bearer {{token}}
-
-### Obter imóvel por ID
+### Obter imóvel por ID (PÚBLICO - não requer autenticação)
 GET {{baseUrl}}/properties/{{propertyId}}
-Authorization: Bearer {{token}}
 
 ### Atualizar imóvel (requer CORRETOR ou ADMIN - apenas dono ou ADMIN)
 PUT {{baseUrl}}/properties/{{propertyId}}

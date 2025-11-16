@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { FormattedResponse } from '../interfaces/chat-response.interface';
 
 export class ChatToolUsage {
-  @ApiProperty({ description: 'Nome da tool utilizada', example: 'events_search' })
+  @ApiProperty({ description: 'Nome da tool utilizada', example: 'list_properties' })
   name!: string;
 
   @ApiPropertyOptional({ description: 'Argumentos passados para a tool', example: { city: 'São Paulo' }, type: 'object' })
@@ -19,16 +19,16 @@ export class ChatResponseDto {
   @ApiPropertyOptional({
     description: 'Dados estruturados retornados por tools (quando aplicável)',
     example: {
-      events: [
-        { id: 'evt_1', title: 'Festival de Música', city: 'São Paulo', date: '2025-11-20T20:00:00Z' },
-        { id: 'evt_2', title: 'Tech Summit', city: 'São Paulo', date: '2025-12-05T09:00:00Z' }
+      properties: [
+        { id: 'prop_1', title: 'Casa de Praia Luxuosa', city: 'São Sebastião', type: 'CASA', price: 850000 },
+        { id: 'prop_2', title: 'Apartamento no Centro', city: 'São Sebastião', type: 'APARTAMENTO', price: 350000 }
       ],
     },
     type: 'object',
   })
   data?: {
-    events?: unknown[];
-    event?: unknown;
+    properties?: unknown[];
+    property?: unknown;
   };
 
   @ApiPropertyOptional({

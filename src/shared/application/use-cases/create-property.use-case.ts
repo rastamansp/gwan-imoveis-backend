@@ -5,6 +5,7 @@ import { CreatePropertyDto } from '../../../properties/presentation/dtos/create-
 import { ILogger } from '../interfaces/logger.interface';
 import { IUserRepository } from '../../domain/interfaces/user-repository.interface';
 import { UserRole } from '../../domain/value-objects/user-role.enum';
+import { PropertyPurpose } from '../../domain/value-objects/property-purpose.enum';
 
 @Injectable()
 export class CreatePropertyUseCase {
@@ -39,6 +40,7 @@ export class CreatePropertyUseCase {
     property.title = createPropertyDto.title;
     property.description = createPropertyDto.description;
     property.type = createPropertyDto.type;
+    property.purpose = createPropertyDto.purpose ?? PropertyPurpose.RENT;
     property.price = createPropertyDto.price;
     property.neighborhood = createPropertyDto.neighborhood;
     property.city = createPropertyDto.city;

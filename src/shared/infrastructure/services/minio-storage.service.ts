@@ -17,6 +17,18 @@ export class MinioStorageService implements IStorageService, OnModuleInit {
   ) {}
 
   async onModuleInit() {
+    // Log de debug para verificar todas as variáveis de ambiente relacionadas ao MinIO
+    const allMinioVars = {
+      MINIO_ENDPOINT: this.configService.get<string>('MINIO_ENDPOINT'),
+      MINIO_PORT: this.configService.get<string>('MINIO_PORT'),
+      MINIO_USE_SSL: this.configService.get<string>('MINIO_USE_SSL'),
+      MINIO_ACCESS_KEY: this.configService.get<string>('MINIO_ACCESS_KEY') ? '***' : undefined,
+      MINIO_SECRET_KEY: this.configService.get<string>('MINIO_SECRET_KEY') ? '***' : undefined,
+      MINIO_BUCKET: this.configService.get<string>('MINIO_BUCKET'),
+    };
+
+    this.logger.warn('Variáveis de ambiente MinIO detectadas', allMinioVars);
+
     const endpoint = this.configService.get<string>('MINIO_ENDPOINT');
     const port = this.configService.get<number>('MINIO_PORT', 443);
     const useSSL = this.configService.get<string>('MINIO_USE_SSL') === 'true';
@@ -27,13 +39,10 @@ export class MinioStorageService implements IStorageService, OnModuleInit {
     // Validar variáveis obrigatórias
     if (!endpoint) {
       const error = new Error('MINIO_ENDPOINT não configurado. Verifique as variáveis de ambiente.');
-      this.logger.error('Erro ao inicializar MinIO', {
-        endpoint,
-        port,
-        accessKey: accessKey ? '***' : undefined,
-        secretKey: secretKey ? '***' : undefined,
-        bucket: this.bucketName,
+      this.logger.error('Erro ao inicializar MinIO - Variáveis detectadas', {
+        ...allMinioVars,
         error: error.message,
+        hint: 'Certifique-se de que as variáveis MINIO_* estão definidas no docker-compose ou no ambiente do container',
       });
       throw error;
     }

@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne } from 'typeorm';
 import { UserRole } from '../value-objects/user-role.enum';
+import { RealtorProfile } from './realtor-profile.entity';
 
 @Entity('users')
 export class User {
@@ -26,6 +27,9 @@ export class User {
 
   @Column({ type: 'uuid', nullable: true })
   preferredAgentId?: string | null;
+
+  @OneToOne(() => RealtorProfile, (profile) => profile.user)
+  realtorProfile?: RealtorProfile;
 
   @CreateDateColumn()
   createdAt: Date;

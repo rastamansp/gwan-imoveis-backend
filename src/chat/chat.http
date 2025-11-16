@@ -1,157 +1,176 @@
 ### Chat API - Testes
 
-@baseUrl = http://localhost:3001
-
-### 1) Listar eventos (MCP via agente)
-POST {{baseUrl}}/api/chat
-Content-Type: application/json
-
-{
-  "message": "Liste eventos de Música em São Paulo"
-}
-
-### 1.1) Buscar eventos por título/palavra-chave (via search_events_by_query)
-POST {{baseUrl}}/api/chat
-Content-Type: application/json
-
-{
-  "message": "Busque eventos com o nome Culto"
-}
-
-### 1.2) Buscar evento por código amigável (via search_events_by_query)
-POST {{baseUrl}}/api/chat
-Content-Type: application/json
-
-{
-  "message": "Encontre o evento com código EVT-AMA3RU"
-}
-
-### 2) Detalhes de evento por ID
-POST {{baseUrl}}/api/chat
-Content-Type: application/json
-
-{
-  "message": "Mostre os detalhes do evento ab1eb579-9fde-4a9b-b596-f0bc83649ac0"
-}
-
-### 2.1) Preços de ingressos por evento (ID)
-POST {{baseUrl}}/api/chat
-Content-Type: application/json
-
-{
-  "message": "Quais os preços dos ingressos do evento ab1eb579-9fde-4a9b-b596-f0bc83649ac0?"
-}
-
-### 2.2) Preços de ingressos por evento (placeholder <id>)
-POST {{baseUrl}}/api/chat
-Content-Type: application/json
-
-{
-  "message": "Quais os preços dos ingressos do evento ab1eb579-9fde-4a9b-b596-f0bc83649ac0?"
-}
-
-### 3) Sugestão com contexto do usuário
-POST {{baseUrl}}/api/chat
-Content-Type: application/json
-
-{
-  "message": "Sugira eventos para hoje",
-  "userCtx": {
-    "city": "São Paulo",
-    "date": "2025-10-29",
-    "language": "pt-BR"
-  }
-}
+@baseUrl = http://localhost:3009
 
 ### (Opcional) Verificar tools disponíveis no bridge MCP
 GET {{baseUrl}}/api/mcp/tools
 
-### (Opcional) Chamar list_events diretamente no bridge MCP
+### ============================================
+### Testes de Consulta de Imóveis via Chat
+### ============================================
+
+### 1) Listar todos os imóveis
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Liste todos os imóveis cadastrados"
+}
+
+### 1.1) Buscar imóveis por cidade
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Liste imóveis em São Sebastião"
+}
+
+### 1.2) Buscar imóveis por tipo - Casas
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Mostre casas à venda"
+}
+
+### 1.3) Buscar imóveis por tipo - Apartamentos
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Quero ver apartamentos disponíveis"
+}
+
+### 1.3.1) Buscar imóveis para aluguel
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Liste imóveis para aluguel"
+}
+
+### 1.3.2) Buscar imóveis à venda
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Mostre imóveis à venda"
+}
+
+### 1.3.3) Buscar imóveis para investimento
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Quero ver imóveis para investimento"
+}
+
+### 1.3.4) Buscar casas à venda
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Mostre casas à venda em São Sebastião"
+}
+
+### 1.4) Buscar imóveis por faixa de preço
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Busque imóveis entre 300 mil e 500 mil"
+}
+
+### 1.5) Buscar imóveis com comodidades - Piscina
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Busque casas com piscina"
+}
+
+### 1.6) Buscar imóveis com múltiplos filtros
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Busque casas em Maresias com piscina e área gourmet"
+}
+
+### 2) Detalhes de imóvel por ID
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Mostre os detalhes do imóvel d4da01e3-2f5a-4edf-8fa3-71f262e04eb5"
+}
+
+### 2.1) Buscar imóveis por bairro
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Liste imóveis no bairro Maresias"
+}
+
+### 2.2) Buscar imóveis com frente mar
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Quero ver imóveis com frente para o mar"
+}
+
+### 2.3) Buscar imóveis mobiliados
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Mostre apartamentos mobiliados em São Sebastião"
+}
+
+### (Opcional) Chamar list_properties diretamente no bridge MCP (sem filtros)
 POST {{baseUrl}}/api/mcp/tools/call
 Content-Type: application/json
 
 {
-  "name": "list_events",
+  "name": "list_properties",
+  "arguments": {}
+}
+
+### (Opcional) Chamar list_properties diretamente no bridge MCP (com filtros)
+POST {{baseUrl}}/api/mcp/tools/call
+Content-Type: application/json
+
+{
+  "name": "list_properties",
   "arguments": {
-    "category": "Música",
-    "city": "São Paulo"
+    "city": "São Sebastião",
+    "type": "CASA",
+    "purpose": "SALE"
   }
 }
 
-### ============================================
-### Testes de Busca de Artistas via Chat
-### ============================================
-
-### 4) Listar todos os artistas
-POST {{baseUrl}}/api/chat
+### (Opcional) Chamar list_properties com filtro por finalidade
+POST {{baseUrl}}/api/mcp/tools/call
 Content-Type: application/json
 
 {
-  "message": "Liste todos os artistas cadastrados"
+  "name": "list_properties",
+  "arguments": {
+    "purpose": "RENT"
+  }
 }
 
-### 4.1) Buscar artista por nome específico (via search_artists_by_query)
-POST {{baseUrl}}/api/chat
+### (Opcional) Chamar get_property_by_id diretamente no bridge MCP
+POST {{baseUrl}}/api/mcp/tools/call
 Content-Type: application/json
 
 {
-  "message": "Busque o artista com nome artístico Junior Dread"
-}
-
-### 4.2) Buscar artista por nome completo (via search_artists_by_query)
-POST {{baseUrl}}/api/chat
-Content-Type: application/json
-
-{
-  "message": "Encontre o artista João Silva"
-}
-
-### 5) Detalhes de artista por ID
-POST {{baseUrl}}/api/chat
-Content-Type: application/json
-
-{
-  "message": "Mostre os detalhes completos do artista 767429d1-b1e9-45b4-bd10-77485aa0ff2b"
-}
-
-### 5.1) Buscar artistas usando busca semântica - música gospel (via search_artists_rag)
-POST {{baseUrl}}/api/chat
-Content-Type: application/json
-
-{
-  "message": "Encontre artistas de música gospel"
-}
-
-### 5.2) Buscar artistas usando busca semântica - cantor sertanejo (via search_artists_rag)
-POST {{baseUrl}}/api/chat
-Content-Type: application/json
-
-{
-  "message": "Quero encontrar cantores sertanejos"
-}
-
-### 5.3) Buscar artistas usando busca semântica - banda de rock (via search_artists_rag)
-POST {{baseUrl}}/api/chat
-Content-Type: application/json
-
-{
-  "message": "Preciso de bandas de rock para meu evento"
-}
-
-### 5.4) Buscar artistas usando busca semântica - artista evangélico (via search_artists_rag)
-POST {{baseUrl}}/api/chat
-Content-Type: application/json
-
-{
-  "message": "Quais artistas cristãos vocês têm?"
-}
-
-### 5.5) Buscar artista por username de rede social (via search_artists_by_query)
-POST {{baseUrl}}/api/chat
-Content-Type: application/json
-
-{
-  "message": "Busque o artista com Instagram @artistname"
+  "name": "get_property_by_id",
+  "arguments": {
+    "id": "d4da01e3-2f5a-4edf-8fa3-71f262e04eb5"
+  }
 }
 
 

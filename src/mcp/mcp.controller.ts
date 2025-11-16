@@ -48,8 +48,13 @@ export class McpBridgeController {
   @ApiOperation({ summary: 'Executar um tool MCP por nome (bridge HTTP)' })
   @ApiResponse({ status: 200, description: 'Resultado da execução do tool' })
   async callTool(@Body() body: CallToolDto): Promise<any> {
+    // Tools públicas que não requerem autenticação MCP
+    const publicTools = ['list_properties', 'get_property_by_id'];
+    const isPublicTool = publicTools.includes(body.name);
+    
     // Autenticação do servidor MCP (não confundir com JWT do backend)
-    if (this.requireAuth) {
+    // Apenas para tools que não são públicas
+    if (this.requireAuth && !isPublicTool) {
       if (!body.authToken || body.authToken !== this.serverAuthToken) {
         throw new UnauthorizedException('Authentication required');
       }

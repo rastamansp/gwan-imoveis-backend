@@ -13,6 +13,7 @@ import { HealthModule } from './health/health.module';
 import { WhatsappWebhookModule } from './whatsapp-webhook/whatsapp-webhook.module';
 import { RedisCacheModule } from './shared/cache/cache.module';
 import { PropertiesModule } from './properties/properties.module';
+import { RealtorsModule } from './realtors/realtors.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { PropertiesModule } from './properties/properties.module';
     HealthModule,
     WhatsappWebhookModule,
     PropertiesModule,
+    RealtorsModule,
   ],
 })
 export class AppModule {}
