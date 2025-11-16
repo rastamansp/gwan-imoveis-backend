@@ -24,6 +24,9 @@ export class DatabaseSeeder {
     // Criar usuário comum
     await this.createRegularUser();
 
+    // Criar usuário de teste (joao@email.com)
+    await this.createTestUser();
+
     console.log('✅ Seed do banco de dados concluído!');
   }
 
@@ -84,6 +87,28 @@ export class DatabaseSeeder {
       
       await this.userRepository.save(regularUser);
       console.log('👤 Usuário comum criado');
+    }
+  }
+
+  private async createTestUser(): Promise<void> {
+    const existingUser = await this.userRepository.findOne({ 
+      where: { email: 'joao@email.com' } 
+    });
+    
+    if (!existingUser) {
+      const testUser = User.create(
+        'test-user-id',
+        'João Silva',
+        'joao@email.com',
+        await bcrypt.hash('senha123', 10),
+        '+5511666666666',
+        UserRole.USER,
+      );
+      
+      await this.userRepository.save(testUser);
+      console.log('👤 Usuário de teste criado (joao@email.com / senha123)');
+    } else {
+      console.log('👤 Usuário de teste já existe');
     }
   }
 

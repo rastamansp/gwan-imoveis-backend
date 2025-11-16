@@ -16,26 +16,38 @@ export async function bootstrap() {
     ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
     : null;
 
-  const corsOrigins = process.env.NODE_ENV === 'production'
-    ? (corsOriginsEnv && corsOriginsEnv.length > 0
-        ? corsOriginsEnv
-        : [
-            // Domínios da plataforma Litoral Imóveis
-            'https://litoralimoveis.com.br',
-            'https://www.litoralimoveis.com.br',
-            'http://litoralimoveis.com.br',
-            'http://www.litoralimoveis.com.br',
-          ])
-    : [
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://localhost:5173',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:3001',
-        'http://127.0.0.1:5173',
-        'file://',
-        'null',
-      ];
+  const defaultDevOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3009',
+    'http://localhost:5173',
+    'http://localhost:8080',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
+    'http://127.0.0.1:3009',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:8080',
+    'file://',
+    'null',
+  ];
+
+  const defaultProdOrigins = [
+    // Domínios da plataforma Litoral Imóveis
+    'https://litoralimoveis.com.br',
+    'https://www.litoralimoveis.com.br',
+    'http://litoralimoveis.com.br',
+    'http://www.litoralimoveis.com.br',
+    'https://imoveis.gwan.com.br',
+    'https://www.imoveis.gwan.com.br',
+  ];
+
+  // Se CORS_ORIGINS estiver definido, usar ele (mesmo em desenvolvimento)
+  // Caso contrário, usar as listas padrão
+  const corsOrigins = corsOriginsEnv && corsOriginsEnv.length > 0
+    ? corsOriginsEnv
+    : (process.env.NODE_ENV === 'production'
+        ? defaultProdOrigins
+        : defaultDevOrigins);
 
   app.enableCors({
     origin: corsOrigins,
