@@ -16,8 +16,8 @@ export interface GetOrSetUserPreferredAgentResult {
 
 @Injectable()
 export class GetOrSetUserPreferredAgentUseCase {
-  // Default global permanece 'events'; WhatsApp usa explicitamente preferredAgentSlug: 'health'
-  private readonly defaultAgentSlug = 'events';
+  // Default global para Corretor de Imóveis
+  private readonly defaultAgentSlug = 'corretor-imoveis';
 
   constructor(
     @Inject('IUserRepository')
@@ -64,7 +64,7 @@ export class GetOrSetUserPreferredAgentUseCase {
       return { userId, agent: targetAgent };
     }
 
-    // Caso não haja agente preferido, usar default global (events)
+    // Caso não haja agente preferido, usar default global (corretor-imoveis)
     let agent: Agent | null = null;
     if (user.preferredAgentId) {
       const existingAgent = await this.agentRepository.findById(user.preferredAgentId);
@@ -77,7 +77,7 @@ export class GetOrSetUserPreferredAgentUseCase {
       // Buscar agente padrão por slug
       const defaultAgent = await this.agentRepository.findBySlug(this.defaultAgentSlug);
       if (!defaultAgent || !defaultAgent.active) {
-        throw new Error('Agente padrão (events) não encontrado ou inativo');
+        throw new Error('Agente padrão (corretor-imoveis) não encontrado ou inativo');
       }
 
       user.preferredAgentId = defaultAgent.id;

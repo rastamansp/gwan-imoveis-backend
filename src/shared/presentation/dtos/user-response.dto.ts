@@ -32,7 +32,7 @@ export class UserResponseDto {
 
   @ApiProperty({ 
     description: 'Role/permissão do usuário no sistema',
-    enum: ['USER', 'ORGANIZER', 'ADMIN'],
+    enum: ['USER', 'CORRETOR', 'ADMIN'],
     example: 'USER'
   })
   role: string;

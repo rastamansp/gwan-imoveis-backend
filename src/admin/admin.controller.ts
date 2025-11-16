@@ -17,14 +17,6 @@ export class AdminController {
     return this.adminService.getDashboardStats();
   }
 
-  @Get('events/:id/analytics')
-  @ApiOperation({ summary: 'Obter analytics de um evento' })
-  @ApiResponse({ status: 200, description: 'Analytics obtidas com sucesso' })
-  @ApiResponse({ status: 404, description: 'Evento não encontrado' })
-  async getEventAnalytics(@Param('id') id: string) {
-    return this.adminService.getEventAnalytics(id);
-  }
-
   @Get('users/:id/analytics')
   @ApiOperation({ summary: 'Obter analytics de um usuário' })
   @ApiResponse({ status: 200, description: 'Analytics obtidas com sucesso' })

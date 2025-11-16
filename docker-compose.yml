@@ -20,7 +20,6 @@ services:
       
       # Database
       - DATABASE_URL=${DATABASE_URL}
-      - DATABASE_KWNOWLEDGE_URL=${DATABASE_KWNOWLEDGE_URL}
       
       # OpenAI (para chatbot)
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -121,7 +120,6 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       # Database
       - DATABASE_URL=${DATABASE_URL}
-      - DATABASE_KWNOWLEDGE_URL=${DATABASE_KWNOWLEDGE_URL}
       # OpenAI (para chatbot)
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}

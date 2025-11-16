@@ -1,7 +1,0 @@
-export enum TicketStatus {
-  PENDING = 'PENDING',
-  ACTIVE = 'ACTIVE',
-  USED = 'USED',
-  CANCELLED = 'CANCELLED',
-  TRANSFERRED = 'TRANSFERRED',
-}

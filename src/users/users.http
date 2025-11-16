@@ -1,7 +1,7 @@
 ### Variáveis
-@baseUrl = http://localhost:3001/api
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGd3YW5zaG9wLmNvbSIsInN1YiI6IjEiLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3Mjg1OTU2MDB9.example
-@userId = d4da01e3-2f5a-4edf-8fa3-71f262e04eb5
+@baseUrl = http://localhost:3009/api
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImpvYW9AZW1haWwuY29tIiwic3ViIjoiOThjNDk0YTMtZThiZC00YjQzLWIxNjQtNTBlZWMxOGFmNGNmIiwicm9sZSI6IkNPUlJFVE9SIiwiaWF0IjoxNzYzMjU3MjU0LCJleHAiOjE3NjMzNDM2NTR9.2xDAHGZm9KrqQL1bNCyP2xfPtWbbi0c86mXtCXHNLIU
+@userId = 98c494a3-e8bd-4b43-b164-50eec18af4cf
 
 ### 1. Listar todos os usuários
 GET {{baseUrl}}/users
@@ -38,16 +38,16 @@ Authorization: Bearer {{token}}
   "name": "João Silva Santos",
   "email": "joao.santos@email.com",
   "phone": "11987654321",
-  "role": "ORGANIZER"
+  "role": "CORRETOR"
 }
 
-### 4. Promover usuário para Organizador (padrão)
+### 4. Promover usuário para Corretor (padrão)
 PUT {{baseUrl}}/users/{{userId}}/promote
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "targetRole": "ORGANIZER"
+  "targetRole": "CORRETOR"
 }
 
 ### 4.1. Promover usuário para Administrador
@@ -59,7 +59,7 @@ Authorization: Bearer {{token}}
   "targetRole": "ADMIN"
 }
 
-### 4.2. Promover usuário (sem especificar role - usa ORGANIZER por padrão)
+### 4.2. Promover usuário (sem especificar role - usa CORRETOR por padrão)
 PUT {{baseUrl}}/users/{{userId}}/promote
 Content-Type: application/json
 Authorization: Bearer {{token}}

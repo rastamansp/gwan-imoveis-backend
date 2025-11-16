@@ -11,8 +11,7 @@ test/bdd/
 ├── steps/             # Step definitions (implementação dos steps)
 │   ├── common-steps.ts
 │   ├── chat-steps.ts
-│   ├── events-steps.ts
-│   └── artists-steps.ts
+│   └── chat-health-steps.ts
 ├── support/           # Arquivos de suporte
 │   ├── world.ts       # Contexto compartilhado (World)
 │   ├── test-client.ts # Cliente HTTP para testes
@@ -48,40 +47,26 @@ Os cenários podem ser marcados com tags para execução seletiva:
 
 - `@smoke`: Testes de fumaça (críticos)
 - `@chat`: Relacionados ao chatbot
-- `@events`: Relacionados a eventos
-- `@artists`: Relacionados a artistas
 - `@integration`: Testes de integração
 - `@negative`: Testes de casos negativos
 
 ```bash
 # Executar apenas testes smoke
 cucumber-js --config test/bdd/.cucumberrc.js --tags @smoke
-
-# Executar apenas testes de eventos
-cucumber-js --config test/bdd/.cucumberrc.js --tags @events
 ```
 
 ## Features Disponíveis
 
-### chat-events.feature
-Cenários para buscar e consultar eventos:
-- Listar eventos
-- Buscar por ID, código, nome
-- Busca semântica (RAG)
-- Obter preços de ingressos
-
-### chat-artists.feature
-Cenários para buscar e consultar artistas:
-- Listar artistas
-- Buscar por ID, nome artístico, nome real
-- Busca semântica (RAG)
-- Eventos vinculados
+### chat.feature
+Cenários para o chatbot de imóveis:
+- Consultas sobre imóveis
+- Busca de propriedades
+- Informações sobre locação e venda
 
 ### chat-integration.feature
 Cenários de integração que combinam múltiplas ferramentas:
 - Fluxos completos de conversação
 - Múltiplas ferramentas em uma conversa
-- Busca combinada de eventos e artistas
 
 ## Steps Compartilhados
 
@@ -99,16 +84,8 @@ Os steps estão organizados para reutilização:
 - `a resposta deve usar a ferramenta {string}`
 - `a resposta deve usar pelo menos uma ferramenta`
 
-### events-steps.ts
-- `a resposta deve listar {int} eventos`
-- `deve conter o evento {string}`
-- `deve conter o código {string}`
-- `a resposta deve mencionar preços de ingressos`
-
-### artists-steps.ts
-- `a resposta deve listar {int} artistas`
-- `deve conter o artista {string}`
-- `a resposta deve mencionar detalhes do artista`
+### chat-health-steps.ts
+- Steps relacionados ao chatbot de saúde (se aplicável)
 
 ## Relatórios
 

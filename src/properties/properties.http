@@ -1,0 +1,109 @@
+### Variáveis
+@baseUrl = http://localhost:3009/api
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImpvYW9AZW1haWwuY29tIiwic3ViIjoiOThjNDk0YTMtZThiZC00YjQzLWIxNjQtNTBlZWMxOGFmNGNmIiwicm9sZSI6IlVTRVIiLCJpYXQiOjE3NjMyNTY2NDEsImV4cCI6MTc2MzM0MzA0MX0.pdj2WouIogwTIBwRwnxirmtSa-B83hY2241A89IKNNA
+
+### Criar novo imóvel (requer CORRETOR ou ADMIN)
+POST {{baseUrl}}/properties
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Casa de Praia Luxuosa com Vista para o Mar",
+  "description": "Casa espaçosa com 3 quartos, 2 banheiros, área gourmet e piscina. Localizada em frente ao mar.",
+  "type": "CASA",
+  "price": 850000.00,
+  "neighborhood": "Maresias",
+  "city": "São Sebastião",
+  "bedrooms": 3,
+  "bathrooms": 2,
+  "area": 150.50,
+  "garageSpaces": 2,
+  "piscina": true,
+  "hidromassagem": false,
+  "frenteMar": true,
+  "jardim": true,
+  "areaGourmet": true,
+  "mobiliado": false
+}
+
+### Criar apartamento
+POST {{baseUrl}}/properties
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Apartamento 2 quartos no centro",
+  "description": "Apartamento bem localizado, próximo ao comércio e praia.",
+  "type": "APARTAMENTO",
+  "price": 350000.00,
+  "neighborhood": "Centro",
+  "city": "São Sebastião",
+  "bedrooms": 2,
+  "bathrooms": 1,
+  "area": 65.00,
+  "garageSpaces": 1,
+  "piscina": false,
+  "hidromassagem": false,
+  "frenteMar": false,
+  "jardim": false,
+  "areaGourmet": false,
+  "mobiliado": true
+}
+
+### Listar todos os imóveis
+GET {{baseUrl}}/properties
+Authorization: Bearer {{token}}
+
+### Listar imóveis por cidade
+GET {{baseUrl}}/properties?city=São Sebastião
+Authorization: Bearer {{token}}
+
+### Listar imóveis por tipo
+GET {{baseUrl}}/properties?type=CASA
+Authorization: Bearer {{token}}
+
+### Listar imóveis por faixa de preço
+GET {{baseUrl}}/properties?minPrice=100000&maxPrice=500000
+Authorization: Bearer {{token}}
+
+### Listar imóveis por corretor
+GET {{baseUrl}}/properties?corretorId=d4da01e3-2f5a-4edf-8fa3-71f262e04eb5
+Authorization: Bearer {{token}}
+
+### Listar imóveis com múltiplos filtros
+GET {{baseUrl}}/properties?city=São Sebastião&type=CASA&minPrice=500000&maxPrice=1000000
+Authorization: Bearer {{token}}
+
+### Obter imóvel por ID
+GET {{baseUrl}}/properties/{{propertyId}}
+Authorization: Bearer {{token}}
+
+### Atualizar imóvel (requer CORRETOR ou ADMIN - apenas dono ou ADMIN)
+PUT {{baseUrl}}/properties/{{propertyId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "price": 900000.00,
+  "piscina": true,
+  "areaGourmet": true
+}
+
+### Atualizar imóvel completo
+PUT {{baseUrl}}/properties/{{propertyId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Casa de Praia Luxuosa Renovada",
+  "description": "Casa completamente reformada com 4 quartos.",
+  "price": 950000.00,
+  "bedrooms": 4,
+  "piscina": true,
+  "areaGourmet": true
+}
+
+### Deletar imóvel (requer CORRETOR ou ADMIN - apenas dono ou ADMIN)
+DELETE {{baseUrl}}/properties/{{propertyId}}
+Authorization: Bearer {{token}}
+

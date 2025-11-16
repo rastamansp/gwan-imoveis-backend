@@ -20,19 +20,11 @@ export async function bootstrap() {
     ? (corsOriginsEnv && corsOriginsEnv.length > 0
         ? corsOriginsEnv
         : [
-            'https://events.gwan.com.br',
-            'https://www.events.gwan.com.br',
-            'http://events.gwan.com.br',
-            'http://www.events.gwan.com.br',
-            'https://api-events.gwan.com.br',
-            'https://www.api-events.gwan.com.br',
-            'http://api-events.gwan.com.br',
-            'http://www.api-events.gwan.com.br',
-            // Domínios principais do site (incluindo bot Jaiminho)
-            'https://gwan.com.br',
-            'https://www.gwan.com.br',
-            'http://gwan.com.br',
-            'http://www.gwan.com.br',
+            // Domínios da plataforma Litoral Imóveis
+            'https://litoralimoveis.com.br',
+            'https://www.litoralimoveis.com.br',
+            'http://litoralimoveis.com.br',
+            'http://www.litoralimoveis.com.br',
           ])
     : [
         'http://localhost:3000',
@@ -83,8 +75,8 @@ export async function bootstrap() {
 
   // Configuração do Swagger
   const config = new DocumentBuilder()
-    .setTitle('Gwan Shop API')
-    .setDescription('API da plataforma de eventos e venda de ingressos')
+    .setTitle('Litoral Imóveis API')
+    .setDescription('API da plataforma Litoral Imóveis - Corretora de locação e venda de imóveis')
     .setVersion('1.0')
     .addBearerAuth(
       {
@@ -109,7 +101,7 @@ export async function bootstrap() {
     swaggerOptions: {
       persistAuthorization: true, // Salvar token entre sessões
     },
-    customSiteTitle: 'Gwan Shop API - Documentação',
+    customSiteTitle: 'Litoral Imóveis API - Documentação',
     customCss: `
       .swagger-ui .topbar { display: none; }
       .swagger-ui .info { margin: 20px 0; }

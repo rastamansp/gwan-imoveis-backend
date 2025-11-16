@@ -1,6 +1,6 @@
-# 📚 Documentação - Gwan Events Backend
+# 📚 Documentação - Litoral Imóveis Backend
 
-Bem-vindo à documentação completa do Gwan Events Backend, uma plataforma completa de eventos e venda de ingressos construída com NestJS e TypeScript.
+Bem-vindo à documentação completa do Litoral Imóveis Backend, uma plataforma de corretora de locação e venda de imóveis construída com NestJS e TypeScript.
 
 ## 📋 Índice
 
@@ -13,6 +13,7 @@ Bem-vindo à documentação completa do Gwan Events Backend, uma plataforma comp
 
 ### 🚀 APIs
 - [Documentação da API](./api/overview.md)
+- [Administração de Imóveis - Guia para Frontend](./api/properties-admin.md)
 - [Fluxo Completo do Usuário](./api/user-journey-api-calls.md)
 
 ### 🤖 Chatbot
@@ -72,4 +73,4 @@ Para contribuir com a documentação:
 
 ## 🆘 Suporte
 
-- [GitHub Issues](https://github.com/seu-usuario/gwan-events-backend/issues)
+- [GitHub Issues](https://github.com/seu-usuario/litoral-imoveis-backend/issues)

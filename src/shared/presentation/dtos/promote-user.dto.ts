@@ -4,13 +4,13 @@ import { UserRole } from '../../domain/value-objects/user-role.enum';
 
 export class PromoteUserDto {
   @ApiPropertyOptional({
-    description: 'Role de destino para a promoção. Se não especificado, usa ORGANIZER como padrão.',
+    description: 'Role de destino para a promoção. Se não especificado, usa ADMIN como padrão.',
     enum: UserRole,
-    default: UserRole.ORGANIZER,
-    example: UserRole.ORGANIZER,
+    default: UserRole.ADMIN,
+    example: UserRole.ADMIN,
     enumName: 'UserRole'
   })
   @IsOptional()
-  @IsEnum(UserRole, { message: 'Role deve ser USER, ORGANIZER ou ADMIN' })
-  targetRole?: UserRole = UserRole.ORGANIZER;
+  @IsEnum(UserRole, { message: 'Role deve ser USER, ADMIN ou ADMIN' })
+  targetRole?: UserRole = UserRole.ADMIN;
 }

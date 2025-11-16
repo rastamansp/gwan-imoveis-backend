@@ -1,13 +1,13 @@
 ### Variáveis
-@baseUrl = http://localhost:3001/api
+@baseUrl = http://localhost:3009/api
 
 ### Fazer login
 POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "email": "admin@gwanshop.com",
-  "password": "password"
+  "email": "joao@email.com",
+  "password": "senha123"
 }
 
 ### Registrar novo usuário
@@ -23,16 +23,6 @@ Content-Type: application/json
 }
 
 ### Registrar organizador
-POST {{baseUrl}}/auth/register
-Content-Type: application/json
-
-{
-  "name": "Maria Organizadora",
-  "email": "maria@organizadora.com",
-  "password": "senha123",
-  "phone": "11888888888",
-  "role": "ORGANIZER"
-}
 
 ### Obter perfil do usuário (requer token)
 GET {{baseUrl}}/auth/profile

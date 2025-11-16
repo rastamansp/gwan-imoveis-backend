@@ -187,21 +187,13 @@ Quando uma mensagem é recebida (`fromMe: false`):
 
 1. **Recebimento**: Webhook recebe a mensagem da Evolution API
 2. **Extração**: Sistema extrai o texto da mensagem
-3. **Detecção de agente**: Resolve qual agente deve responder (Eventos ou Saúde)
-4. **Chat**: Chama internamente o agente correto (`/api/chat` ou `/api/chat-health`)
+3. **Detecção de agente**: Resolve qual agente deve responder (padrão: Corretor de Imóveis)
+4. **Chat**: Chama internamente o serviço de chat (`/api/chat`)
 5. **Resposta**: Envia a resposta do agente via Evolution API para o remetente
 
 ### Troca de Agente via Comando
 
-O usuário pode trocar entre os agentes diretamente pelo WhatsApp usando comandos de texto simples:
-
-- `agente saude` ou `agente saúde` → ativa o **Agente de Saúde** (`/api/chat-health`)
-- `agente eventos` → ativa o **Agente de Eventos** (`/api/chat`)
-
-Quando um comando é reconhecido:
-
-1. O sistema atualiza o **agente preferido** do usuário (válido para todos os canais).
-2. Atualiza o **agente atual da conversa**.
+**Nota**: A funcionalidade de troca de agente será atualizada para o contexto de imóveis em uma versão futura.
 3. Envia uma mensagem de confirmação informando qual agente está ativo.
 
 ### Configuração

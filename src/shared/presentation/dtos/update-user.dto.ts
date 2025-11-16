@@ -34,10 +34,10 @@ export class UpdateUserDto {
   @ApiPropertyOptional({ 
     description: 'Role/permissão do usuário. Apenas ADMIN pode alterar roles.',
     enum: UserRole,
-    example: UserRole.ORGANIZER,
+    example: UserRole.CORRETOR,
     enumName: 'UserRole'
   })
   @IsOptional()
-  @IsEnum(UserRole, { message: 'Role deve ser USER, ORGANIZER ou ADMIN' })
+  @IsEnum(UserRole, { message: 'Role deve ser USER, CORRETOR ou ADMIN' })
   role?: UserRole;
 }

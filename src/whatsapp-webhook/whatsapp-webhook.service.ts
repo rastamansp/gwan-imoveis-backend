@@ -16,7 +16,6 @@ import { MessageChannel } from '../shared/domain/value-objects/message-channel.e
 import { RegistrationService } from './services/registration.service';
 import { ResolveConversationAgentUseCase } from '../shared/application/use-cases/resolve-conversation-agent.use-case';
 import { GetOrSetUserPreferredAgentUseCase } from '../shared/application/use-cases/get-or-set-user-preferred-agent.use-case';
-import { ChatbotHealthQueryUseCase } from '../shared/application/use-cases/chatbot-health-query.use-case';
 import { ResponseFormatterService } from '../chat/services/response-formatter.service';
 
 @Injectable()
@@ -36,7 +35,6 @@ export class WhatsappWebhookService {
     private readonly registrationService: RegistrationService,
     private readonly resolveConversationAgentUseCase: ResolveConversationAgentUseCase,
     private readonly getOrSetUserPreferredAgentUseCase: GetOrSetUserPreferredAgentUseCase,
-    private readonly chatbotHealthQueryUseCase: ChatbotHealthQueryUseCase,
     private readonly responseFormatter: ResponseFormatterService,
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
@@ -584,44 +582,8 @@ export class WhatsappWebhookService {
       // Passar userId no contexto se disponível
       const userCtx = userId ? { userId } : undefined;
 
-      let chatResponse: any;
-      if (agentSlug === 'health') {
-        // Agente de Saúde - usar use case de chatbot health diretamente
-        const result = await this.chatbotHealthQueryUseCase.execute(messageText);
-
-        let formattedResponse = null;
-        try {
-          formattedResponse = await this.responseFormatter.formatResponse(
-            result.answer,
-            MessageChannel.WHATSAPP,
-            [],
-            result.disease
-              ? {
-                  disease: {
-                    name: result.disease.diseaseName,
-                    description: result.disease.description,
-                    causes: result.disease.causes,
-                    treatment: result.disease.treatment,
-                    plants: result.disease.plants,
-                  },
-                }
-              : null,
-          );
-        } catch (error) {
-          this.logger.error('[Agent:health] Erro ao formatar resposta do chatbot de saúde', {
-            error: error instanceof Error ? error.message : String(error),
-          });
-        }
-
-        chatResponse = {
-          answer: result.answer,
-          formattedResponse,
-          toolsUsed: null,
-        };
-      } else {
-        // Agente de Eventos (padrão) - usar serviço de chat existente
-        chatResponse = await this.chatService.chat(messageText, userCtx, MessageChannel.WHATSAPP);
-      }
+      // Usar serviço de chat padrão (será atualizado para imóveis)
+      const chatResponse = await this.chatService.chat(messageText, userCtx, MessageChannel.WHATSAPP);
 
       if (!chatResponse || !chatResponse.answer) {
         this.logger.warn('[WARNING] Chat não retornou resposta válida', {
@@ -1163,68 +1125,9 @@ export class WhatsappWebhookService {
       .replace(/[\u0300-\u036f]/g, '')
       .trim();
 
-    const isHealthCommand =
-      cleaned === 'agente saude' ||
-      cleaned === 'agente saúde' ||
-      cleaned === 'agente de saude' ||
-      cleaned === 'agente de saúde';
-
-    const isEventsCommand =
-      cleaned === 'agente eventos' ||
-      cleaned === 'agente de eventos';
-
-    if (!isHealthCommand && !isEventsCommand) {
-      return false;
-    }
-
-    const targetSlug = isHealthCommand ? 'health' : 'events';
-
-    this.logger.info('[Agent] Comando de troca de agente recebido', {
-      conversationId: conversation.id,
-      phoneNumber,
-      instanceName,
-      targetSlug,
-    });
-
-    // Atualizar preferência do usuário, se houver userId
-    if (userId) {
-      try {
-        await this.getOrSetUserPreferredAgentUseCase.execute({
-          userId,
-          preferredAgentSlug: targetSlug,
-        });
-      } catch (error) {
-        this.logger.error('[Agent] Erro ao atualizar agente preferido do usuário', {
-          userId,
-          targetSlug,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
-
-    // Atualizar agente da conversa diretamente via use case de resolução
-    // (usando fallback explicitamente para garantir troca imediata)
-    try {
-      await this.resolveConversationAgentUseCase.execute({
-        conversationId: conversation.id,
-        userId: userId || undefined,
-        fallbackAgentSlug: targetSlug,
-      });
-    } catch (error) {
-      this.logger.error('[Agent] Erro ao atualizar agente da conversa', {
-        conversationId: conversation.id,
-        targetSlug,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-
-    const confirmationMessage = isHealthCommand
-      ? '✅ Agora você está falando com o Agente de Saúde. Pode enviar suas dúvidas sobre doenças, sintomas, tratamentos e plantas medicinais.'
-      : '✅ Agora você está falando com o Agente de Eventos. Pode enviar suas dúvidas sobre eventos, ingressos e atrações.';
-
-    await this.evolutionApiService.sendTextMessage(instanceName, remoteJid, confirmationMessage);
-
-    return true;
+    // Comandos de troca de agente removidos - será atualizado para imóveis
+    // Por enquanto, não há suporte a troca de agente
+    return false;
   }
 }
 

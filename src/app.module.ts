@@ -2,24 +2,17 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { getTypeOrmConfig } from './config/typeorm.config';
-import { getKnowledgeDatabaseConfig } from './config/knowledge-database.config';
 import { SharedModule } from './shared/shared.module';
 import { AuthModule } from './auth/auth.module';
-import { EventsModule } from './events/events.module';
-import { TicketsModule } from './tickets/tickets.module';
 import { UsersModule } from './users/users.module';
-import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
-import { ScannersModule } from './scanners/scanners.module';
 import { DatabaseModule } from './database/database.module';
 import { McpModule } from './mcp/mcp.module';
 import { ChatModule } from './chat/chat.module';
 import { HealthModule } from './health/health.module';
-import { ArtistsModule } from './artists/artists.module';
 import { WhatsappWebhookModule } from './whatsapp-webhook/whatsapp-webhook.module';
-import { ProductsModule } from './products/products.module';
-import { ChatHealthModule } from './chat-health/chat-health.module';
 import { RedisCacheModule } from './shared/cache/cache.module';
+import { PropertiesModule } from './properties/properties.module';
 
 @Module({
   imports: [
@@ -31,30 +24,17 @@ import { RedisCacheModule } from './shared/cache/cache.module';
       useFactory: getTypeOrmConfig,
       inject: [ConfigService],
     }),
-    // Conexão separada para base de conhecimento de doenças
-    TypeOrmModule.forRootAsync({
-      name: 'knowledge',
-      imports: [ConfigModule],
-      useFactory: getKnowledgeDatabaseConfig,
-      inject: [ConfigService],
-    }),
     RedisCacheModule,
     SharedModule,
     AuthModule,
-    EventsModule,
-    TicketsModule,
     UsersModule,
-    PaymentsModule,
     AdminModule,
-    ScannersModule,
     DatabaseModule,
     McpModule,
     ChatModule,
     HealthModule,
-    ArtistsModule,
     WhatsappWebhookModule,
-    ProductsModule,
-    ChatHealthModule,
+    PropertiesModule,
   ],
 })
 export class AppModule {}

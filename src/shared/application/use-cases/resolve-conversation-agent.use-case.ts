@@ -19,7 +19,7 @@ export interface ResolveConversationAgentResult {
 
 @Injectable()
 export class ResolveConversationAgentUseCase {
-  private readonly defaultAgentSlug = 'events';
+  private readonly defaultAgentSlug = 'corretor-imoveis';
 
   constructor(
     @Inject('IConversationRepository')
@@ -37,7 +37,7 @@ export class ResolveConversationAgentUseCase {
    * 1) Agente configurado na própria conversa (currentAgentId)
    * 2) Agente preferido do usuário
    * 3) Fallback explícito (fallbackAgentSlug)
-   * 4) Agente padrão (events)
+   * 4) Agente padrão (corretor-imoveis)
    */
   public async execute(input: ResolveConversationAgentInput): Promise<ResolveConversationAgentResult> {
     const { conversationId, userId, fallbackAgentSlug } = input;
@@ -88,7 +88,7 @@ export class ResolveConversationAgentUseCase {
       }
     }
 
-    // 4) Agente padrão (events)
+    // 4) Agente padrão (corretor-imoveis)
     const defaultAgent = await this.ensureDefaultAgents();
 
     await this.updateConversationAgent(conversation, defaultAgent);
@@ -118,36 +118,23 @@ export class ResolveConversationAgentUseCase {
     let eventsAgent = await this.agentRepository.findBySlug(this.defaultAgentSlug);
 
     if (!eventsAgent) {
-      this.logger.warn('[Agent] Agente padrão não encontrado, criando agents defaults (events/health)', {});
+      this.logger.warn('[Agent] Agente padrão não encontrado, criando agente padrão (corretor-imoveis)', {});
 
-      // Criar agente de eventos
-      const events = Agent.create('Agente de Eventos', 'events', '/api/chat', true);
+      // Criar agente de imóveis
+      const imoveis = Agent.create('Corretor de Imóveis', 'corretor-imoveis', '/api/chat', true);
       try {
-        eventsAgent = await this.agentRepository.save(events);
+        eventsAgent = await this.agentRepository.save(imoveis);
       } catch (error) {
         // Em caso de condição de corrida (unique constraint), tentar ler novamente
-        this.logger.warn('[Agent] Erro ao salvar agente events, tentando reler do repositório', {
+        this.logger.warn('[Agent] Erro ao salvar agente corretor-imoveis, tentando reler do repositório', {
           error: error instanceof Error ? error.message : String(error),
         });
         eventsAgent = await this.agentRepository.findBySlug(this.defaultAgentSlug);
       }
-
-      // Criar agente de saúde, se ainda não existir
-      const healthAgent = await this.agentRepository.findBySlug('health');
-      if (!healthAgent) {
-        const health = Agent.create('Agente de Saúde', 'health', '/api/chat-health', true);
-        try {
-          await this.agentRepository.save(health);
-        } catch (error) {
-          this.logger.warn('[Agent] Erro ao salvar agente health (pode já existir)', {
-            error: error instanceof Error ? error.message : String(error),
-          });
-        }
-      }
     }
 
     if (!eventsAgent || !eventsAgent.active) {
-      throw new Error('Agente padrão (events) não encontrado ou inativo');
+      throw new Error('Agente padrão (corretor-imoveis) não encontrado ou inativo');
     }
 
     return eventsAgent;

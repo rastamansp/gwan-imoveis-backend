@@ -1,7 +1,7 @@
 {
-  "name": "gwan-shop-backend",
+  "name": "litoral-imoveis-backend",
   "version": "1.0.0",
-  "description": "Backend da plataforma de eventos",
+  "description": "Backend da plataforma Litoral Imóveis - Corretora de locação e venda de imóveis",
   "author": "",
   "private": true,
   "license": "UNLICENSED",

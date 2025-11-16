@@ -2,7 +2,7 @@ import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Request, Us
 import { IUserRepository } from '../shared/domain/interfaces/user-repository.interface';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiBody, ApiOkResponse, ApiExtraModels } from '@nestjs/swagger';
-import { PromoteUserToOrganizerUseCase } from '../shared/application/use-cases/promote-user-to-organizer.use-case';
+import { PromoteUserToCorretorUseCase } from '../shared/application/use-cases/promote-user-to-corretor.use-case';
 import { PromoteUserDto } from '../shared/presentation/dtos/promote-user.dto';
 import { UpdateUserDto } from '../shared/presentation/dtos/update-user.dto';
 import { InsufficientPermissionsFilter } from '../shared/presentation/filters/insufficient-permissions.filter';
@@ -17,7 +17,7 @@ export class UsersController {
   constructor(
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
-    private readonly promoteUserToOrganizerUseCase: PromoteUserToOrganizerUseCase,
+    private readonly promoteUserToCorretorUseCase: PromoteUserToCorretorUseCase,
   ) {}
 
   @Get()
@@ -117,7 +117,7 @@ export class UsersController {
       atualizarRole: {
         summary: 'Atualizar role (apenas ADMIN)',
         value: {
-          role: 'ORGANIZER'
+          role: 'CORRETOR'
         }
       },
       atualizacaoCompleta: {
@@ -126,7 +126,7 @@ export class UsersController {
           name: 'João Silva Santos',
           email: 'joao.santos@email.com',
           phone: '11987654321',
-          role: 'ORGANIZER'
+          role: 'CORRETOR'
         }
       }
     }
@@ -189,7 +189,7 @@ export class UsersController {
   @UseFilters(InsufficientPermissionsFilter)
   @ApiOperation({ 
     summary: 'Promover usuário',
-    description: 'Promove um usuário para um role superior (ex: USER → ORGANIZER). Apenas ADMIN pode promover usuários. O usuário que está promovendo deve ter permissões adequadas.'
+    description: 'Promove um usuário para um role superior (ex: USER → CORRETOR). Apenas ADMIN pode promover usuários. O usuário que está promovendo deve ter permissões adequadas.'
   })
   @ApiParam({ 
     name: 'id', 
@@ -201,10 +201,10 @@ export class UsersController {
     type: PromoteUserDto,
     description: 'Dados da promoção',
     examples: {
-      promoverParaOrganizador: {
-        summary: 'Promover para Organizador (padrão)',
+      promoverParaCorretor: {
+        summary: 'Promover para Corretor (padrão)',
         value: {
-          targetRole: 'ORGANIZER'
+          targetRole: 'CORRETOR'
         }
       },
       promoverParaAdmin: {
@@ -214,7 +214,7 @@ export class UsersController {
         }
       },
       semRole: {
-        summary: 'Usar role padrão (ORGANIZER)',
+        summary: 'Usar role padrão (CORRETOR)',
         value: {}
       }
     }
@@ -228,7 +228,7 @@ export class UsersController {
         name: 'João Silva',
         email: 'joao@email.com',
         phone: '11999999999',
-        role: 'ORGANIZER',
+        role: 'CORRETOR',
         createdAt: '2024-01-15T10:30:00.000Z',
         updatedAt: '2024-01-29T14:45:00.000Z'
       }
@@ -245,8 +245,8 @@ export class UsersController {
     @Request() req: any,
   ) {
     const promoterUserId = req.user.id;
-    const targetRole = promoteUserDto.targetRole || UserRole.ORGANIZER;
+    const targetRole = promoteUserDto.targetRole || UserRole.CORRETOR;
     
-    return this.promoteUserToOrganizerUseCase.execute(targetUserId, promoterUserId, targetRole);
+    return this.promoteUserToCorretorUseCase.execute(targetUserId, promoterUserId, targetRole);
   }
 }

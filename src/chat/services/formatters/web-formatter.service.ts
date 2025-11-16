@@ -4,10 +4,7 @@ import { ResponseType, FormattedResponse } from '../../interfaces/chat-response.
 import { PaginationService } from './pagination.service';
 import { SuggestionsService } from '../suggestions.service';
 import { ILogger } from '../../../shared/application/interfaces/logger.interface';
-import { GetEventByIdUseCase } from '../../../shared/application/use-cases/get-event-by-id.use-case';
-import { ITicketCategoryRepository } from '../../../shared/domain/interfaces/ticket-category-repository.interface';
-import { Event } from '../../../shared/domain/entities/event.entity';
-import { TicketCategory } from '../../../shared/domain/entities/ticket-category.entity';
+// Imports removidos - serão atualizados quando o chat for adaptado para imóveis
 
 @Injectable()
 export class WebFormatterService {
@@ -18,13 +15,10 @@ export class WebFormatterService {
     private readonly paginationService: PaginationService,
     private readonly suggestionsService: SuggestionsService,
     private readonly configService: ConfigService,
-    private readonly getEventByIdUseCase: GetEventByIdUseCase,
-    @Inject('ITicketCategoryRepository')
-    private readonly ticketCategoryRepository: ITicketCategoryRepository,
     @Inject('ILogger')
     private readonly logger: ILogger,
   ) {
-    this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'https://events.gwan.com.br/events';
+    this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'https://litoralimoveis.com.br/';
   }
 
   /**
@@ -96,122 +90,17 @@ export class WebFormatterService {
   }
 
   private async formatEventList(rawResponse: string, rawData: any, toolsUsed: any[]): Promise<FormattedResponse> {
-    let events: any[] = [];
-    
-    if (rawData && Array.isArray(rawData)) {
-      events = rawData;
-    } else if (rawData?.events) {
-      events = Array.isArray(rawData.events) ? rawData.events : [rawData.events];
-    } else if (rawData?.data) {
-      events = Array.isArray(rawData.data) ? rawData.data : [rawData.data];
-    }
-
-    // Limitar quantidade de eventos
-    const limitedEvents = events.slice(0, this.defaultEventLimit);
-    
-    // Buscar detalhes completos de cada evento
-    const enrichedEvents: Array<{ event: Event; categories: TicketCategory[] }> = [];
-
-    for (const eventData of limitedEvents) {
-      try {
-        const eventId = eventData.id || eventData.eventId;
-        if (!eventId) {
-          this.logger.warn('Evento sem ID, pulando enriquecimento', { eventData });
-          continue;
-        }
-
-        // Buscar detalhes completos do evento
-        const event = await this.getEventByIdUseCase.execute(eventId);
-        
-        // Buscar categorias de ingressos
-        const categories = await this.ticketCategoryRepository.findByEventId(eventId);
-        
-        enrichedEvents.push({ event, categories });
-      } catch (error) {
-        this.logger.error('Erro ao enriquecer evento com detalhes', {
-          eventId: eventData.id,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        // Continuar mesmo se falhar
-      }
-    }
-
-    const suggestions = this.suggestionsService.generateContextualSuggestions('event_list', { 
-      events: enrichedEvents.map(e => e.event) 
-    });
-
-    return {
-      answer: rawResponse,
-      data: {
-        type: 'event_list',
-        items: enrichedEvents.map(({ event, categories }) => ({
-          ...event,
-          ticketCategories: categories,
-          eventLink: `${this.frontendUrl}/${event.id}`,
-        })),
-        pagination: {
-          current: 1,
-          total: Math.ceil(events.length / this.defaultEventLimit),
-          pageSize: this.defaultEventLimit,
-          hasMore: events.length > this.defaultEventLimit,
-        },
-        suggestions,
-        rawData: events,
-      },
-    };
+    // TODO: Atualizar para trabalhar com imóveis quando o módulo for implementado
+    // Por enquanto, retorna resposta genérica
+    this.logger.warn('formatEventList chamado - será atualizado para imóveis', { rawData });
+    return this.formatGeneric(rawResponse, toolsUsed);
   }
 
   private async formatEventDetail(rawResponse: string, rawData: any, toolsUsed: any[]): Promise<FormattedResponse> {
-    const event = rawData && !Array.isArray(rawData) ? rawData : (rawData?.[0] || rawData?.data?.[0]);
-    
-    if (!event) {
-      return this.formatGeneric(rawResponse, toolsUsed);
-    }
-
-    try {
-      const eventId = event.id || event.eventId;
-      
-      let enrichedEvent: Event;
-      let categories: TicketCategory[] = [];
-      
-      if (eventId) {
-        // Buscar detalhes completos
-        enrichedEvent = await this.getEventByIdUseCase.execute(eventId);
-        categories = await this.ticketCategoryRepository.findByEventId(eventId);
-      } else {
-        // Usar dados básicos disponíveis
-        enrichedEvent = event as Event;
-        if (event.ticketCategories) {
-          categories = Array.isArray(event.ticketCategories) ? event.ticketCategories : [];
-        }
-      }
-
-      const suggestions = this.suggestionsService.generateContextualSuggestions('event_detail', {
-        hasArtists: !!enrichedEvent.artists && enrichedEvent.artists.length > 0,
-      });
-
-      return {
-        answer: rawResponse,
-        data: {
-          type: 'event_detail',
-          items: [{ 
-            ...enrichedEvent, 
-            ticketCategories: categories,
-            eventLink: `${this.frontendUrl}/${enrichedEvent.id}`,
-          }],
-          suggestions,
-          rawData: enrichedEvent,
-        },
-      };
-    } catch (error) {
-      this.logger.error('Erro ao formatar detalhes do evento', {
-        error: error instanceof Error ? error.message : String(error),
-        event,
-      });
-      
-      // Fallback: usar dados básicos
-      return this.formatGeneric(rawResponse, toolsUsed);
-    }
+    // TODO: Atualizar para trabalhar com imóveis quando o módulo for implementado
+    // Por enquanto, retorna resposta genérica
+    this.logger.warn('formatEventDetail chamado - será atualizado para imóveis', { rawData });
+    return this.formatGeneric(rawResponse, toolsUsed);
   }
 
   private formatArtistList(rawResponse: string, rawData: any, toolsUsed: any[]): FormattedResponse {

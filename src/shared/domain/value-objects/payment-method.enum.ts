@@ -1,6 +1,0 @@
-export enum PaymentMethod {
-  PIX = 'PIX',
-  CREDIT_CARD = 'CREDIT_CARD',
-  DEBIT_CARD = 'DEBIT_CARD',
-  DIGITAL_WALLET = 'DIGITAL_WALLET',
-}

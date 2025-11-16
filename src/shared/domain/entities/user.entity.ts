@@ -68,16 +68,17 @@ export class User {
     return this.role === UserRole.ADMIN;
   }
 
-  public isOrganizer(): boolean {
-    return this.role === UserRole.ORGANIZER;
-  }
 
-  public canCreateEvents(): boolean {
-    return this.role === UserRole.ORGANIZER || this.role === UserRole.ADMIN;
+  public isCorretor(): boolean {
+    return this.role === UserRole.CORRETOR;
   }
 
   public canManageUsers(): boolean {
     return this.role === UserRole.ADMIN;
+  }
+
+  public canManageProperties(): boolean {
+    return this.role === UserRole.CORRETOR || this.role === UserRole.ADMIN;
   }
 
   public updateProfile(name: string, phone?: string, whatsappNumber?: string | null): User {
