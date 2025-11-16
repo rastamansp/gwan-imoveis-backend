@@ -33,6 +33,9 @@ export class Message {
   @Column({ type: 'enum', enum: MessageDirection })
   direction: MessageDirection;
 
+  @Column({ type: 'uuid', nullable: true })
+  agentId: string | null;
+
   @Column({ type: 'enum', enum: MessageChannel, nullable: true })
   channel: MessageChannel | null; // Canal de comunicação (WEB, WHATSAPP)
 
@@ -66,6 +69,7 @@ export class Message {
     channel?: MessageChannel | null,
     response?: string | null,
     toolsUsed?: any[] | null,
+    agentId?: string | null,
   ): Message {
     const message = new Message();
     message.id = id;
@@ -78,6 +82,7 @@ export class Message {
     message.channel = channel || null;
     message.response = response || null;
     message.toolsUsed = toolsUsed || null;
+    message.agentId = agentId || null;
     return message;
   }
 

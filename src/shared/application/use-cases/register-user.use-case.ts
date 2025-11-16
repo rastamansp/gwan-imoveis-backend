@@ -36,7 +36,7 @@ export class RegisterUserUseCase {
       // Hash da senha
       const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
-      // Criar usuário
+      // Criar usuário (sem agente preferido explícito)
       const user = User.create(
         uuidv4(),
         registerDto.name,
@@ -44,6 +44,7 @@ export class RegisterUserUseCase {
         hashedPassword,
         registerDto.phone,
         undefined, // whatsappNumber - não é fornecido no registro
+        null, // preferredAgentId
         (registerDto.role as UserRole) || UserRole.USER,
         new Date(),
         new Date(),

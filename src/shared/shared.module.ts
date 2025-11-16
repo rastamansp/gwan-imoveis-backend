@@ -13,6 +13,7 @@ import { UserCredit } from './domain/entities/user-credit.entity';
 import { Product } from './domain/entities/product.entity';
 import { Order } from './domain/entities/order.entity';
 import { OrderItem } from './domain/entities/order-item.entity';
+import { Agent } from './domain/entities/agent.entity';
 import { ConsoleLoggerService } from './infrastructure/logger/console-logger.service';
 import { UserTypeOrmRepository } from './infrastructure/repositories/user-typeorm.repository';
 import { EventTypeOrmRepository } from './infrastructure/repositories/event-typeorm.repository';
@@ -46,6 +47,7 @@ import { IMessageRepository } from './domain/interfaces/message-repository.inter
 import { IUserCreditRepository } from './domain/interfaces/user-credit-repository.interface';
 import { IProductRepository } from './domain/interfaces/product-repository.interface';
 import { IOrderRepository, IOrderItemRepository } from './domain/interfaces/order-repository.interface';
+import { IAgentRepository } from './domain/interfaces/agent-repository.interface';
 import { RegisterUserUseCase } from './application/use-cases/register-user.use-case';
 import { LoginUserUseCase } from './application/use-cases/login-user.use-case';
 import { CreateEventUseCase } from './application/use-cases/create-event.use-case';
@@ -79,12 +81,21 @@ import { CreateProductUseCase } from './application/use-cases/create-product.use
 import { GetEventProductsUseCase } from './application/use-cases/get-event-products.use-case';
 import { PurchaseProductsUseCase } from './application/use-cases/purchase-products.use-case';
 import { ValidateProductQRUseCase } from './application/use-cases/validate-product-qr.use-case';
+import { GetOrSetUserPreferredAgentUseCase } from './application/use-cases/get-or-set-user-preferred-agent.use-case';
+import { ResolveConversationAgentUseCase } from './application/use-cases/resolve-conversation-agent.use-case';
+import { ChatbotHealthQueryUseCase } from './application/use-cases/chatbot-health-query.use-case';
+import { AgentTypeOrmRepository } from './infrastructure/repositories/agent-typeorm.repository';
 import { forwardRef } from '@nestjs/common';
+import { KnowledgeDisease } from './domain/entities/knowledge-disease.entity';
+import { KnowledgeDiseaseTypeOrmRepository } from './infrastructure/repositories/knowledge-disease-typeorm.repository';
+import { IKnowledgeDiseaseRepository } from './domain/interfaces/knowledge-disease-repository.interface';
 
 @Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Event, Ticket, Payment, TicketCategory, Scanner, Artist, Conversation, Message, UserCredit, Product, Order, OrderItem]),
+    TypeOrmModule.forFeature([User, Event, Ticket, Payment, TicketCategory, Scanner, Artist, Conversation, Message, UserCredit, Product, Order, OrderItem, Agent]),
+    // Conexão de conhecimento (doenças) usando data source 'knowledge'
+    TypeOrmModule.forFeature([KnowledgeDisease], 'knowledge'),
     forwardRef(() => {
       const { WhatsappWebhookModule } = require('../whatsapp-webhook/whatsapp-webhook.module');
       return WhatsappWebhookModule;
@@ -171,6 +182,14 @@ import { forwardRef } from '@nestjs/common';
       provide: 'IOrderItemRepository',
       useClass: OrderItemTypeOrmRepository,
     },
+    {
+      provide: 'IAgentRepository',
+      useClass: AgentTypeOrmRepository,
+    },
+    {
+      provide: 'IKnowledgeDiseaseRepository',
+      useClass: KnowledgeDiseaseTypeOrmRepository,
+    },
 
     // Use Cases
     RegisterUserUseCase,
@@ -206,6 +225,9 @@ import { forwardRef } from '@nestjs/common';
     GetEventProductsUseCase,
     PurchaseProductsUseCase,
     ValidateProductQRUseCase,
+    GetOrSetUserPreferredAgentUseCase,
+    ResolveConversationAgentUseCase,
+    ChatbotHealthQueryUseCase,
   ],
   exports: [
     'ILogger',
@@ -226,6 +248,7 @@ import { forwardRef } from '@nestjs/common';
     'IProductRepository',
     'IOrderRepository',
     'IOrderItemRepository',
+      'IAgentRepository',
     RegisterUserUseCase,
     LoginUserUseCase,
     CreateEventUseCase,
@@ -259,6 +282,9 @@ import { forwardRef } from '@nestjs/common';
     GetEventProductsUseCase,
     PurchaseProductsUseCase,
     ValidateProductQRUseCase,
+    GetOrSetUserPreferredAgentUseCase,
+    ResolveConversationAgentUseCase,
+    ChatbotHealthQueryUseCase,
   ],
 })
 export class SharedModule {}

@@ -56,7 +56,7 @@ export class RegisterUserViaWhatsappUseCase {
       const password = generatePassword(12);
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Criar usuário
+      // Criar usuário (sem agente preferido explícito - será definido pelo use case de agente)
       const user = User.create(
         uuidv4(),
         command.name,
@@ -64,6 +64,7 @@ export class RegisterUserViaWhatsappUseCase {
         hashedPassword,
         null, // phone não é fornecido no cadastro via WhatsApp
         command.whatsappNumber,
+        null, // preferredAgentId - será preenchido depois
         UserRole.USER,
         new Date(),
         new Date(),

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { getTypeOrmConfig } from './config/typeorm.config';
+import { getKnowledgeDatabaseConfig } from './config/knowledge-database.config';
 import { SharedModule } from './shared/shared.module';
 import { AuthModule } from './auth/auth.module';
 import { EventsModule } from './events/events.module';
@@ -28,6 +29,13 @@ import { RedisCacheModule } from './shared/cache/cache.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: getTypeOrmConfig,
+      inject: [ConfigService],
+    }),
+    // Conexão separada para base de conhecimento de doenças
+    TypeOrmModule.forRootAsync({
+      name: 'knowledge',
+      imports: [ConfigModule],
+      useFactory: getKnowledgeDatabaseConfig,
       inject: [ConfigService],
     }),
     RedisCacheModule,

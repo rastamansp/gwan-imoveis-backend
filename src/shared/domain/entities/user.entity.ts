@@ -24,6 +24,9 @@ export class User {
   @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
   role: UserRole;
 
+  @Column({ type: 'uuid', nullable: true })
+  preferredAgentId?: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -41,6 +44,7 @@ export class User {
     password: string,
     phone?: string,
     whatsappNumber?: string | null,
+    preferredAgentId?: string | null,
     role: UserRole = UserRole.USER,
     createdAt: Date = new Date(),
     updatedAt: Date = new Date(),
@@ -53,6 +57,7 @@ export class User {
     user.phone = phone;
     user.whatsappNumber = whatsappNumber || null;
     user.role = role;
+    user.preferredAgentId = preferredAgentId || null;
     user.createdAt = createdAt;
     user.updatedAt = updatedAt;
     return user;

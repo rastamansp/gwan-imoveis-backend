@@ -27,6 +27,9 @@ export class Conversation {
   @Column({ type: 'enum', enum: ConversationStatus, default: ConversationStatus.ACTIVE })
   status: ConversationStatus;
 
+  @Column({ type: 'uuid', nullable: true })
+  currentAgentId: string | null;
+
   @Column({ type: 'timestamp' })
   startedAt: Date;
 

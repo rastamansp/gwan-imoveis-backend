@@ -14,6 +14,10 @@ import { extractPhoneNumberFromRemoteJid, normalizeNumberForEvolutionSDK } from 
 import { MessageDirection } from '../shared/domain/value-objects/message-direction.enum';
 import { MessageChannel } from '../shared/domain/value-objects/message-channel.enum';
 import { RegistrationService } from './services/registration.service';
+import { ResolveConversationAgentUseCase } from '../shared/application/use-cases/resolve-conversation-agent.use-case';
+import { GetOrSetUserPreferredAgentUseCase } from '../shared/application/use-cases/get-or-set-user-preferred-agent.use-case';
+import { ChatbotHealthQueryUseCase } from '../shared/application/use-cases/chatbot-health-query.use-case';
+import { ResponseFormatterService } from '../chat/services/response-formatter.service';
 
 @Injectable()
 export class WhatsappWebhookService {
@@ -30,6 +34,10 @@ export class WhatsappWebhookService {
     private readonly createOrFindConversationUseCase: CreateOrFindConversationUseCase,
     private readonly saveMessageUseCase: SaveMessageUseCase,
     private readonly registrationService: RegistrationService,
+    private readonly resolveConversationAgentUseCase: ResolveConversationAgentUseCase,
+    private readonly getOrSetUserPreferredAgentUseCase: GetOrSetUserPreferredAgentUseCase,
+    private readonly chatbotHealthQueryUseCase: ChatbotHealthQueryUseCase,
+    private readonly responseFormatter: ResponseFormatterService,
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
     @Inject('IConversationRepository')
@@ -274,22 +282,37 @@ export class WhatsappWebhookService {
         return;
       }
 
+      // Se a conversa ainda não tem agente definido, usar health como default para WhatsApp
+      if (!conversation.currentAgentId) {
+        await this.resolveConversationAgentUseCase.execute({
+          conversationId: conversation.id,
+          userId,
+          fallbackAgentSlug: 'health',
+        });
+
+        // Recarregar conversa para ter currentAgentId atualizado
+        conversation = await this.conversationRepository.findById(conversation.id);
+        if (!conversation) {
+          this.logger.error('[ERROR] Conversa não encontrada após definir agente default', { phoneNumber });
+          return;
+        }
+      }
+
       // Processar mensagens recebidas
       if (!isFromMe && messageText && messageText !== '[Mensagem sem texto]') {
+        const normalizedCommand = messageText.trim().toLowerCase();
+        const normalizedRemoteJid = normalizeNumberForEvolutionSDK(remoteJid, remoteJidAlt);
+
         // Verificar se tem cadastro em andamento (sempre ler do banco atualizado)
         const registrationStatus = this.registrationService.getRegistrationStatus(conversation);
 
         if (!isUserRegistered) {
           // Usuário não cadastrado - verificar se precisa iniciar cadastro
           if (!registrationStatus || registrationStatus === 'cancelled') {
-            // Normalizar remoteJid antes de passar para o serviço de registro
-            const normalizedRemoteJid = normalizeNumberForEvolutionSDK(remoteJid, remoteJidAlt);
             // Iniciar fluxo de cadastro
             await this.registrationService.startRegistration(conversation.id, phoneNumber, webhook.instance, normalizedRemoteJid);
             return; // Não processar mensagem como chat normal
           } else if (registrationStatus !== 'completed') {
-            // Normalizar remoteJid antes de passar para o serviço de registro
-            const normalizedRemoteJid = normalizeNumberForEvolutionSDK(remoteJid, remoteJidAlt);
             // Cadastro em andamento - processar resposta
             const result = await this.registrationService.processRegistrationMessage(
               conversation.id,
@@ -312,7 +335,46 @@ export class WhatsappWebhookService {
           }
         }
 
-        // Salvar mensagem recebida
+        // Comandos de troca de agente (apenas para usuários já cadastrados ou com cadastro completo)
+        if (isUserRegistered || registrationStatus === 'completed') {
+          const maybeAgentChanged = await this.handleAgentSwitchCommand(
+            normalizedCommand,
+            conversation,
+            phoneNumber,
+            webhook.instance,
+            normalizedRemoteJid,
+            userId,
+          );
+
+          if (maybeAgentChanged) {
+            // Já respondeu ao comando, não processar como chat normal
+            // Marcar mensagem como processada no cache
+            if (messageId !== 'Sem ID') {
+              const cacheKey = `processed:messageId:${messageId}`;
+              try {
+                await this.cacheManager.set(cacheKey, true, this.messageIdCacheTtl);
+                this.inMemoryProcessedIds.add(messageId);
+              } catch {
+                this.inMemoryProcessedIds.add(messageId);
+              }
+            }
+            continue;
+          }
+        }
+
+        // Resolver agente atual da conversa (considerando usuário e preferências)
+        const resolvedAgent = isUserRegistered && userId
+          ? await this.resolveConversationAgentUseCase.execute({
+              conversationId: conversation.id,
+              userId,
+            })
+          : await this.resolveConversationAgentUseCase.execute({
+              conversationId: conversation.id,
+            });
+
+        const currentAgentId = resolvedAgent.agent.id;
+
+        // Salvar mensagem recebida com agente associado
         await this.saveMessageUseCase.execute({
           conversationId: conversation.id,
           content: messageText,
@@ -323,6 +385,7 @@ export class WhatsappWebhookService {
           timestamp: messageTimestamp
             ? new Date(typeof messageTimestamp === 'number' ? messageTimestamp * 1000 : new Date(messageTimestamp).getTime())
             : new Date(),
+          agentId: currentAgentId,
         });
 
         // Processar como chat normal (apenas se usuário cadastrado ou cadastro completo)
@@ -331,7 +394,14 @@ export class WhatsappWebhookService {
           const normalizedRemoteJid = normalizeNumberForEvolutionSDK(remoteJid, remoteJidAlt);
           
           try {
-            await this.processIncomingMessage(webhook.instance, normalizedRemoteJid, messageText, messageId, conversation.id, userId);
+            await this.processIncomingMessage(
+              webhook.instance,
+              normalizedRemoteJid,
+              messageText,
+              messageId,
+              conversation.id,
+              userId,
+            );
             
             // Marcar mensagem como processada APENAS após processamento bem-sucedido
             if (messageId !== 'Sem ID') {
@@ -482,6 +552,14 @@ export class WhatsappWebhookService {
     const startTime = Date.now();
     const processId = `process-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
+    // Resolver agente ativo neste momento (garante que usamos sempre o estado mais recente)
+    const resolvedAgent = await this.resolveConversationAgentUseCase.execute({
+      conversationId,
+      userId: userId || undefined,
+    });
+    const agentSlug = resolvedAgent.agent.slug;
+    const agentId = resolvedAgent.agent.id;
+
     this.logger.info('[PROCESS] Iniciando processamento de mensagem recebida', {
       instanceName,
       remoteJid,
@@ -489,20 +567,61 @@ export class WhatsappWebhookService {
       messageId,
       conversationId,
       processId,
+      agentSlug,
+      agentId,
     });
 
     try {
-      // Chamar serviço de chat internamente com canal WHATSAPP
-      this.logger.info('[CHAT] Chamando serviço de chat', {
+      // Chamar agente correto baseado no slug
+      this.logger.info('[CHAT] Chamando agente para mensagem recebida', {
         instanceName,
         remoteJid,
         messageText,
         userId: userId || 'não identificado',
+        agentSlug,
       });
 
       // Passar userId no contexto se disponível
       const userCtx = userId ? { userId } : undefined;
-      const chatResponse = await this.chatService.chat(messageText, userCtx, MessageChannel.WHATSAPP);
+
+      let chatResponse: any;
+      if (agentSlug === 'health') {
+        // Agente de Saúde - usar use case de chatbot health diretamente
+        const result = await this.chatbotHealthQueryUseCase.execute(messageText);
+
+        let formattedResponse = null;
+        try {
+          formattedResponse = await this.responseFormatter.formatResponse(
+            result.answer,
+            MessageChannel.WHATSAPP,
+            [],
+            result.disease
+              ? {
+                  disease: {
+                    name: result.disease.diseaseName,
+                    description: result.disease.description,
+                    causes: result.disease.causes,
+                    treatment: result.disease.treatment,
+                    plants: result.disease.plants,
+                  },
+                }
+              : null,
+          );
+        } catch (error) {
+          this.logger.error('[Agent:health] Erro ao formatar resposta do chatbot de saúde', {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+
+        chatResponse = {
+          answer: result.answer,
+          formattedResponse,
+          toolsUsed: null,
+        };
+      } else {
+        // Agente de Eventos (padrão) - usar serviço de chat existente
+        chatResponse = await this.chatService.chat(messageText, userCtx, MessageChannel.WHATSAPP);
+      }
 
       if (!chatResponse || !chatResponse.answer) {
         this.logger.warn('[WARNING] Chat não retornou resposta válida', {
@@ -544,6 +663,7 @@ export class WhatsappWebhookService {
         timestamp: new Date(),
         response: answer, // Manter resposta bruta para logs
         toolsUsed: chatResponse.toolsUsed || null,
+        agentId: agentId || null,
       });
 
       // Enviar mensagem formatada (texto + imagem se disponível)
@@ -1024,6 +1144,87 @@ export class WhatsappWebhookService {
     if (message.locationMessage) return 'location';
     if (message.contactMessage) return 'contact';
     return 'unknown';
+  }
+
+  /**
+   * Processa comandos de troca de agente enviados pelo usuário.
+   * Retorna true se o comando foi reconhecido e uma resposta foi enviada.
+   */
+  private async handleAgentSwitchCommand(
+    normalizedMessage: string,
+    conversation: any,
+    phoneNumber: string | null,
+    instanceName: string,
+    remoteJid: string,
+    userId?: string | null,
+  ): Promise<boolean> {
+    const cleaned = normalizedMessage
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+
+    const isHealthCommand =
+      cleaned === 'agente saude' ||
+      cleaned === 'agente saúde' ||
+      cleaned === 'agente de saude' ||
+      cleaned === 'agente de saúde';
+
+    const isEventsCommand =
+      cleaned === 'agente eventos' ||
+      cleaned === 'agente de eventos';
+
+    if (!isHealthCommand && !isEventsCommand) {
+      return false;
+    }
+
+    const targetSlug = isHealthCommand ? 'health' : 'events';
+
+    this.logger.info('[Agent] Comando de troca de agente recebido', {
+      conversationId: conversation.id,
+      phoneNumber,
+      instanceName,
+      targetSlug,
+    });
+
+    // Atualizar preferência do usuário, se houver userId
+    if (userId) {
+      try {
+        await this.getOrSetUserPreferredAgentUseCase.execute({
+          userId,
+          preferredAgentSlug: targetSlug,
+        });
+      } catch (error) {
+        this.logger.error('[Agent] Erro ao atualizar agente preferido do usuário', {
+          userId,
+          targetSlug,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    // Atualizar agente da conversa diretamente via use case de resolução
+    // (usando fallback explicitamente para garantir troca imediata)
+    try {
+      await this.resolveConversationAgentUseCase.execute({
+        conversationId: conversation.id,
+        userId: userId || undefined,
+        fallbackAgentSlug: targetSlug,
+      });
+    } catch (error) {
+      this.logger.error('[Agent] Erro ao atualizar agente da conversa', {
+        conversationId: conversation.id,
+        targetSlug,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    const confirmationMessage = isHealthCommand
+      ? '✅ Agora você está falando com o Agente de Saúde. Pode enviar suas dúvidas sobre doenças, sintomas, tratamentos e plantas medicinais.'
+      : '✅ Agora você está falando com o Agente de Eventos. Pode enviar suas dúvidas sobre eventos, ingressos e atrações.';
+
+    await this.evolutionApiService.sendTextMessage(instanceName, remoteJid, confirmationMessage);
+
+    return true;
   }
 }
 

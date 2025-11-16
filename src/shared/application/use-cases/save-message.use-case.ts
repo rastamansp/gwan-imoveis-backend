@@ -17,6 +17,7 @@ export interface SaveMessageCommand {
   timestamp?: Date;
   response?: string | null;
   toolsUsed?: any[] | null;
+  agentId?: string | null;
 }
 
 @Injectable()
@@ -67,6 +68,7 @@ export class SaveMessageUseCase {
         command.channel || null,
         command.response || null,
         command.toolsUsed || null,
+        command.agentId || null,
       );
 
       const savedMessage = await this.messageRepository.save(message);

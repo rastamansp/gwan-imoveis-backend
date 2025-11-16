@@ -3,6 +3,8 @@ import { ILogger } from '../../shared/application/interfaces/logger.interface';
 import { IConversationRepository } from '../../shared/domain/interfaces/conversation-repository.interface';
 import { IUserRepository } from '../../shared/domain/interfaces/user-repository.interface';
 import { RegisterUserViaWhatsappUseCase } from '../../shared/application/use-cases/register-user-via-whatsapp.use-case';
+import { GetOrSetUserPreferredAgentUseCase } from '../../shared/application/use-cases/get-or-set-user-preferred-agent.use-case';
+import { ResolveConversationAgentUseCase } from '../../shared/application/use-cases/resolve-conversation-agent.use-case';
 import { EvolutionApiService } from './evolution-api.service';
 import { RegistrationMessagesService } from './registration-messages.service';
 import {
@@ -34,6 +36,8 @@ export class RegistrationService {
     private readonly userRepository: IUserRepository,
     private readonly registerUserViaWhatsappUseCase: RegisterUserViaWhatsappUseCase,
     private readonly evolutionApiService: EvolutionApiService,
+    private readonly getOrSetUserPreferredAgentUseCase: GetOrSetUserPreferredAgentUseCase,
+    private readonly resolveConversationAgentUseCase: ResolveConversationAgentUseCase,
   ) {}
 
   /**
@@ -401,6 +405,12 @@ export class RegistrationService {
         whatsappNumber: phoneNumber,
       });
 
+      // Garantir que o agente preferido seja definido para o agente de saúde por padrão (WhatsApp)
+      await this.getOrSetUserPreferredAgentUseCase.execute({
+        userId: user.id,
+        preferredAgentSlug: 'health',
+      });
+
       // Atualizar conversa com userId
       conversation.userId = user.id;
       conversation.metadata = {
@@ -408,6 +418,13 @@ export class RegistrationService {
         registrationStatus: 'completed',
       };
       await this.conversationRepository.save(conversation);
+
+      // Definir agente atual da conversa como health por padrão
+      await this.resolveConversationAgentUseCase.execute({
+        conversationId,
+        userId: user.id,
+        fallbackAgentSlug: 'health',
+      });
 
       // Formatar número para envio
       // O remoteJid já deve estar normalizado (número limpo) antes de chegar aqui
