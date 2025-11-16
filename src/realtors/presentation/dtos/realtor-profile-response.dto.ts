@@ -15,22 +15,22 @@ export class RealtorProfileResponseDto {
   userId: string;
 
   @ApiPropertyOptional({
-    description: 'Nome fantasia do corretor',
+    description: 'Business name of the realtor',
     example: 'Imóveis Premium Litoral',
   })
-  nomeFantasia?: string;
+  businessName?: string;
 
   @ApiPropertyOptional({
-    description: 'Nome do contato',
+    description: 'Contact name',
     example: 'João Silva',
   })
-  nomeContato?: string;
+  contactName?: string;
 
   @ApiPropertyOptional({
-    description: 'Número de telefone',
+    description: 'Phone number',
     example: '11999999999',
   })
-  telefone?: string;
+  phone?: string;
 
   @ApiPropertyOptional({
     description: 'Email de contato',
@@ -78,9 +78,9 @@ export class RealtorProfileResponseDto {
     const dto = new RealtorProfileResponseDto();
     dto.id = profile.id;
     dto.userId = profile.userId;
-    dto.nomeFantasia = profile.nomeFantasia;
-    dto.nomeContato = profile.nomeContato;
-    dto.telefone = profile.telefone;
+    dto.businessName = profile.businessName;
+    dto.contactName = profile.contactName;
+    dto.phone = profile.phone;
     dto.email = profile.email;
     dto.instagram = profile.instagram;
     dto.facebook = profile.facebook;

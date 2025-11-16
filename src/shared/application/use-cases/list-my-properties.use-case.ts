@@ -12,15 +12,15 @@ export class ListMyPropertiesUseCase {
     private readonly logger: ILogger,
   ) {}
 
-  async execute(corretorId: string): Promise<Property[]> {
-    this.logger.debug('Listando imóveis do corretor', {
-      corretorId,
+  async execute(realtorId: string): Promise<Property[]> {
+    this.logger.debug('Listing realtor properties', {
+      realtorId,
     });
 
-    const properties = await this.propertyRepository.findByCorretorId(corretorId);
+    const properties = await this.propertyRepository.findByCorretorId(realtorId);
     
-    this.logger.debug('Imóveis do corretor encontrados', {
-      corretorId,
+    this.logger.debug('Realtor properties found', {
+      realtorId,
       count: properties.length,
     });
 

@@ -124,14 +124,14 @@ export class WhatsAppFormatterService {
         message += `   📐 ${details}\n`;
       }
       
-      // Comodidades
+      // Amenities
       const amenities: string[] = [];
-      if (p.piscina) amenities.push('🏊 Piscina');
-      if (p.hidromassagem) amenities.push('💆 Hidromassagem');
-      if (p.frenteMar) amenities.push('🌊 Frente Mar');
-      if (p.jardim) amenities.push('🌳 Jardim');
-      if (p.areaGourmet) amenities.push('🍖 Área Gourmet');
-      if (p.mobiliado) amenities.push('🛋️ Mobiliado');
+      if (p.hasPool) amenities.push('🏊 Piscina');
+      if (p.hasJacuzzi) amenities.push('💆 Hidromassagem');
+      if (p.oceanFront) amenities.push('🌊 Frente Mar');
+      if (p.hasGarden) amenities.push('🌳 Jardim');
+      if (p.hasGourmetArea) amenities.push('🍖 Área Gourmet');
+      if (p.furnished) amenities.push('🛋️ Mobiliado');
       
       if (amenities.length > 0) {
         message += `   ${amenities.join(' • ')}\n`;
@@ -183,14 +183,14 @@ export class WhatsAppFormatterService {
       message += `\n`;
     }
     
-    // Comodidades
+    // Amenities
     const amenities: string[] = [];
-    if (property.piscina) amenities.push('🏊 Piscina');
-    if (property.hidromassagem) amenities.push('💆 Hidromassagem');
-    if (property.frenteMar) amenities.push('🌊 Frente Mar');
-    if (property.jardim) amenities.push('🌳 Jardim');
-    if (property.areaGourmet) amenities.push('🍖 Área Gourmet');
-    if (property.mobiliado) amenities.push('🛋️ Mobiliado');
+    if (property.hasPool) amenities.push('🏊 Piscina');
+    if (property.hasJacuzzi) amenities.push('💆 Hidromassagem');
+    if (property.oceanFront) amenities.push('🌊 Frente Mar');
+    if (property.hasGarden) amenities.push('🌳 Jardim');
+    if (property.hasGourmetArea) amenities.push('🍖 Área Gourmet');
+    if (property.furnished) amenities.push('🛋️ Mobiliado');
     
     if (amenities.length > 0) {
       message += `✨ *Comodidades:*\n${amenities.join(' • ')}\n\n`;
@@ -204,9 +204,9 @@ export class WhatsAppFormatterService {
       message += `📝 *Descrição:*\n${description}\n\n`;
     }
     
-    // Corretor
-    if (property.corretor) {
-      message += `👤 *Corretor:* ${property.corretor.name || property.corretor.email}\n\n`;
+    // Realtor
+    if (property.realtor) {
+      message += `👤 *Realtor:* ${property.realtor.name || property.realtor.email}\n\n`;
     }
     
     // Link

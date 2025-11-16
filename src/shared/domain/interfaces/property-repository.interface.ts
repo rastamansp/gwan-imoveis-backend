@@ -4,7 +4,7 @@ export interface IPropertyRepository {
   save(property: Property): Promise<Property>;
   findById(id: string): Promise<Property | null>;
   findAll(): Promise<Property[]>;
-  findByCorretorId(corretorId: string): Promise<Property[]>;
+  findByCorretorId(realtorId: string): Promise<Property[]>;
   findByCity(city: string): Promise<Property[]>;
   findByType(type: string): Promise<Property[]>;
   findByPriceRange(minPrice: number, maxPrice: number): Promise<Property[]>;

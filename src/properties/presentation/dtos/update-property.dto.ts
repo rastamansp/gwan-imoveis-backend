@@ -111,51 +111,51 @@ export class UpdatePropertyDto {
   garageSpaces?: number;
 
   @ApiPropertyOptional({
-    description: 'Possui piscina',
+    description: 'Has swimming pool',
     example: true,
   })
   @IsOptional()
   @IsBoolean()
-  piscina?: boolean;
+  hasPool?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Possui hidromassagem',
+    description: 'Has jacuzzi',
     example: false,
   })
   @IsOptional()
   @IsBoolean()
-  hidromassagem?: boolean;
+  hasJacuzzi?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Frente para o mar',
+    description: 'Ocean front property',
     example: true,
   })
   @IsOptional()
   @IsBoolean()
-  frenteMar?: boolean;
+  oceanFront?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Possui jardim',
+    description: 'Has garden',
     example: true,
   })
   @IsOptional()
   @IsBoolean()
-  jardim?: boolean;
+  hasGarden?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Possui área gourmet',
+    description: 'Has gourmet area',
     example: true,
   })
   @IsOptional()
   @IsBoolean()
-  areaGourmet?: boolean;
+  hasGourmetArea?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Imóvel mobiliado',
+    description: 'Furnished property',
     example: false,
   })
   @IsOptional()
   @IsBoolean()
-  mobiliado?: boolean;
+  furnished?: boolean;
 }
 

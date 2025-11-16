@@ -55,7 +55,7 @@ export class PropertiesController {
   @ApiOperation({
     summary: 'Criar novo imóvel',
     description:
-      'Cria um novo imóvel na plataforma. Apenas usuários com role CORRETOR ou ADMIN podem criar imóveis. O imóvel será associado ao corretor autenticado.',
+      'Cria um novo imóvel na plataforma. Apenas usuários com role CORRETOR ou ADMIN podem criar imóveis. O imóvel será associado ao realtor autenticado.',
   })
   @ApiBody({
     type: CreatePropertyDto,
@@ -74,12 +74,12 @@ export class PropertiesController {
           bathrooms: 2,
           area: 150.50,
           garageSpaces: 2,
-          piscina: true,
-          hidromassagem: false,
-          frenteMar: true,
-          jardim: true,
-          areaGourmet: true,
-          mobiliado: false,
+          hasPool: true,
+          hasJacuzzi: false,
+          oceanFront: true,
+          hasGarden: true,
+          hasGourmetArea: true,
+          furnished: false,
         },
       },
       apartamento: {
@@ -115,11 +115,11 @@ export class PropertiesController {
   @ApiExtraModels(CreatePropertyDto, PropertyResponseDto)
   async create(@Body() createPropertyDto: CreatePropertyDto, @Request() req: any): Promise<PropertyResponseDto> {
     // req.user é o objeto User completo retornado pelo JwtStrategy.validate()
-    const corretorId = req.user?.id || req.user?.sub;
-    if (!corretorId) {
-      throw new Error('Usuário não autenticado corretamente');
+    const realtorId = req.user?.id || req.user?.sub;
+    if (!realtorId) {
+      throw new Error('User not authenticated correctly');
     }
-    const property = await this.createPropertyUseCase.execute(createPropertyDto, corretorId);
+    const property = await this.createPropertyUseCase.execute(createPropertyDto, realtorId);
     return PropertyResponseDto.fromEntity(property);
   }
 
@@ -127,19 +127,19 @@ export class PropertiesController {
   @ApiExtension('x-mcp', {
     enabled: true,
     toolName: 'list_properties',
-    description: 'Lista imóveis cadastrados com filtros opcionais (cidade, tipo, faixa de preço, corretor)',
+    description: 'Lista imóveis cadastrados com filtros opcionais (cidade, tipo, faixa de preço, realtor)',
   })
   @ApiOperation({
     summary: 'Listar imóveis',
     description:
-      'Retorna uma lista de imóveis cadastrados. Suporta filtros opcionais por cidade, tipo, faixa de preço e corretor. Endpoint público, não requer autenticação.',
+      'Retorna uma lista de imóveis cadastrados. Suporta filtros opcionais por cidade, tipo, faixa de preço e realtor. Endpoint público, não requer autenticação.',
   })
   @ApiQuery({ name: 'city', required: false, description: 'Filtrar por cidade', example: 'São Sebastião' })
   @ApiQuery({ name: 'type', required: false, description: 'Filtrar por tipo', enum: ['CASA', 'APARTAMENTO', 'TERRENO', 'SALA_COMERCIAL'] })
   @ApiQuery({ name: 'purpose', required: false, description: 'Filtrar por finalidade', enum: ['RENT', 'SALE', 'INVESTMENT'], example: 'RENT' })
   @ApiQuery({ name: 'minPrice', required: false, description: 'Preço mínimo', example: 100000 })
   @ApiQuery({ name: 'maxPrice', required: false, description: 'Preço máximo', example: 1000000 })
-  @ApiQuery({ name: 'corretorId', required: false, description: 'Filtrar por corretor', example: 'd4da01e3-2f5a-4edf-8fa3-71f262e04eb5' })
+  @ApiQuery({ name: 'realtorId', required: false, description: 'Filter by realtor', example: 'd4da01e3-2f5a-4edf-8fa3-71f262e04eb5' })
   @ApiOkResponse({
     description: 'Lista de imóveis obtida com sucesso',
     type: [PropertyResponseDto],
@@ -151,7 +151,7 @@ export class PropertiesController {
     @Query('purpose') purpose?: string,
     @Query('minPrice') minPrice?: string,
     @Query('maxPrice') maxPrice?: string,
-    @Query('corretorId') corretorId?: string,
+    @Query('realtorId') realtorId?: string,
   ): Promise<PropertyResponseDto[]> {
     const filters: any = {};
     if (city) filters.city = city;
@@ -159,7 +159,7 @@ export class PropertiesController {
     if (purpose) filters.purpose = purpose;
     if (minPrice) filters.minPrice = parseFloat(minPrice);
     if (maxPrice) filters.maxPrice = parseFloat(maxPrice);
-    if (corretorId) filters.corretorId = corretorId;
+    if (realtorId) filters.realtorId = realtorId;
 
     const properties = await this.listPropertiesUseCase.execute(filters);
     return properties.map((property) => PropertyResponseDto.fromEntity(property));
@@ -171,21 +171,21 @@ export class PropertiesController {
   @ApiOperation({
     summary: 'Listar meus imóveis',
     description:
-      'Retorna uma lista de imóveis cadastrados pelo corretor autenticado. Apenas usuários com role CORRETOR ou ADMIN podem acessar. Requer autenticação JWT.',
+      'Retorna uma lista de imóveis cadastrados pelo realtor autenticado. Apenas usuários com role CORRETOR ou ADMIN podem acessar. Requer autenticação JWT.',
   })
   @ApiOkResponse({
-    description: 'Lista de imóveis do corretor obtida com sucesso',
+    description: 'Lista de imóveis do realtor obtida com sucesso',
     type: [PropertyResponseDto],
   })
   @ApiResponse({ status: 401, description: 'Não autorizado - Token JWT inválido ou ausente' })
   @ApiResponse({ status: 403, description: 'Permissão negada - Apenas CORRETOR ou ADMIN podem acessar' })
   @ApiExtraModels(PropertyResponseDto)
   async findMyProperties(@Request() req: any): Promise<PropertyResponseDto[]> {
-    const corretorId = req.user?.id || req.user?.sub;
-    if (!corretorId) {
-      throw new Error('Usuário não autenticado corretamente');
+    const realtorId = req.user?.id || req.user?.sub;
+    if (!realtorId) {
+      throw new Error('User not authenticated correctly');
     }
-    const properties = await this.listMyPropertiesUseCase.execute(corretorId);
+    const properties = await this.listMyPropertiesUseCase.execute(realtorId);
     return properties.map((property) => PropertyResponseDto.fromEntity(property));
   }
 
@@ -223,7 +223,7 @@ export class PropertiesController {
   @ApiOperation({
     summary: 'Atualizar imóvel',
     description:
-      'Atualiza os dados de um imóvel existente. Apenas os campos enviados serão atualizados. Apenas o corretor dono do imóvel ou ADMIN podem atualizar. Requer autenticação JWT e role CORRETOR ou ADMIN.',
+      'Atualiza os dados de um imóvel existente. Apenas os campos enviados serão atualizados. Apenas o realtor dono do imóvel ou ADMIN podem atualizar. Requer autenticação JWT e role CORRETOR ou ADMIN.',
   })
   @ApiParam({
     name: 'id',
@@ -244,8 +244,8 @@ export class PropertiesController {
       atualizarComodidades: {
         summary: 'Atualizar comodidades',
         value: {
-          piscina: true,
-          areaGourmet: true,
+          hasPool: true,
+          hasGourmetArea: true,
         },
       },
       atualizacaoCompleta: {
@@ -255,8 +255,8 @@ export class PropertiesController {
           description: 'Casa completamente reformada com 4 quartos.',
           price: 950000.00,
           bedrooms: 4,
-          piscina: true,
-          areaGourmet: true,
+          hasPool: true,
+          hasGourmetArea: true,
         },
       },
     },
@@ -276,11 +276,11 @@ export class PropertiesController {
     @Request() req: any,
   ): Promise<PropertyResponseDto> {
     // req.user é o objeto User completo retornado pelo JwtStrategy.validate()
-    const corretorId = req.user?.id || req.user?.sub;
-    if (!corretorId) {
-      throw new Error('Usuário não autenticado corretamente');
+    const realtorId = req.user?.id || req.user?.sub;
+    if (!realtorId) {
+      throw new Error('User not authenticated correctly');
     }
-    const property = await this.updatePropertyUseCase.execute(id, updatePropertyDto, corretorId);
+    const property = await this.updatePropertyUseCase.execute(id, updatePropertyDto, realtorId);
     return PropertyResponseDto.fromEntity(property);
   }
 
@@ -291,7 +291,7 @@ export class PropertiesController {
   @ApiOperation({
     summary: 'Deletar imóvel',
     description:
-      'Remove um imóvel do sistema permanentemente. Apenas o corretor dono do imóvel ou ADMIN podem deletar. Requer autenticação JWT e role CORRETOR ou ADMIN.',
+      'Remove um imóvel do sistema permanentemente. Apenas o realtor dono do imóvel ou ADMIN podem deletar. Requer autenticação JWT e role CORRETOR ou ADMIN.',
   })
   @ApiParam({
     name: 'id',
@@ -312,11 +312,11 @@ export class PropertiesController {
   @ApiResponse({ status: 401, description: 'Não autorizado - Token JWT inválido ou ausente' })
   async delete(@Param('id') id: string, @Request() req: any): Promise<{ message: string }> {
     // req.user é o objeto User completo retornado pelo JwtStrategy.validate()
-    const corretorId = req.user?.id || req.user?.sub;
-    if (!corretorId) {
-      throw new Error('Usuário não autenticado corretamente');
+    const realtorId = req.user?.id || req.user?.sub;
+    if (!realtorId) {
+      throw new Error('User not authenticated correctly');
     }
-    await this.deletePropertyUseCase.execute(id, corretorId);
+    await this.deletePropertyUseCase.execute(id, realtorId);
     return { message: 'Imóvel deletado com sucesso' };
   }
 }

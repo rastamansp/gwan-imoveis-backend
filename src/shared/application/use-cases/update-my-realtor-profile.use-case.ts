@@ -39,15 +39,15 @@ export class UpdateMyRealtorProfileUseCase {
       profile.userId = userId;
     }
 
-    // Atualizar campos
-    if (updateDto.nomeFantasia !== undefined) {
-      profile.nomeFantasia = updateDto.nomeFantasia;
+    // Update fields
+    if (updateDto.businessName !== undefined) {
+      profile.businessName = updateDto.businessName;
     }
-    if (updateDto.nomeContato !== undefined) {
-      profile.nomeContato = updateDto.nomeContato;
+    if (updateDto.contactName !== undefined) {
+      profile.contactName = updateDto.contactName;
     }
-    if (updateDto.telefone !== undefined) {
-      profile.telefone = updateDto.telefone;
+    if (updateDto.phone !== undefined) {
+      profile.phone = updateDto.phone;
     }
     if (updateDto.email !== undefined) {
       profile.email = updateDto.email;

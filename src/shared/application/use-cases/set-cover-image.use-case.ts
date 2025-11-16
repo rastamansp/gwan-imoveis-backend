@@ -19,34 +19,34 @@ export class SetCoverImageUseCase {
     private readonly logger: ILogger,
   ) {}
 
-  async execute(propertyId: string, imageId: string, corretorId: string): Promise<PropertyImage> {
+  async execute(propertyId: string, imageId: string, realtorId: string): Promise<PropertyImage> {
     const startTime = Date.now();
 
-    this.logger.info('Definindo imagem como capa', {
+    this.logger.info('Setting image as cover', {
       propertyId,
       imageId,
-      corretorId,
+      realtorId,
     });
 
     try {
-      // Verificar propriedade
+      // Verify property
       const property = await this.propertyRepository.findById(propertyId);
       if (!property) {
-        throw new Error('Propriedade não encontrada');
+        throw new Error('Property not found');
       }
 
-      // Verificar permissões
-      const corretor = await this.userRepository.findById(corretorId);
-      if (!corretor) {
-        throw new Error('Corretor não encontrado');
+      // Verify permissions
+      const realtor = await this.userRepository.findById(realtorId);
+      if (!realtor) {
+        throw new Error('Realtor not found');
       }
 
-      if (corretor.role !== UserRole.CORRETOR && corretor.role !== UserRole.ADMIN) {
-        throw new Error('Apenas corretores e administradores podem definir imagem de capa');
+      if (realtor.role !== UserRole.CORRETOR && realtor.role !== UserRole.ADMIN) {
+        throw new Error('Only realtors and administrators can set cover image');
       }
 
-      if (property.corretorId !== corretorId && corretor.role !== UserRole.ADMIN) {
-        throw new Error('Apenas o dono da propriedade ou administrador podem definir imagem de capa');
+      if (property.realtorId !== realtorId && realtor.role !== UserRole.ADMIN) {
+        throw new Error('Only the property owner or administrator can set cover image');
       }
 
       // Verificar se a imagem existe e pertence à propriedade

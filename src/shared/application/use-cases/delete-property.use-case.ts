@@ -34,7 +34,7 @@ export class DeletePropertyUseCase {
     }
 
     const isAdmin = user.role === UserRole.ADMIN;
-    const isOwner = property.corretorId === userId;
+    const isOwner = property.realtorId === userId;
 
     if (!isAdmin && !isOwner) {
       throw new Error('Você não tem permissão para deletar este imóvel');

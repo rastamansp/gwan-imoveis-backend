@@ -237,14 +237,14 @@ export class ChatService {
       'FERRAMENTAS DISPONÍVEIS:',
       '',
         'IMÓVEIS:',
-        '- list_properties: Lista imóveis cadastrados com filtros opcionais (cidade, tipo, finalidade, preço mínimo/máximo, corretor)',
+        '- list_properties: Lista imóveis cadastrados com filtros opcionais (cidade, tipo, finalidade, preço mínimo/máximo, realtor)',
         '  * Filtros disponíveis:',
         '    - city: Filtrar por cidade (ex: "São Sebastião")',
         '    - type: Filtrar por tipo (CASA, APARTAMENTO, TERRENO, SALA_COMERCIAL)',
         '    - purpose: Filtrar por finalidade (RENT=Aluguel, SALE=Venda, INVESTMENT=Investimento)',
         '    - minPrice: Preço mínimo (ex: 300000)',
         '    - maxPrice: Preço máximo (ex: 1000000)',
-        '    - corretorId: Filtrar por corretor específico (UUID)',
+        '    - realtorId: Filtrar por realtor específico (UUID)',
         '  * Exemplos de uso:',
         '    - "Liste imóveis em São Sebastião" → usar city="São Sebastião"',
         '    - "Mostre casas à venda" → usar type="CASA", purpose="SALE"',
@@ -260,7 +260,7 @@ export class ChatService {
       '- Características: área (m²), quartos, banheiros, vagas de garagem',
       '- Comodidades: piscina, hidromassagem, frente mar, jardim, área gourmet, mobiliado',
       '- Imagens: imagem de capa e galeria de imagens',
-      '- Corretor: informações do corretor responsável',
+      '- Realtor: informações do realtor responsável',
       '',
         'Quando retornar dados, seja objetivo e, se útil, sintetize os resultados:',
         '- Para imóveis: título, tipo, finalidade (Aluguel/Venda/Investimento), cidade, bairro, preço, área, quartos, banheiros, comodidades principais',
@@ -278,7 +278,7 @@ export class ChatService {
         type: 'function',
         function: {
           name: 'list_properties',
-          description: 'Lista imóveis cadastrados com filtros opcionais (cidade, tipo, faixa de preço, corretor).',
+          description: 'Lista imóveis cadastrados com filtros opcionais (cidade, tipo, faixa de preço, realtor).',
           parameters: {
             type: 'object',
             properties: {
@@ -304,9 +304,9 @@ export class ChatService {
                 type: 'number', 
                 description: 'Preço máximo (ex: 1000000)' 
               },
-              corretorId: { 
+              realtorId: { 
                 type: 'string', 
-                description: 'Filtrar por corretor específico (UUID)' 
+                description: 'Filter by specific realtor (UUID)'
               },
             },
           },

@@ -3,34 +3,34 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateRealtorProfileDto {
   @ApiPropertyOptional({
-    description: 'Nome fantasia do corretor',
+    description: 'Business name of the realtor',
     example: 'Imóveis Premium Litoral',
     maxLength: 255,
   })
   @IsOptional()
   @IsString()
   @MaxLength(255)
-  nomeFantasia?: string;
+  businessName?: string;
 
   @ApiPropertyOptional({
-    description: 'Nome do contato',
+    description: 'Contact name',
     example: 'João Silva',
     maxLength: 255,
   })
   @IsOptional()
   @IsString()
   @MaxLength(255)
-  nomeContato?: string;
+  contactName?: string;
 
   @ApiPropertyOptional({
-    description: 'Número de telefone',
+    description: 'Phone number',
     example: '11999999999',
     maxLength: 20,
   })
   @IsOptional()
   @IsString()
   @MaxLength(20)
-  telefone?: string;
+  phone?: string;
 
   @ApiPropertyOptional({
     description: 'Email de contato',

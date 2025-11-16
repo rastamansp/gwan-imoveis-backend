@@ -40,7 +40,7 @@ export class UpdatePropertyUseCase {
     }
 
     const isAdmin = user.role === UserRole.ADMIN;
-    const isOwner = property.corretorId === userId;
+    const isOwner = property.realtorId === userId;
 
     if (!isAdmin && !isOwner) {
       throw new Error('Você não tem permissão para editar este imóvel');
@@ -80,24 +80,24 @@ export class UpdatePropertyUseCase {
     if (updatePropertyDto.garageSpaces !== undefined) {
       property.garageSpaces = updatePropertyDto.garageSpaces;
     }
-    if (updatePropertyDto.piscina !== undefined) {
-      property.piscina = updatePropertyDto.piscina;
-    }
-    if (updatePropertyDto.hidromassagem !== undefined) {
-      property.hidromassagem = updatePropertyDto.hidromassagem;
-    }
-    if (updatePropertyDto.frenteMar !== undefined) {
-      property.frenteMar = updatePropertyDto.frenteMar;
-    }
-    if (updatePropertyDto.jardim !== undefined) {
-      property.jardim = updatePropertyDto.jardim;
-    }
-    if (updatePropertyDto.areaGourmet !== undefined) {
-      property.areaGourmet = updatePropertyDto.areaGourmet;
-    }
-    if (updatePropertyDto.mobiliado !== undefined) {
-      property.mobiliado = updatePropertyDto.mobiliado;
-    }
+        if (updatePropertyDto.hasPool !== undefined) {
+          property.hasPool = updatePropertyDto.hasPool;
+        }
+        if (updatePropertyDto.hasJacuzzi !== undefined) {
+          property.hasJacuzzi = updatePropertyDto.hasJacuzzi;
+        }
+        if (updatePropertyDto.oceanFront !== undefined) {
+          property.oceanFront = updatePropertyDto.oceanFront;
+        }
+        if (updatePropertyDto.hasGarden !== undefined) {
+          property.hasGarden = updatePropertyDto.hasGarden;
+        }
+        if (updatePropertyDto.hasGourmetArea !== undefined) {
+          property.hasGourmetArea = updatePropertyDto.hasGourmetArea;
+        }
+        if (updatePropertyDto.furnished !== undefined) {
+          property.furnished = updatePropertyDto.furnished;
+        }
 
     property.updatedAt = new Date();
 

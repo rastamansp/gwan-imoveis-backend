@@ -100,12 +100,12 @@ export class WebFormatterService {
       // Comodidades resumidas (apenas as que estão ativas)
       amenities: (() => {
         const active: string[] = [];
-        if (p.piscina) active.push('piscina');
-        if (p.hidromassagem) active.push('hidromassagem');
-        if (p.frenteMar) active.push('frenteMar');
-        if (p.jardim) active.push('jardim');
-        if (p.areaGourmet) active.push('areaGourmet');
-        if (p.mobiliado) active.push('mobiliado');
+        if (p.hasPool) active.push('hasPool');
+        if (p.hasJacuzzi) active.push('hasJacuzzi');
+        if (p.oceanFront) active.push('oceanFront');
+        if (p.hasGarden) active.push('hasGarden');
+        if (p.hasGourmetArea) active.push('hasGourmetArea');
+        if (p.furnished) active.push('furnished');
         return active;
       })(),
       coverImageUrl: p.coverImageUrl || null,
@@ -167,14 +167,14 @@ export class WebFormatterService {
       if (p.bathrooms) markdown += `- **Banheiros:** ${p.bathrooms}\n`;
       if (p.garageSpaces) markdown += `- **Vagas:** ${p.garageSpaces}\n`;
       
-      // Comodidades
+      // Amenities
       const amenities: string[] = [];
-      if (p.piscina) amenities.push('🏊 Piscina');
-      if (p.hidromassagem) amenities.push('💆 Hidromassagem');
-      if (p.frenteMar) amenities.push('🌊 Frente Mar');
-      if (p.jardim) amenities.push('🌳 Jardim');
-      if (p.areaGourmet) amenities.push('🍖 Área Gourmet');
-      if (p.mobiliado) amenities.push('🛋️ Mobiliado');
+      if (p.hasPool) amenities.push('🏊 Piscina');
+      if (p.hasJacuzzi) amenities.push('💆 Hidromassagem');
+      if (p.oceanFront) amenities.push('🌊 Frente Mar');
+      if (p.hasGarden) amenities.push('🌳 Jardim');
+      if (p.hasGourmetArea) amenities.push('🍖 Área Gourmet');
+      if (p.furnished) amenities.push('🛋️ Mobiliado');
       
       if (amenities.length > 0) {
         markdown += `- **Comodidades:** ${amenities.join(', ')}\n`;
@@ -223,20 +223,20 @@ export class WebFormatterService {
       bathrooms: property.bathrooms || null,
       garageSpaces: property.garageSpaces || null,
       amenities: {
-        piscina: property.piscina || false,
-        hidromassagem: property.hidromassagem || false,
-        frenteMar: property.frenteMar || false,
-        jardim: property.jardim || false,
-        areaGourmet: property.areaGourmet || false,
-        mobiliado: property.mobiliado || false,
+        hasPool: property.hasPool || false,
+        hasJacuzzi: property.hasJacuzzi || false,
+        oceanFront: property.oceanFront || false,
+        hasGarden: property.hasGarden || false,
+        hasGourmetArea: property.hasGourmetArea || false,
+        furnished: property.furnished || false,
       },
       coverImageUrl: property.coverImageUrl || null,
       images: property.images || [],
-      corretor: property.corretor ? {
-        id: property.corretor.id,
-        name: property.corretor.name,
-        email: property.corretor.email,
-        phone: property.corretor.phone || null,
+      realtor: property.realtor ? {
+        id: property.realtor.id,
+        name: property.realtor.name,
+        email: property.realtor.email,
+        phone: property.realtor.phone || null,
       } : null,
       createdAt: property.createdAt || null,
       updatedAt: property.updatedAt || null,
@@ -308,12 +308,12 @@ export class WebFormatterService {
     
     // Comodidades
     const amenities: string[] = [];
-    if (property.piscina) amenities.push('🏊 Piscina');
-    if (property.hidromassagem) amenities.push('💆 Hidromassagem');
-    if (property.frenteMar) amenities.push('🌊 Frente Mar');
-    if (property.jardim) amenities.push('🌳 Jardim');
-    if (property.areaGourmet) amenities.push('🍖 Área Gourmet');
-    if (property.mobiliado) amenities.push('🛋️ Mobiliado');
+    if (property.hasPool) amenities.push('🏊 Piscina');
+    if (property.hasJacuzzi) amenities.push('💆 Hidromassagem');
+    if (property.oceanFront) amenities.push('🌊 Frente Mar');
+    if (property.hasGarden) amenities.push('🌳 Jardim');
+    if (property.hasGourmetArea) amenities.push('🍖 Área Gourmet');
+    if (property.furnished) amenities.push('🛋️ Mobiliado');
     
     if (amenities.length > 0) {
       markdown += `\n## 🎯 Comodidades\n\n`;
@@ -326,12 +326,12 @@ export class WebFormatterService {
       markdown += `${property.description}\n\n`;
     }
     
-    // Corretor
-    if (property.corretor) {
-      markdown += `## 👤 Corretor\n\n`;
-      markdown += `- **Nome:** ${property.corretor.name || 'N/A'}\n`;
-      if (property.corretor.email) markdown += `- **Email:** ${property.corretor.email}\n`;
-      if (property.corretor.phone) markdown += `- **Telefone:** ${property.corretor.phone}\n`;
+    // Realtor
+    if (property.realtor) {
+      markdown += `## 👤 Realtor\n\n`;
+      markdown += `- **Nome:** ${property.realtor.name || 'N/A'}\n`;
+      if (property.realtor.email) markdown += `- **Email:** ${property.realtor.email}\n`;
+      if (property.realtor.phone) markdown += `- **Telefone:** ${property.realtor.phone}\n`;
       markdown += '\n';
     }
     

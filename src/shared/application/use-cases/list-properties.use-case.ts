@@ -9,7 +9,7 @@ export interface ListPropertiesFilters {
   purpose?: string;
   minPrice?: number;
   maxPrice?: number;
-  corretorId?: string;
+  realtorId?: string;
 }
 
 @Injectable()
@@ -34,8 +34,8 @@ export class ListPropertiesUseCase {
     // Aplicar filtros
     let properties: Property[] = [];
 
-    if (filters.corretorId) {
-      properties = await this.propertyRepository.findByCorretorId(filters.corretorId);
+    if (filters.realtorId) {
+      properties = await this.propertyRepository.findByCorretorId(filters.realtorId);
     } else if (filters.city) {
       properties = await this.propertyRepository.findByCity(filters.city);
     } else if (filters.type) {
@@ -54,7 +54,7 @@ export class ListPropertiesUseCase {
     }
 
     // Aplicar outros filtros se necessário
-    if (filters.type && !filters.corretorId && !filters.city) {
+    if (filters.type && !filters.realtorId && !filters.city) {
       properties = properties.filter((p) => p.type === filters.type);
     }
 

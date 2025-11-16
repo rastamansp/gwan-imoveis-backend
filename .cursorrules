@@ -94,6 +94,47 @@ src/
 - **Arquivos**: kebab-case (ex: `user.service.ts`, `order.controller.ts`)
 - **Módulos**: kebab-case plural (ex: `users.module.ts`, `orders.module.ts`)
 
+### Nomenclatura de Campos e Propriedades
+
+**CRÍTICO: TODOS os campos devem estar em INGLÊS**
+
+- ✅ **SEMPRE** usar nomes em inglês para campos de entidades, colunas de banco de dados, propriedades de DTOs e variáveis
+- ❌ **NUNCA** usar nomes em português para campos (ex: `piscina`, `hidromassagem`, `frenteMar`, `jardim`, `areaGourmet`, `mobiliado`, `nomeFantasia`, `nomeContato`, `telefone`, `corretorId`)
+- ✅ **SEMPRE** usar nomes descritivos em inglês (ex: `hasPool`, `hasJacuzzi`, `oceanFront`, `hasGarden`, `hasGourmetArea`, `furnished`, `businessName`, `contactName`, `phone`, `realtorId`)
+
+**Exemplos de Mapeamento:**
+```typescript
+// ❌ ERRADO - Português
+piscina: boolean;
+hidromassagem: boolean;
+frenteMar: boolean;
+jardim: boolean;
+areaGourmet: boolean;
+mobiliado: boolean;
+corretorId: string;
+nomeFantasia: string;
+nomeContato: string;
+telefone: string;
+
+// ✅ CORRETO - Inglês
+hasPool: boolean;
+hasJacuzzi: boolean;
+oceanFront: boolean;
+hasGarden: boolean;
+hasGourmetArea: boolean;
+furnished: boolean;
+realtorId: string;
+businessName: string;
+contactName: string;
+phone: string;
+```
+
+**Regras de Nomenclatura de Campos:**
+- Campos booleanos: usar prefixo `has` ou `is` quando apropriado (ex: `hasPool`, `isActive`)
+- IDs de relacionamento: usar sufixo `Id` (ex: `realtorId`, `userId`)
+- Nomes descritivos: usar camelCase em inglês (ex: `businessName`, `contactName`)
+- Evitar abreviações desnecessárias: preferir `phone` a `tel`, `contactName` a `contact`
+
 **Glossário de Comum:**
 - `Repository` - Camada de acesso a dados
 - `Service` - Lógica de negócio
@@ -589,6 +630,8 @@ export class EventsService {
 - ❌ Não hardcodear valores (usar env vars)
 - ❌ Não acoplar camadas (respeitar Clean Architecture)
 - ❌ **NUNCA desabilitar funcionalidades essenciais (banco, validações, etc.)**
+- ❌ **NUNCA usar nomes em português para campos, propriedades ou variáveis**
+- ❌ **NUNCA criar campos em português em entidades, DTOs ou tabelas do banco**
 
 ## ✅ O que SEMPRE fazer (Best Practices)
 
@@ -609,6 +652,9 @@ export class EventsService {
 - ✅ Implementar use cases para lógica de negócio
 - ✅ Usar repositories para acesso a dados
 - ✅ **SEMPRE corrigir problemas de configuração ao invés de desabilitar funcionalidades**
+- ✅ **SEMPRE usar nomes em inglês para campos, propriedades e variáveis**
+- ✅ **SEMPRE garantir consistência entre nomes de campos nas entidades, DTOs e tabelas do banco**
+- ✅ **SEMPRE criar migrations ao renomear colunas do banco de dados**
 
 ## 📚 Documentação Automática
 

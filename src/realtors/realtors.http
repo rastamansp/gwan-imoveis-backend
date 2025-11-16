@@ -12,9 +12,9 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "nomeFantasia": "Imóveis Premium Litoral",
-  "nomeContato": "João Silva",
-  "telefone": "11999999999",
+  "businessName": "Imóveis Premium Litoral",
+  "contactName": "João Silva",
+  "phone": "11999999999",
   "email": "contato@imoveispremium.com.br"
 }
 
@@ -36,9 +36,9 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "nomeFantasia": "Imóveis Premium Litoral",
-  "nomeContato": "João Silva",
-  "telefone": "11999999999",
+  "businessName": "Imóveis Premium Litoral",
+  "contactName": "João Silva",
+  "phone": "11999999999",
   "email": "contato@imoveispremium.com.br",
   "instagram": "https://instagram.com/imoveispremium",
   "facebook": "https://facebook.com/imoveispremium",

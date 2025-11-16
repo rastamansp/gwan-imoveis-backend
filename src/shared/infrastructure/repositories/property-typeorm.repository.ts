@@ -18,21 +18,21 @@ export class PropertyTypeOrmRepository implements IPropertyRepository {
   async findById(id: string): Promise<Property | null> {
     return this.propertyRepository.findOne({
       where: { id },
-      relations: ['corretor', 'corretor.realtorProfile'],
+      relations: ['realtor', 'realtor.realtorProfile'],
     });
   }
 
   async findAll(): Promise<Property[]> {
     return this.propertyRepository.find({
-      relations: ['corretor'],
+      relations: ['realtor'],
       order: { createdAt: 'DESC' },
     });
   }
 
-  async findByCorretorId(corretorId: string): Promise<Property[]> {
+  async findByCorretorId(realtorId: string): Promise<Property[]> {
     return this.propertyRepository.find({
-      where: { corretorId },
-      relations: ['corretor'],
+      where: { realtorId },
+      relations: ['realtor'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -40,7 +40,7 @@ export class PropertyTypeOrmRepository implements IPropertyRepository {
   async findByCity(city: string): Promise<Property[]> {
     return this.propertyRepository.find({
       where: { city },
-      relations: ['corretor'],
+      relations: ['realtor'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -48,7 +48,7 @@ export class PropertyTypeOrmRepository implements IPropertyRepository {
   async findByType(type: string): Promise<Property[]> {
     return this.propertyRepository.find({
       where: { type: type as any },
-      relations: ['corretor'],
+      relations: ['realtor'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -58,7 +58,7 @@ export class PropertyTypeOrmRepository implements IPropertyRepository {
       .createQueryBuilder('property')
       .where('property.price >= :minPrice', { minPrice })
       .andWhere('property.price <= :maxPrice', { maxPrice })
-      .leftJoinAndSelect('property.corretor', 'corretor')
+      .leftJoinAndSelect('property.realtor', 'realtor')
       .orderBy('property.createdAt', 'DESC')
       .getMany();
   }

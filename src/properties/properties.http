@@ -19,12 +19,12 @@ Authorization: Bearer {{token}}
   "bathrooms": 2,
   "area": 150.50,
   "garageSpaces": 2,
-  "piscina": true,
-  "hidromassagem": false,
-  "frenteMar": true,
-  "jardim": true,
-  "areaGourmet": true,
-  "mobiliado": false
+  "hasPool": true,
+  "hasJacuzzi": false,
+  "oceanFront": true,
+  "hasGarden": true,
+  "hasGourmetArea": true,
+  "furnished": false
 }
 
 ### Criar apartamento (sem purpose - usará padrão RENT)
@@ -43,12 +43,12 @@ Authorization: Bearer {{token}}
   "bathrooms": 1,
   "area": 65.00,
   "garageSpaces": 1,
-  "piscina": false,
-  "hidromassagem": false,
-  "frenteMar": false,
-  "jardim": false,
-  "areaGourmet": false,
-  "mobiliado": true
+  "hasPool": false,
+  "hasJacuzzi": false,
+  "oceanFront": false,
+  "hasGarden": false,
+  "hasGourmetArea": false,
+  "furnished": true
 }
 
 ### Criar imóvel para investimento
@@ -88,8 +88,8 @@ GET {{baseUrl}}/properties?purpose=INVESTMENT
 ### Listar imóveis por faixa de preço (PÚBLICO - não requer autenticação)
 GET {{baseUrl}}/properties?minPrice=100000&maxPrice=500000
 
-### Listar imóveis por corretor (PÚBLICO - não requer autenticação)
-GET {{baseUrl}}/properties?corretorId=d4da01e3-2f5a-4edf-8fa3-71f262e04eb5
+### Listar imóveis por realtor (PÚBLICO - não requer autenticação)
+GET {{baseUrl}}/properties?realtorId=d4da01e3-2f5a-4edf-8fa3-71f262e04eb5
 
 ### Listar imóveis com múltiplos filtros (PÚBLICO - não requer autenticação)
 GET {{baseUrl}}/properties?city=São Sebastião&type=CASA&purpose=SALE&minPrice=500000&maxPrice=1000000
@@ -108,8 +108,8 @@ Authorization: Bearer {{token}}
 
 {
   "price": 900000.00,
-  "piscina": true,
-  "areaGourmet": true
+  "hasPool": true,
+  "hasGourmetArea": true
 }
 
 ### Atualizar imóvel completo
@@ -122,8 +122,8 @@ Authorization: Bearer {{token}}
   "description": "Casa completamente reformada com 4 quartos.",
   "price": 950000.00,
   "bedrooms": 4,
-  "piscina": true,
-  "areaGourmet": true
+  "hasPool": true,
+  "hasGourmetArea": true
 }
 
 ### Deletar imóvel (requer CORRETOR ou ADMIN - apenas dono ou ADMIN)

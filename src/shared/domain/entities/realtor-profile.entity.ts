@@ -14,13 +14,13 @@ export class RealtorProfile {
   user: User;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  nomeFantasia?: string;
+  businessName?: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  nomeContato?: string;
+  contactName?: string;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
-  telefone?: string;
+  phone?: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   email?: string;

@@ -79,58 +79,58 @@ export class PropertyResponseDto {
   garageSpaces?: number;
 
   @ApiProperty({
-    description: 'Possui piscina',
+    description: 'Has swimming pool',
     example: true,
   })
-  piscina: boolean;
+  hasPool: boolean;
 
   @ApiProperty({
-    description: 'Possui hidromassagem',
+    description: 'Has jacuzzi',
     example: false,
   })
-  hidromassagem: boolean;
+  hasJacuzzi: boolean;
 
   @ApiProperty({
-    description: 'Frente para o mar',
+    description: 'Ocean front property',
     example: true,
   })
-  frenteMar: boolean;
+  oceanFront: boolean;
 
   @ApiProperty({
-    description: 'Possui jardim',
+    description: 'Has garden',
     example: true,
   })
-  jardim: boolean;
+  hasGarden: boolean;
 
   @ApiProperty({
-    description: 'Possui área gourmet',
+    description: 'Has gourmet area',
     example: true,
   })
-  areaGourmet: boolean;
+  hasGourmetArea: boolean;
 
   @ApiProperty({
-    description: 'Imóvel mobiliado',
+    description: 'Furnished property',
     example: false,
   })
-  mobiliado: boolean;
+  furnished: boolean;
 
   @ApiProperty({
-    description: 'ID do corretor responsável',
+    description: 'ID of the realtor responsible',
     example: 'd4da01e3-2f5a-4edf-8fa3-71f262e04eb5',
   })
-  corretorId: string;
+  realtorId: string;
 
   @ApiPropertyOptional({
-    description: 'Dados completos do corretor responsável',
+    description: 'Complete data of the responsible realtor',
     example: {
       id: 'd4da01e3-2f5a-4edf-8fa3-71f262e04eb5',
       name: 'João Silva',
       email: 'joao@email.com',
       phone: '11999999999',
       profile: {
-        nomeFantasia: 'Imóveis Premium Litoral',
-        nomeContato: 'João Silva',
-        telefone: '11999999999',
+        businessName: 'Imóveis Premium Litoral',
+        contactName: 'João Silva',
+        phone: '11999999999',
         email: 'contato@imoveispremium.com.br',
         instagram: 'https://instagram.com/imoveispremium',
         facebook: 'https://facebook.com/imoveispremium',
@@ -139,15 +139,15 @@ export class PropertyResponseDto {
       },
     },
   })
-  corretor?: {
+  realtor?: {
     id: string;
     name: string;
     email: string;
     phone?: string;
     profile?: {
-      nomeFantasia?: string;
-      nomeContato?: string;
-      telefone?: string;
+      businessName?: string;
+      contactName?: string;
+      phone?: string;
       email?: string;
       instagram?: string;
       facebook?: string;
@@ -188,37 +188,37 @@ export class PropertyResponseDto {
     dto.bathrooms = property.bathrooms;
     dto.area = Number(property.area);
     dto.garageSpaces = property.garageSpaces;
-    dto.piscina = property.piscina;
-    dto.hidromassagem = property.hidromassagem;
-    dto.frenteMar = property.frenteMar;
-    dto.jardim = property.jardim;
-    dto.areaGourmet = property.areaGourmet;
-    dto.mobiliado = property.mobiliado;
-    dto.corretorId = property.corretorId;
+    dto.hasPool = property.hasPool;
+    dto.hasJacuzzi = property.hasJacuzzi;
+    dto.oceanFront = property.oceanFront;
+    dto.hasGarden = property.hasGarden;
+    dto.hasGourmetArea = property.hasGourmetArea;
+    dto.furnished = property.furnished;
+    dto.realtorId = property.realtorId;
     dto.coverImageUrl = property.coverImageUrl;
     dto.createdAt = property.createdAt;
     dto.updatedAt = property.updatedAt;
 
-    // Incluir dados completos do corretor se disponível
-    if (property.corretor) {
-      dto.corretor = {
-        id: property.corretor.id,
-        name: property.corretor.name,
-        email: property.corretor.email,
-        phone: property.corretor.phone,
+    // Include complete realtor data if available
+    if (property.realtor) {
+      dto.realtor = {
+        id: property.realtor.id,
+        name: property.realtor.name,
+        email: property.realtor.email,
+        phone: property.realtor.phone,
       };
 
-      // Incluir perfil profissional se disponível
-      if (property.corretor.realtorProfile) {
-        dto.corretor.profile = {
-          nomeFantasia: property.corretor.realtorProfile.nomeFantasia,
-          nomeContato: property.corretor.realtorProfile.nomeContato,
-          telefone: property.corretor.realtorProfile.telefone,
-          email: property.corretor.realtorProfile.email,
-          instagram: property.corretor.realtorProfile.instagram,
-          facebook: property.corretor.realtorProfile.facebook,
-          linkedin: property.corretor.realtorProfile.linkedin,
-          whatsappBusiness: property.corretor.realtorProfile.whatsappBusiness,
+      // Include professional profile if available
+      if (property.realtor.realtorProfile) {
+        dto.realtor.profile = {
+          businessName: property.realtor.realtorProfile.businessName,
+          contactName: property.realtor.realtorProfile.contactName,
+          phone: property.realtor.realtorProfile.phone,
+          email: property.realtor.realtorProfile.email,
+          instagram: property.realtor.realtorProfile.instagram,
+          facebook: property.realtor.realtorProfile.facebook,
+          linkedin: property.realtor.realtorProfile.linkedin,
+          whatsappBusiness: property.realtor.realtorProfile.whatsappBusiness,
         };
       }
     }

@@ -104,13 +104,13 @@ export class PropertyImagesController {
     @Request() req: any,
     @Body('isCover') isCover?: string,
   ): Promise<PropertyImageResponseDto> {
-    const corretorId = req.user?.id || req.user?.sub;
-    if (!corretorId) {
-      throw new Error('Usuário não autenticado corretamente');
+    const realtorId = req.user?.id || req.user?.sub;
+    if (!realtorId) {
+      throw new Error('User not authenticated correctly');
     }
 
     if (!file) {
-      throw new Error('Arquivo de imagem é obrigatório');
+      throw new Error('Image file is required');
     }
 
     const isCoverBoolean = isCover === 'true' || isCover === '1';
@@ -118,7 +118,7 @@ export class PropertyImagesController {
       propertyId,
       file.buffer,
       file.originalname,
-      corretorId,
+      realtorId,
       isCoverBoolean,
     );
 
@@ -181,12 +181,12 @@ export class PropertyImagesController {
     @Param('imageId') imageId: string,
     @Request() req: any,
   ): Promise<PropertyImageResponseDto> {
-    const corretorId = req.user?.id || req.user?.sub;
-    if (!corretorId) {
-      throw new Error('Usuário não autenticado corretamente');
+    const realtorId = req.user?.id || req.user?.sub;
+    if (!realtorId) {
+      throw new Error('User not authenticated correctly');
     }
 
-    const image = await this.setCoverImageUseCase.execute(propertyId, imageId, corretorId);
+    const image = await this.setCoverImageUseCase.execute(propertyId, imageId, realtorId);
     return PropertyImageResponseDto.fromEntity(image);
   }
 
@@ -228,12 +228,12 @@ export class PropertyImagesController {
     @Param('imageId') imageId: string,
     @Request() req: any,
   ): Promise<{ message: string }> {
-    const corretorId = req.user?.id || req.user?.sub;
-    if (!corretorId) {
-      throw new Error('Usuário não autenticado corretamente');
+    const realtorId = req.user?.id || req.user?.sub;
+    if (!realtorId) {
+      throw new Error('User not authenticated correctly');
     }
 
-    await this.deletePropertyImageUseCase.execute(propertyId, imageId, corretorId);
+    await this.deletePropertyImageUseCase.execute(propertyId, imageId, realtorId);
     return { message: 'Imagem deletada com sucesso' };
   }
 
@@ -270,9 +270,9 @@ export class PropertyImagesController {
     @Body() reorderDto: ReorderImagesDto,
     @Request() req: any,
   ): Promise<PropertyImageResponseDto[]> {
-    const corretorId = req.user?.id || req.user?.sub;
-    if (!corretorId) {
-      throw new Error('Usuário não autenticado corretamente');
+    const realtorId = req.user?.id || req.user?.sub;
+    if (!realtorId) {
+      throw new Error('User not authenticated correctly');
     }
 
     const imageOrders = reorderDto.images.map((item) => ({
@@ -280,7 +280,7 @@ export class PropertyImagesController {
       order: item.order,
     }));
 
-    const images = await this.reorderPropertyImagesUseCase.execute(propertyId, imageOrders, corretorId);
+    const images = await this.reorderPropertyImagesUseCase.execute(propertyId, imageOrders, realtorId);
     return images.map((image) => PropertyImageResponseDto.fromEntity(image));
   }
 }

@@ -79,9 +79,9 @@ export class RealtorsController {
       atualizarBasico: {
         summary: 'Atualizar informações básicas',
         value: {
-          nomeFantasia: 'Imóveis Premium Litoral',
-          nomeContato: 'João Silva',
-          telefone: '11999999999',
+          businessName: 'Imóveis Premium Litoral',
+          contactName: 'João Silva',
+          phone: '11999999999',
           email: 'contato@imoveispremium.com.br',
         },
       },
@@ -97,9 +97,9 @@ export class RealtorsController {
       atualizacaoCompleta: {
         summary: 'Atualização completa',
         value: {
-          nomeFantasia: 'Imóveis Premium Litoral',
-          nomeContato: 'João Silva',
-          telefone: '11999999999',
+          businessName: 'Imóveis Premium Litoral',
+          contactName: 'João Silva',
+          phone: '11999999999',
           email: 'contato@imoveispremium.com.br',
           instagram: 'https://instagram.com/imoveispremium',
           facebook: 'https://facebook.com/imoveispremium',
@@ -159,14 +159,14 @@ export class PropertiesRealtorController {
       throw new NotFoundException('Imóvel não encontrado');
     }
 
-    if (!property.corretor) {
-      throw new NotFoundException('Corretor não encontrado para este imóvel');
+    if (!property.realtor) {
+      throw new NotFoundException('Realtor not found for this property');
     }
 
-    // Se o corretor tem perfil, retornar o perfil
-    // Caso contrário, retornar null (frontend pode usar dados básicos do User)
-    if ((property.corretor as any).realtorProfile) {
-      return RealtorProfileResponseDto.fromEntity((property.corretor as any).realtorProfile);
+    // If realtor has profile, return the profile
+    // Otherwise, return null (frontend can use basic User data)
+    if ((property.realtor as any).realtorProfile) {
+      return RealtorProfileResponseDto.fromEntity((property.realtor as any).realtorProfile);
     }
 
     return null;

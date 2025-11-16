@@ -42,32 +42,32 @@ export class Property {
   @Column({ type: 'int', nullable: true })
   garageSpaces?: number;
 
-  // Comodidades
+  // Amenities
   @Column({ type: 'boolean', default: false })
-  piscina: boolean;
+  hasPool: boolean;
 
   @Column({ type: 'boolean', default: false })
-  hidromassagem: boolean;
+  hasJacuzzi: boolean;
 
   @Column({ type: 'boolean', default: false })
-  frenteMar: boolean;
+  oceanFront: boolean;
 
   @Column({ type: 'boolean', default: false })
-  jardim: boolean;
+  hasGarden: boolean;
 
   @Column({ type: 'boolean', default: false })
-  areaGourmet: boolean;
+  hasGourmetArea: boolean;
 
   @Column({ type: 'boolean', default: false })
-  mobiliado: boolean;
+  furnished: boolean;
 
-  // Relacionamento com corretor
+  // Relationship with realtor
   @Column({ type: 'uuid' })
-  corretorId: string;
+  realtorId: string;
 
   @ManyToOne(() => User)
-  @JoinColumn({ name: 'corretorId' })
-  corretor: User;
+  @JoinColumn({ name: 'realtorId' })
+  realtor: User;
 
   // Imagem de capa
   @Column({ type: 'varchar', length: 500, nullable: true })
@@ -86,9 +86,9 @@ export class Property {
   // Constructor vazio para TypeORM
   constructor() {}
 
-  // Métodos de domínio
-  public belongsToCorretor(corretorId: string): boolean {
-    return this.corretorId === corretorId;
+  // Domain methods
+  public belongsToRealtor(realtorId: string): boolean {
+    return this.realtorId === realtorId;
   }
 
   public updatePrice(newPrice: number): void {
