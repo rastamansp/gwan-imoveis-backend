@@ -146,9 +146,10 @@ export class ChatService {
               const lastComma = findLastCompleteObject(resultContent, maxContentLength - 50);
               
               if (lastComma > 0) {
-                // Truncar no último objeto completo
+                // Truncar no último objeto completo (remover a vírgula se existir)
                 const originalLength = resultContent.length;
-                const truncated = resultContent.substring(0, lastComma + 1) + ']';
+                // Pegar até a vírgula (sem incluir a vírgula) e adicionar ]
+                const truncated = resultContent.substring(0, lastComma) + ']';
                 
                 // Validar que o JSON truncado é válido
                 try {
@@ -165,11 +166,16 @@ export class ChatService {
                   const conservativeLimit = Math.floor(maxContentLength * 0.7);
                   const conservativeLastComma = findLastCompleteObject(resultContent, conservativeLimit);
                   if (conservativeLastComma > 0) {
-                    const conservativeTruncated = resultContent.substring(0, conservativeLastComma + 1) + ']';
+                    // Remover vírgula antes de adicionar ]
+                    const conservativeTruncated = resultContent.substring(0, conservativeLastComma) + ']';
                     try {
-                      JSON.parse(conservativeTruncated);
-                      resultContent = conservativeTruncated;
-                      this.logger.warn(`Resposta truncada para versão conservadora: ${conservativeTruncated.length} caracteres`);
+                      const parsed = JSON.parse(conservativeTruncated);
+                      if (Array.isArray(parsed)) {
+                        resultContent = conservativeTruncated;
+                        this.logger.warn(`Resposta truncada para versão conservadora: ${conservativeTruncated.length} caracteres`);
+                      } else {
+                        throw new Error('Parsed result is not an array');
+                      }
                     } catch {
                       resultContent = '[]';
                       this.logger.warn('Resposta muito grande, retornando array vazio');
@@ -181,18 +187,90 @@ export class ChatService {
                   }
                 }
               } else {
-                // Não encontrou vírgula válida, usar versão conservadora
-                const conservativeLimit = Math.floor(maxContentLength * 0.7);
-                const conservativeLastComma = findLastCompleteObject(resultContent, conservativeLimit);
-                if (conservativeLastComma > 0) {
-                  const conservativeTruncated = resultContent.substring(0, conservativeLastComma + 1) + ']';
-                  try {
-                    JSON.parse(conservativeTruncated);
-                    resultContent = conservativeTruncated;
-                    this.logger.warn(`Resposta truncada para versão conservadora: ${conservativeTruncated.length} caracteres`);
-                  } catch {
-                    resultContent = '[]';
-                    this.logger.warn('Resposta muito grande, retornando array vazio');
+                // Não encontrou vírgula válida, tentar encontrar último objeto completo de outra forma
+                // Procurar pelo último } que fecha um objeto no nível raiz
+                let lastObjectEnd = -1;
+                let depth = 0;
+                let inString = false;
+                let escapeNext = false;
+                
+                for (let i = 0; i < Math.min(resultContent.length, maxContentLength - 10); i++) {
+                  const char = resultContent[i];
+                  
+                  if (escapeNext) {
+                    escapeNext = false;
+                    continue;
+                  }
+                  
+                  if (char === '\\') {
+                    escapeNext = true;
+                    continue;
+                  }
+                  
+                  if (char === '"') {
+                    inString = !inString;
+                    continue;
+                  }
+                  
+                  if (inString) continue;
+                  
+                  if (char === '{') depth++;
+                  if (char === '}') {
+                    depth--;
+                    if (depth === 0 && i > 0) {
+                      // Encontrou fechamento de objeto no nível raiz
+                      lastObjectEnd = i + 1;
+                    }
+                  }
+                  if (char === '[') depth++;
+                  if (char === ']') depth--;
+                }
+                
+                if (lastObjectEnd > 0) {
+                  // Verificar se há vírgula depois do objeto
+                  let nextCharIndex = lastObjectEnd;
+                  while (nextCharIndex < resultContent.length && (resultContent[nextCharIndex] === ' ' || resultContent[nextCharIndex] === '\n' || resultContent[nextCharIndex] === '\r' || resultContent[nextCharIndex] === '\t')) {
+                    nextCharIndex++;
+                  }
+                  
+                  if (nextCharIndex < resultContent.length && resultContent[nextCharIndex] === ',') {
+                    // Há vírgula depois, incluir ela e fechar array
+                    const truncated = resultContent.substring(0, nextCharIndex) + ']';
+                    try {
+                      const parsed = JSON.parse(truncated);
+                      if (Array.isArray(parsed)) {
+                        resultContent = truncated;
+                        this.logger.warn(`Resposta truncada usando último objeto: ${truncated.length} caracteres`);
+                      } else {
+                        throw new Error('Parsed result is not an array');
+                      }
+                    } catch {
+                      // Se falhar, usar até o objeto sem vírgula
+                      const truncated = resultContent.substring(0, lastObjectEnd) + ']';
+                      try {
+                        JSON.parse(truncated);
+                        resultContent = truncated;
+                        this.logger.warn(`Resposta truncada usando último objeto (sem vírgula): ${truncated.length} caracteres`);
+                      } catch {
+                        resultContent = '[]';
+                        this.logger.warn('Resposta muito grande, retornando array vazio');
+                      }
+                    }
+                  } else {
+                    // Não há vírgula, apenas fechar array
+                    const truncated = resultContent.substring(0, lastObjectEnd) + ']';
+                    try {
+                      const parsed = JSON.parse(truncated);
+                      if (Array.isArray(parsed)) {
+                        resultContent = truncated;
+                        this.logger.warn(`Resposta truncada usando último objeto: ${truncated.length} caracteres`);
+                      } else {
+                        throw new Error('Parsed result is not an array');
+                      }
+                    } catch {
+                      resultContent = '[]';
+                      this.logger.warn('Resposta muito grande, retornando array vazio');
+                    }
                   }
                 } else {
                   resultContent = '[]';
