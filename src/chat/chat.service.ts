@@ -93,13 +93,22 @@ export class ChatService {
           let filteredResult = result;
 
           // Se for array de propriedades, priorizar propriedades com imagens ao truncar
-          if (Array.isArray(filteredResult) && filteredResult.length > 0 && filteredResult[0]?.coverImageUrl !== undefined) {
-            // Ordenar propriedades: primeiro as que têm coverImageUrl, depois as que não têm
-            filteredResult = [...filteredResult].sort((a, b) => {
-              const aHasImage = a.coverImageUrl ? 1 : 0;
-              const bHasImage = b.coverImageUrl ? 1 : 0;
-              return bHasImage - aHasImage; // Propriedades com imagem primeiro
-            });
+          if (Array.isArray(filteredResult) && filteredResult.length > 0) {
+            try {
+              const firstItem = filteredResult[0];
+              // Verificar se é um array de propriedades (tem coverImageUrl)
+              if (firstItem && typeof firstItem === 'object' && 'coverImageUrl' in firstItem) {
+                // Ordenar propriedades: primeiro as que têm coverImageUrl, depois as que não têm
+                filteredResult = [...filteredResult].sort((a: any, b: any) => {
+                  const aHasImage = a?.coverImageUrl ? 1 : 0;
+                  const bHasImage = b?.coverImageUrl ? 1 : 0;
+                  return bHasImage - aHasImage; // Propriedades com imagem primeiro
+                });
+              }
+            } catch (error) {
+              // Se houver erro na ordenação, continuar sem ordenar
+              this.logger.warn('Erro ao ordenar propriedades por imagem', { error });
+            }
           }
 
           // Serializar resultado para JSON string
