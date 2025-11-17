@@ -86,4 +86,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3001/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # Comando de inicialização (sem migrations por enquanto)
-CMD ["node", "dist/src/main.js"]
+# Tentar encontrar main.js em diferentes locais
+CMD sh -c "if [ -f dist/src/main.js ]; then node dist/src/main.js; elif [ -f dist/main.js ]; then node dist/main.js; else echo 'ERRO: main.js nao encontrado!' && find dist -name 'main.js' -type f && exit 1; fi"
