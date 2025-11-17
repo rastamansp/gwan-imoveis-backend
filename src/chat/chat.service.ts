@@ -101,36 +101,102 @@ export class ChatService {
           if (resultContent.length > maxContentLength) {
             // Se for array, tentar truncar mantendo array válido
             if (resultContent.startsWith('[')) {
-              // Truncar array de forma inteligente
-              let truncated = resultContent.substring(0, maxContentLength - 20); // Deixar espaço para fechar
+              // Função para encontrar o último objeto completo antes do limite
+              const findLastCompleteObject = (str: string, maxLen: number): number => {
+                let depth = 0;
+                let inString = false;
+                let escapeNext = false;
+                let lastComma = -1;
+                
+                for (let i = 0; i < Math.min(str.length, maxLen); i++) {
+                  const char = str[i];
+                  
+                  if (escapeNext) {
+                    escapeNext = false;
+                    continue;
+                  }
+                  
+                  if (char === '\\') {
+                    escapeNext = true;
+                    continue;
+                  }
+                  
+                  if (char === '"') {
+                    inString = !inString;
+                    continue;
+                  }
+                  
+                  if (inString) continue;
+                  
+                  if (char === '{') depth++;
+                  if (char === '}') depth--;
+                  if (char === '[') depth++;
+                  if (char === ']') depth--;
+                  
+                  // Se encontrou uma vírgula no nível raiz do array (depth === 1)
+                  if (char === ',' && depth === 1) {
+                    lastComma = i;
+                  }
+                }
+                
+                return lastComma;
+              };
               
-              // Encontrar o último objeto/array completo antes do limite
-              let lastComma = truncated.lastIndexOf(',');
-              let lastBracket = truncated.lastIndexOf(']');
+              // Tentar encontrar o último objeto completo
+              const lastComma = findLastCompleteObject(resultContent, maxContentLength - 50);
               
-              // Se encontrou uma vírgula válida antes do limite, usar até lá
-              if (lastComma > lastBracket && lastComma > truncated.length - 1000) {
-                truncated = truncated.substring(0, lastComma + 1);
-              }
-              
-              // Garantir que termine com ] válido
-              if (!truncated.endsWith(']')) {
-                truncated += ']';
-              }
-              
-              // Tentar fazer parse para garantir que está válido
-              try {
-                JSON.parse(truncated);
-                resultContent = truncated + '...[truncado]';
-              } catch {
-                // Se falhar, usar uma versão mais conservadora
-                const conservativeLimit = Math.floor(maxContentLength * 0.8);
-                const conservativeTruncated = resultContent.substring(0, conservativeLimit);
-                const lastSafeComma = conservativeTruncated.lastIndexOf(',');
-                if (lastSafeComma > 0) {
-                  resultContent = conservativeTruncated.substring(0, lastSafeComma + 1) + ']...[truncado]';
+              if (lastComma > 0) {
+                // Truncar no último objeto completo
+                const originalLength = resultContent.length;
+                const truncated = resultContent.substring(0, lastComma + 1) + ']';
+                
+                // Validar que o JSON truncado é válido
+                try {
+                  const parsed = JSON.parse(truncated);
+                  if (Array.isArray(parsed)) {
+                    resultContent = truncated;
+                    this.logger.warn(`Resposta truncada de ${originalLength} para ${truncated.length} caracteres`);
+                  } else {
+                    throw new Error('Parsed result is not an array');
+                  }
+                } catch (parseError) {
+                  // Se falhar, usar uma versão mais conservadora
+                  this.logger.warn(`Falha ao validar JSON truncado, tentando versão conservadora: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+                  const conservativeLimit = Math.floor(maxContentLength * 0.7);
+                  const conservativeLastComma = findLastCompleteObject(resultContent, conservativeLimit);
+                  if (conservativeLastComma > 0) {
+                    const conservativeTruncated = resultContent.substring(0, conservativeLastComma + 1) + ']';
+                    try {
+                      JSON.parse(conservativeTruncated);
+                      resultContent = conservativeTruncated;
+                      this.logger.warn(`Resposta truncada para versão conservadora: ${conservativeTruncated.length} caracteres`);
+                    } catch {
+                      resultContent = '[]';
+                      this.logger.warn('Resposta muito grande, retornando array vazio');
+                    }
+                  } else {
+                    // Último recurso: retornar array vazio com aviso
+                    resultContent = '[]';
+                    this.logger.warn('Resposta muito grande, retornando array vazio');
+                  }
+                }
+              } else {
+                // Não encontrou vírgula válida, usar versão conservadora
+                const conservativeLimit = Math.floor(maxContentLength * 0.7);
+                const conservativeLastComma = findLastCompleteObject(resultContent, conservativeLimit);
+                if (conservativeLastComma > 0) {
+                  const conservativeTruncated = resultContent.substring(0, conservativeLastComma + 1) + ']';
+                  try {
+                    JSON.parse(conservativeTruncated);
+                    resultContent = conservativeTruncated;
+                    this.logger.warn(`Resposta truncada para versão conservadora: ${conservativeTruncated.length} caracteres`);
+                  } catch {
+                    resultContent = '[]';
+                    this.logger.warn('Resposta muito grande, retornando array vazio');
+                  }
                 } else {
-                  resultContent = '[]...[truncado - resposta muito grande]';
+                  resultContent = '[]';
+                  this.logger.warn('Resposta muito grande, retornando array vazio');
                 }
               }
             } else {
@@ -519,7 +585,7 @@ export class ChatService {
               data = JSON.parse(content);
             } catch (parseError) {
               // Se o JSON estiver truncado, tentar recuperar o que for possível
-              console.error('Erro ao fazer parse do JSON da ferramenta:', {
+              this.logger.warn('Erro ao fazer parse do JSON da ferramenta:', {
                 contentLength: content.length,
                 contentPreview: content.substring(0, 200),
                 error: parseError instanceof Error ? parseError.message : String(parseError),
@@ -529,28 +595,153 @@ export class ChatService {
               // Procurar por arrays que começam com [
               const arrayStart = content.indexOf('[');
               if (arrayStart !== -1) {
-                // Tentar encontrar o final do array mais próximo
-                let bracketCount = 0;
-                let arrayEnd = -1;
-                for (let i = arrayStart; i < content.length; i++) {
-                  if (content[i] === '[') bracketCount++;
-                  if (content[i] === ']') bracketCount--;
-                  if (bracketCount === 0) {
-                    arrayEnd = i + 1;
-                    break;
+                // Função para encontrar o final válido do array, respeitando strings e objetos
+                const findValidArrayEnd = (str: string, start: number): number => {
+                  let depth = 0;
+                  let inString = false;
+                  let escapeNext = false;
+                  
+                  for (let i = start; i < str.length; i++) {
+                    const char = str[i];
+                    
+                    if (escapeNext) {
+                      escapeNext = false;
+                      continue;
+                    }
+                    
+                    if (char === '\\') {
+                      escapeNext = true;
+                      continue;
+                    }
+                    
+                    if (char === '"') {
+                      inString = !inString;
+                      continue;
+                    }
+                    
+                    if (inString) continue;
+                    
+                    if (char === '{') depth++;
+                    if (char === '}') depth--;
+                    if (char === '[') depth++;
+                    if (char === ']') {
+                      depth--;
+                      if (depth === 0) {
+                        return i + 1;
+                      }
+                    }
                   }
-                }
+                  
+                  return -1; // Não encontrou final válido
+                };
+                
+                const arrayEnd = findValidArrayEnd(content, arrayStart);
                 
                 if (arrayEnd > arrayStart) {
                   const partialJson = content.substring(arrayStart, arrayEnd);
                   try {
                     data = JSON.parse(partialJson);
-                  } catch {
-                    // Se ainda falhar, retornar null
-                    return null;
+                    this.logger.debug(`JSON recuperado com sucesso após truncamento: ${partialJson.length} caracteres`);
+                  } catch (recoveryError) {
+                    // Se ainda falhar, tentar encontrar o último objeto completo antes do erro
+                    this.logger.warn(`Falha ao recuperar JSON truncado: ${recoveryError instanceof Error ? recoveryError.message : String(recoveryError)}`);
+                    
+                    // Tentar encontrar última vírgula válida antes do erro
+                    let lastValidComma = -1;
+                    let depth = 0;
+                    let inString = false;
+                    let escapeNext = false;
+                    
+                    for (let i = arrayStart; i < arrayEnd; i++) {
+                      const char = content[i];
+                      
+                      if (escapeNext) {
+                        escapeNext = false;
+                        continue;
+                      }
+                      
+                      if (char === '\\') {
+                        escapeNext = true;
+                        continue;
+                      }
+                      
+                      if (char === '"') {
+                        inString = !inString;
+                        continue;
+                      }
+                      
+                      if (inString) continue;
+                      
+                      if (char === '{') depth++;
+                      if (char === '}') depth--;
+                      if (char === '[') depth++;
+                      if (char === ']') depth--;
+                      
+                      if (char === ',' && depth === 1) {
+                        lastValidComma = i;
+                      }
+                    }
+                    
+                    if (lastValidComma > arrayStart) {
+                      const recoveredJson = content.substring(arrayStart, lastValidComma + 1) + ']';
+                      try {
+                        data = JSON.parse(recoveredJson);
+                        this.logger.debug(`JSON recuperado após encontrar última vírgula válida: ${recoveredJson.length} caracteres`);
+                      } catch {
+                        return null;
+                      }
+                    } else {
+                      return null;
+                    }
                   }
                 } else {
-                  return null;
+                  // Não encontrou final válido, tentar recuperar até última vírgula válida
+                  let lastValidComma = -1;
+                  let depth = 0;
+                  let inString = false;
+                  let escapeNext = false;
+                  
+                  for (let i = arrayStart; i < content.length; i++) {
+                    const char = content[i];
+                    
+                    if (escapeNext) {
+                      escapeNext = false;
+                      continue;
+                    }
+                    
+                    if (char === '\\') {
+                      escapeNext = true;
+                      continue;
+                    }
+                    
+                    if (char === '"') {
+                      inString = !inString;
+                      continue;
+                    }
+                    
+                    if (inString) continue;
+                    
+                    if (char === '{') depth++;
+                    if (char === '}') depth--;
+                    if (char === '[') depth++;
+                    if (char === ']') depth--;
+                    
+                    if (char === ',' && depth === 1) {
+                      lastValidComma = i;
+                    }
+                  }
+                  
+                  if (lastValidComma > arrayStart) {
+                    const recoveredJson = content.substring(arrayStart, lastValidComma + 1) + ']';
+                    try {
+                      data = JSON.parse(recoveredJson);
+                      this.logger.debug(`JSON recuperado parcialmente: ${recoveredJson.length} caracteres`);
+                    } catch {
+                      return null;
+                    }
+                  } else {
+                    return null;
+                  }
                 }
               } else {
                 return null;
