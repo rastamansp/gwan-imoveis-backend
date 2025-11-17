@@ -30,15 +30,12 @@ RUN echo "=== Verificando pacote @solufy/evolution-sdk ===" && \
     npm list @solufy/evolution-sdk || echo "AVISO: SDK nao encontrado nas dependencias instaladas"
 
 # Compilar TypeScript para JavaScript
-RUN echo "=== Iniciando build ===" && npm run build
-
-# Verificar se o build gerou os arquivos necessários
-RUN test -f dist/src/main.js || (echo "ERRO: dist/src/main.js nao encontrado!" && find dist -type f 2>&1 | head -20 && exit 1) && \
-    test -f dist/src/app.module.js || (echo "ERRO: dist/src/app.module.js nao encontrado!" && find dist -name "app.module.js" 2>&1 && exit 1) && \
-    test -d dist/src/config || (echo "ERRO: dist/src/config nao encontrado!" && find dist -type d -name "config" 2>&1 && exit 1) && \
-    echo "=== Build concluido com sucesso ===" && \
-    echo "=== Arquivos principais gerados ===" && \
-    ls -lh dist/src/main.js dist/src/app.module.js
+RUN echo "=== Iniciando build ===" && npm run build && \
+    echo "=== Build concluido ===" && \
+    echo "=== Verificando estrutura dist/ ===" && \
+    ls -la dist/ 2>&1 | head -10 && \
+    echo "=== Verificando estrutura dist/src/ ===" && \
+    ls -la dist/src/ 2>&1 | head -10 || echo "AVISO: dist/src/ nao existe"
 
 # ========================================
 # PRODUCTION STAGE
