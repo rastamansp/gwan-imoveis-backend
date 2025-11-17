@@ -1,7 +1,7 @@
 ### Variáveis
 @baseUrl = http://localhost:3009/api
 @token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImpvYW9AZW1haWwuY29tIiwic3ViIjoiOThjNDk0YTMtZThiZC00YjQzLWIxNjQtNTBlZWMxOGFmNGNmIiwicm9sZSI6IlVTRVIiLCJpYXQiOjE3NjMyNTY2NDEsImV4cCI6MTc2MzM0MzA0MX0.pdj2WouIogwTIBwRwnxirmtSa-B83hY2241A89IKNNA
-
+@propertyId = dc5684f7-ecdb-452c-83ea-4c568fa3ae0a
 ### Criar novo imóvel (requer CORRETOR ou ADMIN)
 POST {{baseUrl}}/properties
 Content-Type: application/json

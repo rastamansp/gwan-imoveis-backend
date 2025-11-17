@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import { MigrationInterface, QueryRunner, TableForeignKey } from 'typeorm';
 
 export class RenameFieldsToEnglish1733500000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -28,7 +28,33 @@ export class RenameFieldsToEnglish1733500000000 implements MigrationInterface {
       
       // Rename realtor relationship column
       if (propertyTable.findColumnByName('corretorId')) {
-        // First, drop the foreign key constraint if it exists
+        // First, check if there are NULL values and handle them
+        const nullCountResult = await queryRunner.query(
+          `SELECT COUNT(*)::int as count FROM properties WHERE "corretorId" IS NULL`
+        );
+        const nullCount = nullCountResult[0]?.count || 0;
+        
+        if (nullCount > 0) {
+          // Get the first admin or CORRETOR user to use as default
+          const defaultUserResult = await queryRunner.query(
+            `SELECT id FROM users WHERE role IN ('ADMIN', 'CORRETOR') LIMIT 1`
+          );
+          
+          if (defaultUserResult.length > 0) {
+            const defaultUserId = defaultUserResult[0].id;
+            // Update NULL values with default user
+            await queryRunner.query(
+              `UPDATE properties SET "corretorId" = '${defaultUserId}' WHERE "corretorId" IS NULL`
+            );
+          } else {
+            // If no admin/corretor exists, delete properties without realtor
+            await queryRunner.query(
+              `DELETE FROM properties WHERE "corretorId" IS NULL`
+            );
+          }
+        }
+        
+        // Drop the foreign key constraint if it exists
         const foreignKeys = propertyTable.foreignKeys.filter(
           (fk) => fk.columnNames.includes('corretorId'),
         );
@@ -41,12 +67,13 @@ export class RenameFieldsToEnglish1733500000000 implements MigrationInterface {
         await queryRunner.renameColumn('properties', 'corretorId', 'realtorId');
         
         // Recreate the foreign key with new name
-        await queryRunner.createForeignKey('properties', {
+        const newForeignKey = new TableForeignKey({
           columnNames: ['realtorId'],
           referencedColumnNames: ['id'],
           referencedTableName: 'users',
           onDelete: 'CASCADE',
         });
+        await queryRunner.createForeignKey('properties', newForeignKey);
       }
     }
 
@@ -101,12 +128,13 @@ export class RenameFieldsToEnglish1733500000000 implements MigrationInterface {
         
         await queryRunner.renameColumn('properties', 'realtorId', 'corretorId');
         
-        await queryRunner.createForeignKey('properties', {
+        const oldForeignKey = new TableForeignKey({
           columnNames: ['corretorId'],
           referencedColumnNames: ['id'],
           referencedTableName: 'users',
           onDelete: 'CASCADE',
         });
+        await queryRunner.createForeignKey('properties', oldForeignKey);
       }
     }
 
