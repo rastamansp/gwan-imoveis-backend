@@ -92,6 +92,16 @@ export class ChatService {
           // Filtrar campos sensíveis ou desnecessários antes de serializar
           let filteredResult = result;
 
+          // Se for array de propriedades, priorizar propriedades com imagens ao truncar
+          if (Array.isArray(filteredResult) && filteredResult.length > 0 && filteredResult[0]?.coverImageUrl !== undefined) {
+            // Ordenar propriedades: primeiro as que têm coverImageUrl, depois as que não têm
+            filteredResult = [...filteredResult].sort((a, b) => {
+              const aHasImage = a.coverImageUrl ? 1 : 0;
+              const bHasImage = b.coverImageUrl ? 1 : 0;
+              return bHasImage - aHasImage; // Propriedades com imagem primeiro
+            });
+          }
+
           // Serializar resultado para JSON string
           let resultContent = JSON.stringify(filteredResult);
           
