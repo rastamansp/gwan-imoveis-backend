@@ -44,20 +44,27 @@ RUN echo "=== Verificando estrutura dist/ ===" && \
     echo "=== Verificando se existe dist/src/main.js ===" && \
     test -f dist/src/main.js && echo "dist/src/main.js EXISTE!" || echo "dist/src/main.js nao existe"
 
-# Verificar se main.js e app.module.js foram gerados
+# Verificar se main.js, app.module.js e arquivos de configuração foram gerados
 RUN if [ -f dist/src/main.js ]; then \
       echo "=== main.js encontrado em dist/src/main.js ===" && \
       ls -lh dist/src/main.js && \
       test -f dist/src/app.module.js || (echo "ERRO: app.module.js nao encontrado!" && find dist -name "app.module.js" 2>&1 && exit 1) && \
       echo "=== app.module.js encontrado ===" && \
-      ls -lh dist/src/app.module.js; \
+      ls -lh dist/src/app.module.js && \
+      test -f dist/src/config/typeorm.config.js || (echo "ERRO: typeorm.config.js nao encontrado!" && find dist -name "typeorm.config.js" 2>&1 && exit 1) && \
+      echo "=== typeorm.config.js encontrado ===" && \
+      ls -lh dist/src/config/typeorm.config.js && \
+      echo "=== Verificando estrutura de config/ ===" && \
+      ls -la dist/src/config/ 2>&1 || echo "AVISO: config/ nao existe"; \
     elif [ -f dist/main.js ]; then \
       echo "=== AVISO: main.js encontrado em dist/main.js (sem src/) ===" && \
       ls -lh dist/main.js && \
-      echo "=== Criando link simbolico ou copiando ===" && \
+      echo "=== Criando estrutura dist/src/ ===" && \
       mkdir -p dist/src && \
       cp dist/main.js dist/src/main.js && \
       test -f dist/app.module.js && cp dist/app.module.js dist/src/app.module.js || (echo "ERRO: app.module.js nao encontrado!" && exit 1) && \
+      mkdir -p dist/src/config && \
+      test -f dist/config/typeorm.config.js && cp dist/config/typeorm.config.js dist/src/config/typeorm.config.js || (echo "ERRO: typeorm.config.js nao encontrado!" && exit 1) && \
       echo "=== Arquivos copiados para dist/src/ ==="; \
     else \
       echo "=== ERRO: main.js nao encontrado em nenhum lugar ===" && \
