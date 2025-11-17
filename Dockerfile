@@ -30,48 +30,15 @@ RUN echo "=== Verificando pacote @solufy/evolution-sdk ===" && \
     npm list @solufy/evolution-sdk || echo "AVISO: SDK nao encontrado nas dependencias instaladas"
 
 # Compilar TypeScript para JavaScript
-RUN echo "=== Iniciando build ===" && npm run build || (echo "ERRO: Build falhou!" && exit 1)
+RUN echo "=== Iniciando build ===" && npm run build
 
-# Verificar estrutura gerada pelo build
-RUN echo "=== Verificando estrutura dist/ ===" && \
-    ls -la dist/ 2>&1 && \
-    echo "=== Verificando estrutura dist/src/ ===" && \
-    ls -la dist/src/ 2>&1 || echo "AVISO: dist/src/ nao existe" && \
-    echo "=== Procurando main.js em toda estrutura ===" && \
-    find dist -name "main.js" -type f 2>&1 && \
-    echo "=== Verificando se existe dist/main.js (sem src/) ===" && \
-    test -f dist/main.js && echo "dist/main.js EXISTE!" || echo "dist/main.js nao existe" && \
-    echo "=== Verificando se existe dist/src/main.js ===" && \
-    test -f dist/src/main.js && echo "dist/src/main.js EXISTE!" || echo "dist/src/main.js nao existe"
-
-# Verificar se main.js, app.module.js e arquivos de configuração foram gerados
-RUN if [ -f dist/src/main.js ]; then \
-      echo "=== main.js encontrado em dist/src/main.js ===" && \
-      ls -lh dist/src/main.js && \
-      test -f dist/src/app.module.js || (echo "ERRO: app.module.js nao encontrado!" && find dist -name "app.module.js" 2>&1 && exit 1) && \
-      echo "=== app.module.js encontrado ===" && \
-      ls -lh dist/src/app.module.js && \
-      test -f dist/src/config/typeorm.config.js || (echo "ERRO: typeorm.config.js nao encontrado!" && find dist -name "typeorm.config.js" 2>&1 && exit 1) && \
-      echo "=== typeorm.config.js encontrado ===" && \
-      ls -lh dist/src/config/typeorm.config.js && \
-      echo "=== Verificando estrutura de config/ ===" && \
-      ls -la dist/src/config/ 2>&1 || echo "AVISO: config/ nao existe"; \
-    elif [ -f dist/main.js ]; then \
-      echo "=== AVISO: main.js encontrado em dist/main.js (sem src/) ===" && \
-      ls -lh dist/main.js && \
-      echo "=== Criando estrutura dist/src/ ===" && \
-      mkdir -p dist/src && \
-      cp dist/main.js dist/src/main.js && \
-      test -f dist/app.module.js && cp dist/app.module.js dist/src/app.module.js || (echo "ERRO: app.module.js nao encontrado!" && exit 1) && \
-      mkdir -p dist/src/config && \
-      test -f dist/config/typeorm.config.js && cp dist/config/typeorm.config.js dist/src/config/typeorm.config.js || (echo "ERRO: typeorm.config.js nao encontrado!" && exit 1) && \
-      echo "=== Arquivos copiados para dist/src/ ==="; \
-    else \
-      echo "=== ERRO: main.js nao encontrado em nenhum lugar ===" && \
-      echo "=== Listando estrutura completa de dist/ ===" && \
-      find dist -type f 2>&1 | head -30 && \
-      exit 1; \
-    fi
+# Verificar se o build gerou os arquivos necessários
+RUN test -f dist/src/main.js || (echo "ERRO: dist/src/main.js nao encontrado!" && find dist -type f 2>&1 | head -20 && exit 1) && \
+    test -f dist/src/app.module.js || (echo "ERRO: dist/src/app.module.js nao encontrado!" && find dist -name "app.module.js" 2>&1 && exit 1) && \
+    test -d dist/src/config || (echo "ERRO: dist/src/config nao encontrado!" && find dist -type d -name "config" 2>&1 && exit 1) && \
+    echo "=== Build concluido com sucesso ===" && \
+    echo "=== Arquivos principais gerados ===" && \
+    ls -lh dist/src/main.js dist/src/app.module.js
 
 # ========================================
 # PRODUCTION STAGE
