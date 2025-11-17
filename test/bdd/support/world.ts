@@ -6,6 +6,8 @@ export interface ChatResponse {
     name: string;
     arguments?: Record<string, unknown>;
   }>;
+  sessionId?: string;
+  formattedResponse?: any;
 }
 
 export interface ChatHealthResponse {

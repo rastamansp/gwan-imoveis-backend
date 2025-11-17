@@ -11,6 +11,7 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  HttpException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -183,7 +184,7 @@ export class PropertiesController {
   async findMyProperties(@Request() req: any): Promise<PropertyResponseDto[]> {
     const realtorId = req.user?.id || req.user?.sub;
     if (!realtorId) {
-      throw new Error('User not authenticated correctly');
+      throw new HttpException('User not authenticated correctly', HttpStatus.UNAUTHORIZED);
     }
     const properties = await this.listMyPropertiesUseCase.execute(realtorId);
     return properties.map((property) => PropertyResponseDto.fromEntity(property));

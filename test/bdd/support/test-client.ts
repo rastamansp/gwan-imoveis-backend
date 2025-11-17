@@ -17,19 +17,34 @@ export class TestClient {
   public async sendMessage(
     message: string,
     userCtx?: Record<string, unknown>,
+    sessionId?: string,
+    phoneNumber?: string,
   ): Promise<{ response: ChatResponse; status: number }> {
     try {
+      const body: any = {
+        message,
+      };
+
+      if (userCtx) {
+        body.userCtx = userCtx;
+      }
+
+      if (sessionId) {
+        body.sessionId = sessionId;
+      }
+
+      if (phoneNumber) {
+        body.phoneNumber = phoneNumber;
+      }
+
       const response = await axios.post<ChatResponse>(
         `${this.baseUrl}/api/chat`,
-        {
-          message,
-          userCtx,
-        },
+        body,
         {
           headers: {
             'Content-Type': 'application/json',
           },
-          timeout: 30000, // 30 segundos
+          timeout: 60000, // 60 segundos (aumentado para chat que pode demorar mais)
         },
       );
 

@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { IPropertyRepository } from '../../domain/interfaces/property-repository.interface';
 import { Property } from '../../domain/entities/property.entity';
 import { ILogger } from '../interfaces/logger.interface';
@@ -19,7 +19,7 @@ export class GetPropertyByIdUseCase {
 
     const property = await this.propertyRepository.findById(propertyId);
     if (!property) {
-      throw new Error('Imóvel não encontrado');
+      throw new NotFoundException('Imóvel não encontrado');
     }
 
     return property;

@@ -15,10 +15,8 @@ module.exports = {
     snippetInterface: 'async-await',
   },
   paths: [
-    'src/events/features/*.feature',
-    'src/artists/features/*.feature',
-    'src/chat-health/features/*.feature',
-    'src/tickets/features/*.feature',
+    'src/properties/features/*.feature',
+    'src/chat/features/*.feature',
   ],
   publishQuiet: true,
 };

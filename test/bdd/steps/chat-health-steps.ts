@@ -186,49 +186,61 @@ Then('a resposta deve conter informações sobre doença', function (this: World
   }
 });
 
-Then('a resposta deve conter {string}', function (this: WorldType, text: string) {
-  const response = this.chatHealthResponse || (this.lastResponse ? { answer: this.lastResponse.answer } as ChatHealthResponse : null);
-  if (!response) {
-    throw new Error('Nenhuma resposta foi recebida');
+// Step específico para chat-health (só funciona se chatHealthResponse estiver definido)
+Then('a resposta do chat-health deve conter {string}', function (this: WorldType, text: string) {
+  if (!this.chatHealthResponse) {
+    throw new Error('Nenhuma resposta do chat-health foi recebida. Use steps específicos do chat-health.');
   }
   
+  const response = this.chatHealthResponse;
   const client = getChatHealthClient();
-  const lowerText = text.toLowerCase();
-  const lowerAnswer = response.answer.toLowerCase();
+  
+  // Normalizar acentos para comparação
+  const normalizeText = (str: string) => {
+    return str
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[^\w\s]/g, ''); // Remove caracteres especiais exceto espaços
+  };
+  
+  const normalizedText = normalizeText(text);
+  const normalizedAnswer = normalizeText(response.answer);
   
   // Aceitar variações comuns (com/sem dois pontos, maiúsculas/minúsculas, com/sem quebra de linha)
   const variations = [
-    lowerText,
-    lowerText.replace(':', ''),
-    lowerText.replace(':', ' '),
-    lowerText.replace(':', '\n'),
-    lowerText.replace(':', ':\n'),
+    normalizedText,
+    normalizedText.replace(':', ''),
+    normalizedText.replace(':', ' '),
+    normalizedText.replace(':', '\n'),
+    normalizedText.replace(':', ':\n'),
     // Para "Causas:", aceitar também apenas "Causas" ou "Causa" (singular ou plural)
-    lowerText.includes('causas') ? 'causas' : null,
-    lowerText.includes('causas') ? 'causa' : null,
-    lowerText.includes('causas') ? 'causas:' : null,
-    lowerText.includes('causas') ? 'causa:' : null,
+    normalizedText.includes('causas') ? 'causas' : null,
+    normalizedText.includes('causas') ? 'causa' : null,
+    normalizedText.includes('causas') ? 'causas:' : null,
+    normalizedText.includes('causas') ? 'causa:' : null,
     // Para "Tratamento:", aceitar variações
-    lowerText.includes('tratamento') ? 'tratamento' : null,
-    lowerText.includes('tratamento') ? 'tratamento:' : null,
+    normalizedText.includes('tratamento') ? 'tratamento' : null,
+    normalizedText.includes('tratamento') ? 'tratamento:' : null,
     // Para "Plantas Indicadas:", aceitar variações
-    lowerText.includes('plantas') ? 'plantas' : null,
-    lowerText.includes('plantas') ? 'plantas indicadas' : null,
+    normalizedText.includes('plantas') ? 'plantas' : null,
+    normalizedText.includes('plantas') ? 'plantas indicadas' : null,
   ].filter(v => v !== null);
   
-  const found = variations.some(variation => lowerAnswer.includes(variation as string));
+  const found = variations.some(variation => normalizedAnswer.includes(variation as string));
   
-  if (!found && !client.responseContainsText(response, text)) {
+  if (!found && !normalizedAnswer.includes(normalizedText)) {
     throw new Error(`A resposta não contém o texto "${text}" ou variações. Resposta: "${response.answer.substring(0, 200)}"`);
   }
 });
 
-Then('a resposta deve conter {string} ou {string}', function (this: WorldType, text1: string, text2: string) {
-  const response = this.chatHealthResponse || (this.lastResponse ? { answer: this.lastResponse.answer } as ChatHealthResponse : null);
-  if (!response) {
-    throw new Error('Nenhuma resposta foi recebida');
+// Step específico para chat-health (só funciona se chatHealthResponse estiver definido)
+Then('a resposta do chat-health deve conter {string} ou {string}', function (this: WorldType, text1: string, text2: string) {
+  if (!this.chatHealthResponse) {
+    throw new Error('Nenhuma resposta do chat-health foi recebida. Use steps específicos do chat-health.');
   }
   
+  const response = this.chatHealthResponse;
   const client = getChatHealthClient();
   const containsText1 = client.responseContainsText(response, text1);
   const containsText2 = client.responseContainsText(response, text2);

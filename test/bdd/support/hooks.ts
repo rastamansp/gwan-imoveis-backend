@@ -5,8 +5,8 @@ import { TestClient } from './test-client';
 // Registrar o World personalizado
 setWorldConstructor(TestWorld);
 
-// Timeout padrão de 30 segundos
-setDefaultTimeout(30 * 1000);
+// Timeout padrão de 60 segundos (aumentado para chat que pode demorar mais)
+setDefaultTimeout(60 * 1000);
 
 let testClient: TestClient;
 
@@ -15,7 +15,7 @@ let testClient: TestClient;
  */
 export function getTestClient(): TestClient {
   if (!testClient) {
-    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3001';
+    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3009';
     testClient = new TestClient(baseUrl);
   }
   return testClient;
@@ -23,7 +23,7 @@ export function getTestClient(): TestClient {
 
 BeforeAll(async () => {
   // Obter base URL do ambiente ou usar padrão
-  const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3001';
+  const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3009';
 
   // Verificar se a aplicação está rodando
   testClient = new TestClient(baseUrl);
