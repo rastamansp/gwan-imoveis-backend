@@ -30,7 +30,7 @@ RUN echo "=== Verificando pacote @solufy/evolution-sdk ===" && \
     npm list @solufy/evolution-sdk || echo "AVISO: SDK nao encontrado nas dependencias instaladas"
 
 # Compilar TypeScript para JavaScript
-RUN echo "=== Iniciando build ===" && npm run build
+RUN echo "=== Iniciando build ===" && npm run build || (echo "ERRO: Build falhou!" && exit 1)
 
 # Verificar estrutura gerada pelo build
 RUN echo "=== Verificando estrutura dist/ ===" && \
@@ -44,17 +44,21 @@ RUN echo "=== Verificando estrutura dist/ ===" && \
     echo "=== Verificando se existe dist/src/main.js ===" && \
     test -f dist/src/main.js && echo "dist/src/main.js EXISTE!" || echo "dist/src/main.js nao existe"
 
-# Verificar se main.js foi gerado (tentar ambos os caminhos)
+# Verificar se main.js e app.module.js foram gerados
 RUN if [ -f dist/src/main.js ]; then \
       echo "=== main.js encontrado em dist/src/main.js ===" && \
-      ls -lh dist/src/main.js; \
+      ls -lh dist/src/main.js && \
+      test -f dist/src/app.module.js || (echo "ERRO: app.module.js nao encontrado!" && find dist -name "app.module.js" 2>&1 && exit 1) && \
+      echo "=== app.module.js encontrado ===" && \
+      ls -lh dist/src/app.module.js; \
     elif [ -f dist/main.js ]; then \
       echo "=== AVISO: main.js encontrado em dist/main.js (sem src/) ===" && \
       ls -lh dist/main.js && \
       echo "=== Criando link simbolico ou copiando ===" && \
       mkdir -p dist/src && \
       cp dist/main.js dist/src/main.js && \
-      echo "=== Arquivo copiado para dist/src/main.js ==="; \
+      test -f dist/app.module.js && cp dist/app.module.js dist/src/app.module.js || (echo "ERRO: app.module.js nao encontrado!" && exit 1) && \
+      echo "=== Arquivos copiados para dist/src/ ==="; \
     else \
       echo "=== ERRO: main.js nao encontrado em nenhum lugar ===" && \
       echo "=== Listando estrutura completa de dist/ ===" && \
