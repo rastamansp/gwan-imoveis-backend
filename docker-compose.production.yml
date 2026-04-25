@@ -13,8 +13,8 @@ services:
       - PORT=3001
       
       # API Base URL
-      - API_BASE_URL=https://api-imoveis.gwan.com.br
-      
+      - API_BASE_URL=https://imoveis-api.gwan.cloud
+
       # Database (usando DATABASE_URL completa)
       - DATABASE_URL=${DATABASE_URL}
       
@@ -25,7 +25,7 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS}
       
       # MCP Server
-      - MCP_BASE_URL=https://api-imoveis.gwan.com.br
+      - MCP_BASE_URL=https://imoveis-api.gwan.cloud
       - MCP_PORT_SSE=3002
       - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN}
       
@@ -56,7 +56,7 @@ services:
       - logs_data:/app/logs
       
     networks:
-      - gwan
+      - gwan-network
       
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/health"]
@@ -66,31 +66,32 @@ services:
       start_period: 40s
       
     labels:
-      # Traefik configuration for api-imoveis.gwan.com.br
-      - "traefik.enable=true"
-      
       # HTTP Router (redireciona para HTTPS)
-      - "traefik.http.routers.gwan-imoveis-backend-http.rule=Host(`api-imoveis.gwan.com.br`)"
+      - "traefik.enable=true"
+      - "traefik.docker.network=gwan-network"
+
+      # HTTP Router (redireciona para HTTPS)
+      - "traefik.http.routers.gwan-imoveis-backend-http.rule=Host(`imoveis-api.gwan.cloud`)"
       - "traefik.http.routers.gwan-imoveis-backend-http.entrypoints=web"
-      - "traefik.http.routers.gwan-imoveis-backend-http.middlewares=redirect-to-https"
-      
+      - "traefik.http.routers.gwan-imoveis-backend-http.middlewares=imoveis-backend-https-redirect"
+
       # HTTPS Router
-      - "traefik.http.routers.gwan-imoveis-backend.rule=Host(`api-imoveis.gwan.com.br`)"
+      - "traefik.http.routers.gwan-imoveis-backend.rule=Host(`imoveis-api.gwan.cloud`)"
       - "traefik.http.routers.gwan-imoveis-backend.entrypoints=websecure"
       - "traefik.http.routers.gwan-imoveis-backend.tls=true"
       - "traefik.http.routers.gwan-imoveis-backend.tls.certresolver=letsencrypt"
-      
+
       # Service configuration
       - "traefik.http.services.gwan-imoveis-backend.loadbalancer.server.port=3001"
-      - "traefik.docker.network=gwan"
-      
+
       # Middleware para redirecionamento HTTP -> HTTPS
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.imoveis-backend-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.imoveis-backend-https-redirect.redirectscheme.permanent=true"
 
 volumes:
   logs_data:
     driver: local
 
 networks:
-  gwan:
+  gwan-network:
     external: true
