@@ -57,6 +57,7 @@
     "typeorm:migration:revert": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:revert -d src/config/data-source.ts",
     "typeorm:migration:generate": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:generate -d src/config/data-source.ts",
     "admin:create": "npx ts-node -r tsconfig-paths/register scripts/create-admin.ts",
+    "db:setup:local": "npx ts-node -r tsconfig-paths/register scripts/setup-local-db.ts",
     "user:create:day-imoveis": "npx ts-node -r tsconfig-paths/register scripts/create-day-imoveis-user.ts",
     "generate:swagger-token": "npx ts-node -r tsconfig-paths/register scripts/generate-swagger-token.ts",
     "db:seed": "npx ts-node -r tsconfig-paths/register scripts/run-seeder.ts",

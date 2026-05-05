@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: gwan-imoveis-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "pazdeDeus@2025"
+      POSTGRES_DB: gwan_imoveis
+    volumes:
+      - gwan_imoveis_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d gwan_imoveis"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  gwan_imoveis_postgres_data:
+    driver: local
