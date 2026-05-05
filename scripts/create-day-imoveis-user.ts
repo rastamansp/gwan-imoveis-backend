@@ -69,7 +69,9 @@ async function createUserFromSeed() {
       USER_SEED.email,
       hashedPassword,
       USER_SEED.phone,
-      USER_SEED.role,
+      null,            // whatsappNumber
+      null,            // preferredAgentId
+      USER_SEED.role,  // role
     );
 
     const savedUser = await userRepository.save(newUser);

@@ -44,7 +44,9 @@ async function createAdmin() {
       'admin@gwan.com.br',
       hashedPassword,
       '+5511999999999',
-      UserRole.ADMIN
+      null,           // whatsappNumber
+      null,           // preferredAgentId
+      UserRole.ADMIN, // role
     );
 
     const savedAdmin = await userRepository.save(adminUser);

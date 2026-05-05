@@ -110,7 +110,9 @@ async function setupLocalDb() {
       'admin@gwan.cloud',
       hashedPassword,
       '+5511999999999',
-      UserRole.ADMIN,
+      null,            // whatsappNumber
+      null,            // preferredAgentId
+      UserRole.ADMIN,  // role
     );
     await userRepository.save(admin);
     console.log('  ✅ Admin criado: admin@gwan.cloud / pazdeDeus@2025');

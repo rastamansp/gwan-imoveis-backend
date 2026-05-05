@@ -50,7 +50,9 @@ async function createTestUser() {
       'joao@email.com',
       hashedPassword,
       '+5511666666666',
-      UserRole.USER
+      null,           // whatsappNumber
+      null,           // preferredAgentId
+      UserRole.USER,  // role
     );
 
     const savedUser = await userRepository.save(testUser);
