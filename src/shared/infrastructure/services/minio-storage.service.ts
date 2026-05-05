@@ -16,19 +16,9 @@ export class MinioStorageService implements IStorageService, OnModuleInit {
     private readonly logger: ILogger,
   ) {}
 
+  private isAvailable = false;
+
   async onModuleInit() {
-    // Log de debug para verificar todas as variáveis de ambiente relacionadas ao MinIO
-    const allMinioVars = {
-      MINIO_ENDPOINT: this.configService.get<string>('MINIO_ENDPOINT'),
-      MINIO_PORT: this.configService.get<string>('MINIO_PORT'),
-      MINIO_USE_SSL: this.configService.get<string>('MINIO_USE_SSL'),
-      MINIO_ACCESS_KEY: this.configService.get<string>('MINIO_ACCESS_KEY') ? '***' : undefined,
-      MINIO_SECRET_KEY: this.configService.get<string>('MINIO_SECRET_KEY') ? '***' : undefined,
-      MINIO_BUCKET: this.configService.get<string>('MINIO_BUCKET'),
-    };
-
-    this.logger.warn('Variáveis de ambiente MinIO detectadas', allMinioVars);
-
     const endpoint = this.configService.get<string>('MINIO_ENDPOINT');
     const port = this.configService.get<number>('MINIO_PORT', 443);
     const useSSL = this.configService.get<string>('MINIO_USE_SSL') === 'true';
@@ -36,49 +26,15 @@ export class MinioStorageService implements IStorageService, OnModuleInit {
     const secretKey = this.configService.get<string>('MINIO_SECRET_KEY');
     this.bucketName = this.configService.get<string>('MINIO_BUCKET');
 
-    // Validar variáveis obrigatórias
-    if (!endpoint) {
-      const error = new Error('MINIO_ENDPOINT não configurado. Verifique as variáveis de ambiente.');
-      this.logger.error('Erro ao inicializar MinIO - Variáveis detectadas', {
-        ...allMinioVars,
-        error: error.message,
-        hint: 'Certifique-se de que as variáveis MINIO_* estão definidas no docker-compose ou no ambiente do container',
+    if (!endpoint || !accessKey || !secretKey || !this.bucketName) {
+      this.logger.warn('MinIO desativado — variáveis de ambiente incompletas', {
+        endpoint: endpoint ?? '(não definido)',
+        bucket: this.bucketName ?? '(não definido)',
+        accessKey: accessKey ? '***' : '(não definido)',
+        secretKey: secretKey ? '***' : '(não definido)',
       });
-      throw error;
+      return;
     }
-
-    if (!accessKey || !secretKey) {
-      const error = new Error('MINIO_ACCESS_KEY ou MINIO_SECRET_KEY não configurados. Verifique as variáveis de ambiente.');
-      this.logger.error('Erro ao inicializar MinIO', {
-        endpoint,
-        port,
-        accessKey: accessKey ? '***' : undefined,
-        secretKey: secretKey ? '***' : undefined,
-        bucket: this.bucketName,
-        error: error.message,
-      });
-      throw error;
-    }
-
-    if (!this.bucketName) {
-      const error = new Error('MINIO_BUCKET não configurado. Verifique as variáveis de ambiente.');
-      this.logger.error('Erro ao inicializar MinIO', {
-        endpoint,
-        port,
-        bucket: this.bucketName,
-        error: error.message,
-      });
-      throw error;
-    }
-
-    this.logger.info('Inicializando MinIO Client', {
-      endpoint,
-      port,
-      useSSL,
-      bucket: this.bucketName,
-      accessKeyConfigured: !!accessKey,
-      secretKeyConfigured: !!secretKey,
-    });
 
     this.minioClient = new MinioClient({
       endPoint: endpoint,
@@ -88,38 +44,39 @@ export class MinioStorageService implements IStorageService, OnModuleInit {
       secretKey: secretKey,
     });
 
-    // Construir base URL
     const protocol = useSSL ? 'https' : 'http';
     this.baseUrl = `${protocol}://${endpoint}:${port}/${this.bucketName}`;
 
-    // Garantir que o bucket existe
-    await this.ensureBucketExists();
-
-    this.logger.info('MinIO Storage Service inicializado', {
-      endpoint,
-      port,
-      bucket: this.bucketName,
-      useSSL,
-    });
+    try {
+      await this.ensureBucketExists();
+      this.isAvailable = true;
+      this.logger.info('MinIO Storage Service inicializado', { endpoint, port, bucket: this.bucketName, useSSL });
+    } catch (error) {
+      this.logger.warn('MinIO indisponível — upload de imagens desativado até reconexão', {
+        endpoint,
+        port,
+        error: error.message,
+        hint: 'Para uso local, defina MINIO_ENDPOINT=localhost no .env',
+      });
+    }
   }
 
   private async ensureBucketExists(): Promise<void> {
-    try {
-      const exists = await this.minioClient.bucketExists(this.bucketName);
-      if (!exists) {
-        await this.minioClient.makeBucket(this.bucketName, 'us-east-1');
-        this.logger.info('Bucket criado', { bucket: this.bucketName });
-      }
-    } catch (error) {
-      this.logger.error('Erro ao verificar/criar bucket', {
-        bucket: this.bucketName,
-        error: error.message,
-      });
-      throw error;
+    const exists = await this.minioClient.bucketExists(this.bucketName);
+    if (!exists) {
+      await this.minioClient.makeBucket(this.bucketName, 'us-east-1');
+      this.logger.info('Bucket criado', { bucket: this.bucketName });
+    }
+  }
+
+  private assertAvailable(): void {
+    if (!this.isAvailable) {
+      throw new Error('Serviço de storage (MinIO) não está disponível. Verifique a conexão e as variáveis de ambiente.');
     }
   }
 
   async uploadFile(file: Buffer, fileName: string, folder: string = 'properties'): Promise<string> {
+    this.assertAvailable();
     try {
       const timestamp = Date.now();
       const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
@@ -141,6 +98,7 @@ export class MinioStorageService implements IStorageService, OnModuleInit {
   }
 
   async deleteFile(filePath: string): Promise<boolean> {
+    this.assertAvailable();
     try {
       await this.minioClient.removeObject(this.bucketName, filePath);
       this.logger.info('Arquivo removido do MinIO', { filePath, bucket: this.bucketName });
@@ -159,6 +117,7 @@ export class MinioStorageService implements IStorageService, OnModuleInit {
   }
 
   async fileExists(filePath: string): Promise<boolean> {
+    if (!this.isAvailable) return false;
     try {
       await this.minioClient.statObject(this.bucketName, filePath);
       return true;
