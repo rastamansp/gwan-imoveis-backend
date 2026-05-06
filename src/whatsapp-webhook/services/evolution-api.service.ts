@@ -14,8 +14,7 @@ export class EvolutionApiService implements OnModuleInit {
     @Inject('ILogger') private readonly logger: ILogger,
   ) {
     this.baseUrl = this.configService.get<string>('EVOLUTION_INSTANCE_URL') || 'http://localhost:8080';
-    // Usar EVOLUTION_INSTANCE como API key (conforme mencionado pelo usuário)
-    this.apiKey = this.configService.get<string>('EVOLUTION_INSTANCE') || this.configService.get<string>('EVOLUTION_API_KEY') || '';
+    this.apiKey = this.configService.get<string>('EVOLUTION_API_KEY') || '';
 
     if (!this.baseUrl) {
       this.logger.warn('EVOLUTION_INSTANCE_URL não configurada, usando valor padrão: http://localhost:8080');
