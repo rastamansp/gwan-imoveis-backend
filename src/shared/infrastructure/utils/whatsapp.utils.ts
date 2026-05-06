@@ -47,13 +47,20 @@ export function normalizeNumberForEvolutionSDK(remoteJid: string, remoteJidAlt?:
 
   // Verificar se já é um JID válido - manter completo
   if (remoteJid.endsWith('@s.whatsapp.net')) {
-    // Manter o JID completo para o SDK
     return remoteJid;
   }
 
   if (remoteJid.endsWith('@g.us')) {
-    // Para grupos, retornar o JID completo
     return remoteJid;
+  }
+
+  // @lid é um Linked Device ID (WhatsApp multi-device) — não é número de telefone.
+  // Tentar alternativo; se não houver, rejeitar.
+  if (remoteJid.endsWith('@lid')) {
+    if (remoteJidAlt) {
+      return normalizeNumberForEvolutionSDK(remoteJidAlt);
+    }
+    throw new Error(`remoteJid é um LID sem alternativo válido: ${remoteJid}`);
   }
 
   // Se não termina com sufixo válido, tentar usar remoteJidAlt se disponível

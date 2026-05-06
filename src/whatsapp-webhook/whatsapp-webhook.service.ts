@@ -151,12 +151,26 @@ export class WhatsappWebhookService {
       const messageTimestamp = messageData?.messageTimestamp || messageData?.timestamp || Date.now();
       const pushName = messageData?.pushName || messageData?.pushName || 'Desconhecido';
 
-      // Extrair número do remetente (pode vir de key.remoteJid ou do sender do webhook)
-      // O webhook pode ter remoteJidAlt que é o formato correto quando remoteJid é inválido
-      const remoteJid = key.remoteJid || (webhook.sender as string) || 'Desconhecido';
-      const remoteJidAlt = (key as any).remoteJidAlt || null;
+      // Extrair número do remetente.
+      // Prioridade: senderPn (número real) > remoteJid > sender do webhook.
+      // remoteJid pode vir como @lid (Linked Device ID) em WhatsApp multi-device — não é número válido.
+      const senderPn = (key as any).senderPn || null;
+      const rawRemoteJid = key.remoteJid || (webhook.sender as string) || '';
+      const remoteJid = (rawRemoteJid.endsWith('@lid') && senderPn) ? senderPn : rawRemoteJid || 'Desconhecido';
+      const remoteJidAlt = (key as any).remoteJidAlt || (rawRemoteJid.endsWith('@lid') ? null : null) || null;
       const isFromMe = key.fromMe || false;
       const messageId = key.id || messageData?.id || 'Sem ID';
+
+      // Ignorar mensagens com @lid sem senderPn — não há como responder
+      if (rawRemoteJid.endsWith('@lid') && !senderPn) {
+        this.logger.warn('[SKIP] Mensagem com LID sem senderPn, ignorando', {
+          messageId,
+          remoteJid: rawRemoteJid,
+          instance: webhook.instance,
+          webhookId,
+        });
+        continue;
+      }
 
       // IGNORAR mensagens enviadas por nós (fromMe: true) - não devem ser processadas
       if (isFromMe) {
