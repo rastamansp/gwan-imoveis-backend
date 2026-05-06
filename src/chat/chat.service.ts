@@ -4,15 +4,15 @@ import axios from 'axios';
 import { MessageChannel } from '../shared/domain/value-objects/message-channel.enum';
 import { ResponseFormatterService } from './services/response-formatter.service';
 import { FormattedResponse } from './interfaces/chat-response.interface';
+import { OpenAIMessage } from './interfaces/chat-model.interface';
+import { ChatModelRouterService } from './services/providers/chat-model-router.service';
+import { ChatToolResultService } from './services/chat-tool-result.service';
 
 // Usamos any para permitir propriedades específicas do OpenAI (ex.: tool_calls)
-type OpenAIMessage = any;
 
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
-  private readonly openaiApiKey: string;
-  private readonly openaiModel: string;
   private readonly mcpBridgeBase: string;
   private readonly mcpServerToken?: string;
   private readonly maxToolIterations = 3;
@@ -22,10 +22,9 @@ export class ChatService {
     private readonly config: ConfigService,
     @Inject(ResponseFormatterService)
     private readonly responseFormatter: ResponseFormatterService,
+    private readonly chatModelRouter: ChatModelRouterService,
+    private readonly chatToolResultService: ChatToolResultService,
   ) {
-    this.openaiApiKey = this.config.get<string>('OPENAI_API_KEY')!;
-    this.openaiModel = this.config.get<string>('OPENAI_MODEL') || 'gpt-4o-mini';
-    
     // Usar MCP_BRIDGE_BASE se definido, senão construir a partir de MCP_BASE_URL ou PORT
     const mcpBridgeBaseEnv = this.config.get<string>('MCP_BRIDGE_BASE');
     const mcpBaseUrl = this.config.get<string>('MCP_BASE_URL');
@@ -60,7 +59,7 @@ export class ChatService {
     const toolsUsed: { name: string; arguments?: Record<string, unknown> }[] = [];
 
     // Primeira chamada ao modelo
-    let completion = await this.callOpenAI(messages, tools);
+    let completion = await this.chatModelRouter.complete(messages, tools, systemPrompt);
 
     while (iteration < this.maxToolIterations && completion?.choices?.[0]?.message?.tool_calls?.length) {
       const assistantMsg = completion.choices[0].message;
@@ -71,7 +70,7 @@ export class ChatService {
 
       for (const tc of toolCalls) {
         const toolName = tc.function.name;
-        const args = this.safeJsonParse(tc.function.arguments || '{}');
+        const args = this.chatToolResultService.safeJsonParse(tc.function.arguments || '{}');
 
         // Mapear alias do agente para o nome real da tool MCP
         const mcpToolName = this.mapAgentToolToMcp(toolName);
@@ -88,219 +87,7 @@ export class ChatService {
         try {
           const result = await this.callMcpTool(mcpToolName, args);
           toolsUsed.push({ name: toolName, arguments: args });
-
-          // Filtrar campos sensíveis ou desnecessários antes de serializar
-          let filteredResult = result;
-
-          // Se for array de propriedades, priorizar propriedades com imagens ao truncar
-          if (Array.isArray(filteredResult) && filteredResult.length > 0) {
-            try {
-              const firstItem = filteredResult[0];
-              // Verificar se é um array de propriedades (tem coverImageUrl)
-              if (firstItem && typeof firstItem === 'object' && 'coverImageUrl' in firstItem) {
-                // Ordenar propriedades: primeiro as que têm coverImageUrl, depois as que não têm
-                filteredResult = [...filteredResult].sort((a: any, b: any) => {
-                  const aHasImage = a?.coverImageUrl ? 1 : 0;
-                  const bHasImage = b?.coverImageUrl ? 1 : 0;
-                  return bHasImage - aHasImage; // Propriedades com imagem primeiro
-                });
-              }
-            } catch (error) {
-              // Se houver erro na ordenação, continuar sem ordenar
-              this.logger.warn('Erro ao ordenar propriedades por imagem', { error });
-            }
-          }
-
-          // Serializar resultado para JSON string
-          let resultContent = JSON.stringify(filteredResult);
-          
-          // Truncar resposta muito grande para evitar problemas com OpenAI
-          // Mas garantir que o JSON seja válido (não cortar no meio de strings)
-          const maxContentLength = 16000; // Limite de caracteres para resposta da ferramenta
-          if (resultContent.length > maxContentLength) {
-            // Se for array, tentar truncar mantendo array válido
-            if (resultContent.startsWith('[')) {
-              // Função para encontrar o último objeto completo antes do limite
-              const findLastCompleteObject = (str: string, maxLen: number): number => {
-                let depth = 0;
-                let inString = false;
-                let escapeNext = false;
-                let lastComma = -1;
-                
-                for (let i = 0; i < Math.min(str.length, maxLen); i++) {
-                  const char = str[i];
-                  
-                  if (escapeNext) {
-                    escapeNext = false;
-                    continue;
-                  }
-                  
-                  if (char === '\\') {
-                    escapeNext = true;
-                    continue;
-                  }
-                  
-                  if (char === '"') {
-                    inString = !inString;
-                    continue;
-                  }
-                  
-                  if (inString) continue;
-                  
-                  if (char === '{') depth++;
-                  if (char === '}') depth--;
-                  if (char === '[') depth++;
-                  if (char === ']') depth--;
-                  
-                  // Se encontrou uma vírgula no nível raiz do array (depth === 1)
-                  if (char === ',' && depth === 1) {
-                    lastComma = i;
-                  }
-                }
-                
-                return lastComma;
-              };
-              
-              // Tentar encontrar o último objeto completo
-              const lastComma = findLastCompleteObject(resultContent, maxContentLength - 50);
-              
-              if (lastComma > 0) {
-                // Truncar no último objeto completo (remover a vírgula se existir)
-                const originalLength = resultContent.length;
-                // Pegar até a vírgula (sem incluir a vírgula) e adicionar ]
-                const truncated = resultContent.substring(0, lastComma) + ']';
-                
-                // Validar que o JSON truncado é válido
-                try {
-                  const parsed = JSON.parse(truncated);
-                  if (Array.isArray(parsed)) {
-                    resultContent = truncated;
-                    this.logger.warn(`Resposta truncada de ${originalLength} para ${truncated.length} caracteres`);
-                  } else {
-                    throw new Error('Parsed result is not an array');
-                  }
-                } catch (parseError) {
-                  // Se falhar, usar uma versão mais conservadora
-                  this.logger.warn(`Falha ao validar JSON truncado, tentando versão conservadora: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
-                  const conservativeLimit = Math.floor(maxContentLength * 0.7);
-                  const conservativeLastComma = findLastCompleteObject(resultContent, conservativeLimit);
-                  if (conservativeLastComma > 0) {
-                    // Remover vírgula antes de adicionar ]
-                    const conservativeTruncated = resultContent.substring(0, conservativeLastComma) + ']';
-                    try {
-                      const parsed = JSON.parse(conservativeTruncated);
-                      if (Array.isArray(parsed)) {
-                        resultContent = conservativeTruncated;
-                        this.logger.warn(`Resposta truncada para versão conservadora: ${conservativeTruncated.length} caracteres`);
-                      } else {
-                        throw new Error('Parsed result is not an array');
-                      }
-                    } catch {
-                      resultContent = '[]';
-                      this.logger.warn('Resposta muito grande, retornando array vazio');
-                    }
-                  } else {
-                    // Último recurso: retornar array vazio com aviso
-                    resultContent = '[]';
-                    this.logger.warn('Resposta muito grande, retornando array vazio');
-                  }
-                }
-              } else {
-                // Não encontrou vírgula válida, tentar encontrar último objeto completo de outra forma
-                // Procurar pelo último } que fecha um objeto no nível raiz
-                let lastObjectEnd = -1;
-                let depth = 0;
-                let inString = false;
-                let escapeNext = false;
-                
-                for (let i = 0; i < Math.min(resultContent.length, maxContentLength - 10); i++) {
-                  const char = resultContent[i];
-                  
-                  if (escapeNext) {
-                    escapeNext = false;
-                    continue;
-                  }
-                  
-                  if (char === '\\') {
-                    escapeNext = true;
-                    continue;
-                  }
-                  
-                  if (char === '"') {
-                    inString = !inString;
-                    continue;
-                  }
-                  
-                  if (inString) continue;
-                  
-                  if (char === '{') depth++;
-                  if (char === '}') {
-                    depth--;
-                    if (depth === 0 && i > 0) {
-                      // Encontrou fechamento de objeto no nível raiz
-                      lastObjectEnd = i + 1;
-                    }
-                  }
-                  if (char === '[') depth++;
-                  if (char === ']') depth--;
-                }
-                
-                if (lastObjectEnd > 0) {
-                  // Verificar se há vírgula depois do objeto
-                  let nextCharIndex = lastObjectEnd;
-                  while (nextCharIndex < resultContent.length && (resultContent[nextCharIndex] === ' ' || resultContent[nextCharIndex] === '\n' || resultContent[nextCharIndex] === '\r' || resultContent[nextCharIndex] === '\t')) {
-                    nextCharIndex++;
-                  }
-                  
-                  if (nextCharIndex < resultContent.length && resultContent[nextCharIndex] === ',') {
-                    // Há vírgula depois, incluir ela e fechar array
-                    const truncated = resultContent.substring(0, nextCharIndex) + ']';
-                    try {
-                      const parsed = JSON.parse(truncated);
-                      if (Array.isArray(parsed)) {
-                        resultContent = truncated;
-                        this.logger.warn(`Resposta truncada usando último objeto: ${truncated.length} caracteres`);
-                      } else {
-                        throw new Error('Parsed result is not an array');
-                      }
-                    } catch {
-                      // Se falhar, usar até o objeto sem vírgula
-                      const truncated = resultContent.substring(0, lastObjectEnd) + ']';
-                      try {
-                        JSON.parse(truncated);
-                        resultContent = truncated;
-                        this.logger.warn(`Resposta truncada usando último objeto (sem vírgula): ${truncated.length} caracteres`);
-                      } catch {
-                        resultContent = '[]';
-                        this.logger.warn('Resposta muito grande, retornando array vazio');
-                      }
-                    }
-                  } else {
-                    // Não há vírgula, apenas fechar array
-                    const truncated = resultContent.substring(0, lastObjectEnd) + ']';
-                    try {
-                      const parsed = JSON.parse(truncated);
-                      if (Array.isArray(parsed)) {
-                        resultContent = truncated;
-                        this.logger.warn(`Resposta truncada usando último objeto: ${truncated.length} caracteres`);
-                      } else {
-                        throw new Error('Parsed result is not an array');
-                      }
-                    } catch {
-                      resultContent = '[]';
-                      this.logger.warn('Resposta muito grande, retornando array vazio');
-                    }
-                  }
-                } else {
-                  resultContent = '[]';
-                  this.logger.warn('Resposta muito grande, retornando array vazio');
-                }
-              }
-            } else {
-              // Para objetos, truncar de forma similar
-              resultContent = resultContent.substring(0, maxContentLength - 20) + '...[truncado]';
-            }
-          }
+          const resultContent = this.chatToolResultService.serializeToolResult(result);
 
           messages.push({
             role: 'tool',
@@ -323,11 +110,11 @@ export class ChatService {
       }
 
       try {
-        completion = await this.callOpenAI(messages, tools);
+        completion = await this.chatModelRouter.complete(messages, tools, systemPrompt);
       } catch (err) {
         // Log do erro para debug
         const errorMessage = err instanceof Error ? err.message : String(err);
-        console.error(`Erro ao chamar OpenAI após usar ferramentas:`, errorMessage);
+        console.error(`Erro ao chamar provedor de IA após usar ferramentas:`, errorMessage);
         
         // Tentar construir uma resposta básica com base nos resultados das ferramentas
         // Se tivermos resultados de ferramentas, tentar formatá-los
@@ -335,7 +122,7 @@ export class ChatService {
         if (toolResults.length > 0) {
           try {
             // Extrair dados brutos usando a mesma lógica do fluxo normal
-            const rawData = this.extractRawDataFromToolResults(toolResults);
+            const rawData = this.chatToolResultService.extractRawDataFromToolResults(toolResults);
 
             if (rawData && toolsUsed.length > 0) {
               // Construir resposta simples baseada nos resultados
@@ -371,7 +158,7 @@ export class ChatService {
     if (toolsUsed.length > 0) {
       const toolResults = messages.filter(m => m.role === 'tool');
       if (toolResults.length > 0) {
-        rawData = this.extractRawDataFromToolResults(toolResults);
+        rawData = this.chatToolResultService.extractRawDataFromToolResults(toolResults);
       }
     }
     
@@ -560,43 +347,6 @@ export class ChatService {
     }
   }
 
-  private async callOpenAI(messages: OpenAIMessage[], tools: any) {
-    const url = 'https://api.openai.com/v1/chat/completions';
-    const headers = {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${this.openaiApiKey}`,
-    };
-    const body = {
-      model: this.openaiModel,
-      messages,
-      tools: tools && tools.length > 0 ? tools : undefined,
-      tool_choice: tools && tools.length > 0 ? 'auto' : undefined,
-      temperature: 0.2,
-    } as any;
-
-    try {
-      const res = await axios.post(url, body, { headers, timeout: this.requestTimeoutMs });
-      return res.data;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const errorDetails = {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data,
-          requestBody: {
-            model: body.model,
-            messagesCount: body.messages?.length,
-            toolsCount: body.tools?.length,
-            tools: body.tools,
-          },
-        };
-        this.logger.error('[ERROR] Erro ao chamar OpenAI API', errorDetails);
-        throw new Error(`Erro ao chamar OpenAI: ${error.response?.data?.error?.message || error.message}`);
-      }
-      throw error;
-    }
-  }
-
   private buildFallbackAnswerFromTools(toolsUsed: { name: string; arguments?: Record<string, unknown> }[]): string {
     if (!toolsUsed.length) return 'Não foi possível concluir a resposta no momento.';
     const calls = toolsUsed.map(t => `${t.name}${t.arguments ? ' ' + JSON.stringify(t.arguments) : ''}`).join('; ');
@@ -645,260 +395,9 @@ export class ChatService {
     }
   }
 
-  private safeJsonParse(s: string): Record<string, unknown> {
-    try {
-      return JSON.parse(s);
-    } catch {
-      return {};
-    }
-  }
-
   private isValidUuid(value: string): boolean {
     const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
     return uuidRegex.test(value);
-  }
-
-  /**
-   * Extrai dados brutos dos resultados das ferramentas, tratando arrays, objetos e JSON truncado
-   */
-  private extractRawDataFromToolResults(toolResults: any[]): any {
-    if (!toolResults || toolResults.length === 0) return null;
-
-    try {
-      const results = toolResults.map((m: any) => {
-        try {
-          const content = m.content;
-          if (!content) return null;
-          
-          // Tentar fazer parse do JSON
-          let data: any;
-          
-          // Se já for objeto, usar diretamente
-          if (typeof content === 'object') {
-            data = content;
-          } else if (typeof content === 'string') {
-            // Tentar fazer parse do JSON
-            try {
-              data = JSON.parse(content);
-            } catch (parseError) {
-              // Se o JSON estiver truncado, tentar recuperar o que for possível
-              this.logger.warn('Erro ao fazer parse do JSON da ferramenta:', {
-                contentLength: content.length,
-                contentPreview: content.substring(0, 200),
-                error: parseError instanceof Error ? parseError.message : String(parseError),
-              });
-              
-              // Tentar encontrar arrays JSON válidos no conteúdo
-              // Procurar por arrays que começam com [
-              const arrayStart = content.indexOf('[');
-              if (arrayStart !== -1) {
-                // Função para encontrar o final válido do array, respeitando strings e objetos
-                const findValidArrayEnd = (str: string, start: number): number => {
-                  let depth = 0;
-                  let inString = false;
-                  let escapeNext = false;
-                  
-                  for (let i = start; i < str.length; i++) {
-                    const char = str[i];
-                    
-                    if (escapeNext) {
-                      escapeNext = false;
-                      continue;
-                    }
-                    
-                    if (char === '\\') {
-                      escapeNext = true;
-                      continue;
-                    }
-                    
-                    if (char === '"') {
-                      inString = !inString;
-                      continue;
-                    }
-                    
-                    if (inString) continue;
-                    
-                    if (char === '{') depth++;
-                    if (char === '}') depth--;
-                    if (char === '[') depth++;
-                    if (char === ']') {
-                      depth--;
-                      if (depth === 0) {
-                        return i + 1;
-                      }
-                    }
-                  }
-                  
-                  return -1; // Não encontrou final válido
-                };
-                
-                const arrayEnd = findValidArrayEnd(content, arrayStart);
-                
-                if (arrayEnd > arrayStart) {
-                  const partialJson = content.substring(arrayStart, arrayEnd);
-                  try {
-                    data = JSON.parse(partialJson);
-                    this.logger.debug(`JSON recuperado com sucesso após truncamento: ${partialJson.length} caracteres`);
-                  } catch (recoveryError) {
-                    // Se ainda falhar, tentar encontrar o último objeto completo antes do erro
-                    this.logger.warn(`Falha ao recuperar JSON truncado: ${recoveryError instanceof Error ? recoveryError.message : String(recoveryError)}`);
-                    
-                    // Tentar encontrar última vírgula válida antes do erro
-                    let lastValidComma = -1;
-                    let depth = 0;
-                    let inString = false;
-                    let escapeNext = false;
-                    
-                    for (let i = arrayStart; i < arrayEnd; i++) {
-                      const char = content[i];
-                      
-                      if (escapeNext) {
-                        escapeNext = false;
-                        continue;
-                      }
-                      
-                      if (char === '\\') {
-                        escapeNext = true;
-                        continue;
-                      }
-                      
-                      if (char === '"') {
-                        inString = !inString;
-                        continue;
-                      }
-                      
-                      if (inString) continue;
-                      
-                      if (char === '{') depth++;
-                      if (char === '}') depth--;
-                      if (char === '[') depth++;
-                      if (char === ']') depth--;
-                      
-                      if (char === ',' && depth === 1) {
-                        lastValidComma = i;
-                      }
-                    }
-                    
-                    if (lastValidComma > arrayStart) {
-                      const recoveredJson = content.substring(arrayStart, lastValidComma + 1) + ']';
-                      try {
-                        data = JSON.parse(recoveredJson);
-                        this.logger.debug(`JSON recuperado após encontrar última vírgula válida: ${recoveredJson.length} caracteres`);
-                      } catch {
-                        return null;
-                      }
-                    } else {
-                      return null;
-                    }
-                  }
-                } else {
-                  // Não encontrou final válido, tentar recuperar até última vírgula válida
-                  let lastValidComma = -1;
-                  let depth = 0;
-                  let inString = false;
-                  let escapeNext = false;
-                  
-                  for (let i = arrayStart; i < content.length; i++) {
-                    const char = content[i];
-                    
-                    if (escapeNext) {
-                      escapeNext = false;
-                      continue;
-                    }
-                    
-                    if (char === '\\') {
-                      escapeNext = true;
-                      continue;
-                    }
-                    
-                    if (char === '"') {
-                      inString = !inString;
-                      continue;
-                    }
-                    
-                    if (inString) continue;
-                    
-                    if (char === '{') depth++;
-                    if (char === '}') depth--;
-                    if (char === '[') depth++;
-                    if (char === ']') depth--;
-                    
-                    if (char === ',' && depth === 1) {
-                      lastValidComma = i;
-                    }
-                  }
-                  
-                  if (lastValidComma > arrayStart) {
-                    const recoveredJson = content.substring(arrayStart, lastValidComma + 1) + ']';
-                    try {
-                      data = JSON.parse(recoveredJson);
-                      this.logger.debug(`JSON recuperado parcialmente: ${recoveredJson.length} caracteres`);
-                    } catch {
-                      return null;
-                    }
-                  } else {
-                    return null;
-                  }
-                }
-              } else {
-                return null;
-              }
-            }
-          } else {
-            return null;
-          }
-          
-          if (data.error) return null;
-          
-          // Se for array, retornar diretamente
-          if (Array.isArray(data)) {
-            return data;
-          }
-          
-          // Tratar estruturas específicas de retorno de tools
-          
-          // Se tiver propriedade 'properties' ou 'data', usar ela
-          if (data.properties) {
-            return Array.isArray(data.properties) ? data.properties : [data.properties];
-          }
-          if (data.data) {
-            return Array.isArray(data.data) ? data.data : [data.data];
-          }
-          
-          // Se for um objeto com chaves numéricas, converter para array
-          if (typeof data === 'object' && !Array.isArray(data)) {
-            const keys = Object.keys(data);
-            const numericKeys = keys.filter(k => /^\d+$/.test(k));
-            if (numericKeys.length > 0 && numericKeys.length === keys.length) {
-              // É um objeto com chaves numéricas, converter para array
-              return numericKeys.map(k => data[k]).filter(Boolean);
-            }
-          }
-          
-          return data;
-        } catch (parseError) {
-          // Ignorar erros de parsing silenciosamente
-          return null;
-        }
-      }).filter(Boolean);
-      
-      if (results.length > 0) {
-        // Se todos os resultados são arrays, concatenar
-        const allArrays = results.every(r => Array.isArray(r));
-        if (allArrays) {
-          return results.flat();
-        } else if (results.length === 1) {
-          return results[0];
-        } else {
-          // Se há múltiplos resultados e não são todos arrays, usar o último
-          return results[results.length - 1];
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao extrair dados brutos das ferramentas:', error);
-    }
-
-    return null;
   }
 
 }

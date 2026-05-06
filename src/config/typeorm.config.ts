@@ -21,8 +21,8 @@ export const getTypeOrmConfig = (configService: ConfigService): TypeOrmModuleOpt
     type: 'postgres',
     ...connectionOptions,
     url: databaseUrl,
-    entities: ['dist/**/*.entity.js'],
-    migrations: ['dist/migrations/*.js'],
+    entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+    migrations: [__dirname + '/../migrations/*{.ts,.js}'],
     synchronize: configService.get<string>('NODE_ENV') !== 'production',
     logging: false, // Desabilitar logging de queries SQL
     ssl: false,  // Desabilitar SSL explicitamente
