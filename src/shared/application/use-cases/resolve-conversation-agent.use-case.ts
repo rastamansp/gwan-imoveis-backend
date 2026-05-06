@@ -42,6 +42,9 @@ export class ResolveConversationAgentUseCase {
   public async execute(input: ResolveConversationAgentInput): Promise<ResolveConversationAgentResult> {
     const { conversationId, userId, fallbackAgentSlug } = input;
 
+    // Garantir agentes padrão antes de qualquer lookup por slug
+    await this.ensureDefaultAgents();
+
     this.logger.info('[Agent] Resolvendo agente da conversa', {
       conversationId,
       userId: userId || null,
@@ -88,8 +91,11 @@ export class ResolveConversationAgentUseCase {
       }
     }
 
-    // 4) Agente padrão (corretor-imoveis)
-    const defaultAgent = await this.ensureDefaultAgents();
+    // 4) Agente padrão (corretor-imoveis) — já garantido por ensureDefaultAgents()
+    const defaultAgent = await this.agentRepository.findBySlug(this.defaultAgentSlug);
+    if (!defaultAgent || !defaultAgent.active) {
+      throw new Error('Agente padrão (corretor-imoveis) não encontrado ou inativo');
+    }
 
     await this.updateConversationAgent(conversation, defaultAgent);
     return { conversation, agent: defaultAgent };
@@ -111,33 +117,28 @@ export class ResolveConversationAgentUseCase {
   }
 
   /**
-   * Garante que os agentes padrão (events/health) existam.
-   * Útil em ambientes de desenvolvimento onde migrations/seeds podem não ter rodado.
+   * Garante que os agentes padrão existam no banco.
+   * Chamado no início de execute() para que lookups por slug nunca falhem por ausência de dados.
    */
-  private async ensureDefaultAgents(): Promise<Agent> {
-    let eventsAgent = await this.agentRepository.findBySlug(this.defaultAgentSlug);
+  private async ensureDefaultAgents(): Promise<void> {
+    await this.ensureAgent('corretor-imoveis', 'Corretor de Imóveis', '/api/chat');
+    await this.ensureAgent('health', 'WhatsApp Bot', '/api/chat');
+  }
 
-    if (!eventsAgent) {
-      this.logger.warn('[Agent] Agente padrão não encontrado, criando agente padrão (corretor-imoveis)', {});
-
-      // Criar agente de imóveis
-      const imoveis = Agent.create('Corretor de Imóveis', 'corretor-imoveis', '/api/chat', true);
+  private async ensureAgent(slug: string, name: string, route: string): Promise<void> {
+    const existing = await this.agentRepository.findBySlug(slug);
+    if (!existing) {
+      this.logger.warn(`[Agent] Agente '${slug}' não encontrado, criando...`, {});
+      const newAgent = Agent.create(name, slug, route, true);
       try {
-        eventsAgent = await this.agentRepository.save(imoveis);
+        await this.agentRepository.save(newAgent);
       } catch (error) {
-        // Em caso de condição de corrida (unique constraint), tentar ler novamente
-        this.logger.warn('[Agent] Erro ao salvar agente corretor-imoveis, tentando reler do repositório', {
+        // Condição de corrida — agente já criado por outra requisição simultânea
+        this.logger.warn(`[Agent] Erro ao criar agente '${slug}' (possível race condition)`, {
           error: error instanceof Error ? error.message : String(error),
         });
-        eventsAgent = await this.agentRepository.findBySlug(this.defaultAgentSlug);
       }
     }
-
-    if (!eventsAgent || !eventsAgent.active) {
-      throw new Error('Agente padrão (corretor-imoveis) não encontrado ou inativo');
-    }
-
-    return eventsAgent;
   }
 }
 

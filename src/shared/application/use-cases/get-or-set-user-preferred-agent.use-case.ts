@@ -35,6 +35,9 @@ export class GetOrSetUserPreferredAgentUseCase {
   public async execute(input: GetOrSetUserPreferredAgentInput): Promise<GetOrSetUserPreferredAgentResult> {
     const { userId, preferredAgentSlug } = input;
 
+    // Garantir agentes padrão antes de qualquer lookup por slug
+    await this.ensureDefaultAgents();
+
     this.logger.info('[Agent] Obtendo/atualizando agente preferido do usuário', {
       userId,
       preferredAgentSlug: preferredAgentSlug || null,
@@ -93,6 +96,23 @@ export class GetOrSetUserPreferredAgentUseCase {
     }
 
     return { userId, agent };
+  }
+
+  private async ensureDefaultAgents(): Promise<void> {
+    await this.ensureAgent('corretor-imoveis', 'Corretor de Imóveis', '/api/chat');
+    await this.ensureAgent('health', 'WhatsApp Bot', '/api/chat');
+  }
+
+  private async ensureAgent(slug: string, name: string, route: string): Promise<void> {
+    const existing = await this.agentRepository.findBySlug(slug);
+    if (!existing) {
+      const newAgent = Agent.create(name, slug, route, true);
+      try {
+        await this.agentRepository.save(newAgent);
+      } catch {
+        // Condição de corrida — agente já criado por outra requisição simultânea
+      }
+    }
   }
 }
 
