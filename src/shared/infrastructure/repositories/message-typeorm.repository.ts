@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Message } from '../../domain/entities/message.entity';
 import { IMessageRepository } from '../../domain/interfaces/message-repository.interface';
+import { PaginatedResult } from '../../domain/interfaces/conversation-repository.interface';
 
 @Injectable()
 export class MessageTypeOrmRepository implements IMessageRepository {
@@ -25,10 +26,25 @@ export class MessageTypeOrmRepository implements IMessageRepository {
   async findByConversationId(conversationId: string): Promise<Message[]> {
     return await this.messageRepository.find({
       where: { conversationId },
-      order: {
-        timestamp: 'ASC',
-      },
+      order: { timestamp: 'ASC' },
     });
+  }
+
+  async findByConversationIdPaginated(
+    conversationId: string,
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResult<Message>> {
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.messageRepository.findAndCount({
+      where: { conversationId },
+      order: { timestamp: 'ASC' },
+      skip,
+      take: limit,
+    });
+
+    return { data, total, page, limit };
   }
 
   async findByMessageId(messageId: string): Promise<Message | null> {
@@ -38,4 +54,3 @@ export class MessageTypeOrmRepository implements IMessageRepository {
     });
   }
 }
-

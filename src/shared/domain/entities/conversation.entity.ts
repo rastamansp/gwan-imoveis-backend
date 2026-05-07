@@ -7,6 +7,7 @@ import { Message } from './message.entity';
 @Index(['phoneNumber'])
 @Index(['userId'])
 @Index(['status'])
+@Index(['assignedRealtorId'])
 export class Conversation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -29,6 +30,9 @@ export class Conversation {
 
   @Column({ type: 'uuid', nullable: true })
   currentAgentId: string | null;
+
+  @Column({ type: 'uuid', nullable: true, name: 'assignedRealtorId' })
+  assignedRealtorId: string | null;
 
   @Column({ type: 'timestamp' })
   startedAt: Date;
@@ -84,6 +88,18 @@ export class Conversation {
 
   public associateUser(userId: string): void {
     this.userId = userId;
+  }
+
+  public assignRealtor(realtorId: string): void {
+    this.assignedRealtorId = realtorId;
+  }
+
+  public unassignRealtor(): void {
+    this.assignedRealtorId = null;
+  }
+
+  public isAssignedTo(realtorId: string): boolean {
+    return this.assignedRealtorId === realtorId;
   }
 }
 

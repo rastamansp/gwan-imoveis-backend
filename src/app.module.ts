@@ -14,6 +14,7 @@ import { WhatsappWebhookModule } from './whatsapp-webhook/whatsapp-webhook.modul
 import { RedisCacheModule } from './shared/cache/cache.module';
 import { PropertiesModule } from './properties/properties.module';
 import { RealtorsModule } from './realtors/realtors.module';
+import { ConversationsModule } from './conversations/conversations.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { RealtorsModule } from './realtors/realtors.module';
     WhatsappWebhookModule,
     PropertiesModule,
     RealtorsModule,
+    ConversationsModule,
   ],
 })
 export class AppModule {}
