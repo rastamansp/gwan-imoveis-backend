@@ -131,6 +131,49 @@ export class PropertiesTestClient {
     }
   }
 
+  public async semanticSearch(params: {
+    q?: string;
+    city?: string;
+    type?: string;
+    purpose?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    realtorId?: string;
+    limit?: number;
+    minScore?: number;
+  }): Promise<{ results: Array<{ property: Property; score: number; distance: number }>; status: number }> {
+    try {
+      const search = new URLSearchParams();
+      if (params.q !== undefined) search.append('q', params.q);
+      if (params.city) search.append('city', params.city);
+      if (params.type) search.append('type', params.type);
+      if (params.purpose) search.append('purpose', params.purpose);
+      if (params.minPrice !== undefined) search.append('minPrice', String(params.minPrice));
+      if (params.maxPrice !== undefined) search.append('maxPrice', String(params.maxPrice));
+      if (params.realtorId) search.append('realtorId', params.realtorId);
+      if (params.limit !== undefined) search.append('limit', String(params.limit));
+      if (params.minScore !== undefined) search.append('minScore', String(params.minScore));
+
+      const response = await axios.get(`${this.baseUrl}/api/properties/search?${search.toString()}`, {
+        timeout: 30000,
+        validateStatus: () => true,
+      });
+
+      return {
+        results: Array.isArray(response.data) ? response.data : [],
+        status: response.status,
+      };
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ message?: string }>;
+        throw new Error(
+          axiosError.response?.data?.message || axiosError.message || 'Erro na busca semântica',
+        );
+      }
+      throw error;
+    }
+  }
+
   /**
    * Obter propriedade por ID (público)
    */

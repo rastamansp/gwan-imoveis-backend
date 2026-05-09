@@ -36,6 +36,8 @@ import { DeletePropertyUseCase } from '../shared/application/use-cases/delete-pr
 import { GetPropertyByIdUseCase } from '../shared/application/use-cases/get-property-by-id.use-case';
 import { ListPropertiesUseCase } from '../shared/application/use-cases/list-properties.use-case';
 import { ListMyPropertiesUseCase } from '../shared/application/use-cases/list-my-properties.use-case';
+import { SearchPropertiesSemanticUseCase } from '../shared/application/use-cases/search-properties-semantic.use-case';
+import { PropertySearchResultDto } from './presentation/dtos/property-search-result.dto';
 
 @ApiTags('Imóveis')
 @Controller('properties')
@@ -47,6 +49,7 @@ export class PropertiesController {
     private readonly getPropertyByIdUseCase: GetPropertyByIdUseCase,
     private readonly listPropertiesUseCase: ListPropertiesUseCase,
     private readonly listMyPropertiesUseCase: ListMyPropertiesUseCase,
+    private readonly searchPropertiesSemanticUseCase: SearchPropertiesSemanticUseCase,
   ) {}
 
   @Post()
@@ -188,6 +191,70 @@ export class PropertiesController {
     }
     const properties = await this.listMyPropertiesUseCase.execute(realtorId);
     return properties.map((property) => PropertyResponseDto.fromEntity(property));
+  }
+
+  @Get('search')
+  @ApiExtension('x-mcp', {
+    enabled: true,
+    toolName: 'search_properties_semantic',
+    description: 'Busca imóveis por similaridade semântica (RAG) a partir de uma query em linguagem natural. Aceita os mesmos filtros estruturados do listar regular como pré-filtro.',
+  })
+  @ApiOperation({
+    summary: 'Busca semântica de imóveis (RAG)',
+    description:
+      'Recebe uma query em linguagem natural, gera embedding via provider configurado (Voyage por default, OpenAI alternativo) e retorna imóveis ordenados por similaridade cosseno. Endpoint público. Imóveis sem embedding gerado pelo provider ativo são excluídos do resultado.',
+  })
+  @ApiQuery({ name: 'q', required: true, description: 'Texto da busca em linguagem natural', example: 'apartamento perto do mar com piscina e área gourmet' })
+  @ApiQuery({ name: 'city', required: false, description: 'Pré-filtro: cidade', example: 'São Sebastião' })
+  @ApiQuery({ name: 'type', required: false, description: 'Pré-filtro: tipo', enum: ['CASA', 'APARTAMENTO', 'TERRENO', 'SALA_COMERCIAL'] })
+  @ApiQuery({ name: 'purpose', required: false, description: 'Pré-filtro: finalidade', enum: ['RENT', 'SALE', 'INVESTMENT'] })
+  @ApiQuery({ name: 'minPrice', required: false, description: 'Pré-filtro: preço mínimo', example: 100000 })
+  @ApiQuery({ name: 'maxPrice', required: false, description: 'Pré-filtro: preço máximo', example: 1000000 })
+  @ApiQuery({ name: 'realtorId', required: false, description: 'Pré-filtro: corretor' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Limite de resultados (default 20, max 50)', example: 20 })
+  @ApiQuery({ name: 'minScore', required: false, description: 'Score mínimo de similaridade (0..1)', example: 0 })
+  @ApiOkResponse({ description: 'Resultados ordenados por similaridade decrescente', type: [PropertySearchResultDto] })
+  @ApiResponse({ status: 400, description: 'Parâmetro q ausente' })
+  @ApiResponse({ status: 503, description: 'Provider de embedding sem API key configurada' })
+  @ApiExtraModels(PropertySearchResultDto)
+  async semanticSearch(
+    @Query('q') q?: string,
+    @Query('city') city?: string,
+    @Query('type') type?: string,
+    @Query('purpose') purpose?: string,
+    @Query('minPrice') minPrice?: string,
+    @Query('maxPrice') maxPrice?: string,
+    @Query('realtorId') realtorId?: string,
+    @Query('limit') limit?: string,
+    @Query('minScore') minScore?: string,
+  ): Promise<PropertySearchResultDto[]> {
+    if (!q || q.trim().length === 0) {
+      throw new HttpException('Parâmetro "q" é obrigatório', HttpStatus.BAD_REQUEST);
+    }
+
+    const filters: any = {};
+    if (city) filters.city = city;
+    if (type) filters.type = type;
+    if (purpose) filters.purpose = purpose;
+    if (realtorId) filters.realtorId = realtorId;
+    if (minPrice) filters.minPrice = parseFloat(minPrice);
+    if (maxPrice) filters.maxPrice = parseFloat(maxPrice);
+
+    const parsedLimit = limit ? Math.min(parseInt(limit, 10) || 20, 50) : 20;
+    const parsedMinScore = minScore ? Math.max(0, Math.min(parseFloat(minScore) || 0, 1)) : 0;
+
+    const hits = await this.searchPropertiesSemanticUseCase.execute({
+      q: q.trim(),
+      filters,
+      limit: parsedLimit,
+      minScore: parsedMinScore,
+    });
+
+    return hits.map((hit) => ({
+      property: PropertyResponseDto.fromEntity(hit.property),
+      score: Number(hit.score.toFixed(4)),
+      distance: Number(hit.distance.toFixed(4)),
+    }));
   }
 
   @Get(':id')

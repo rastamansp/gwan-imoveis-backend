@@ -4,7 +4,7 @@ import { PropertyPurpose } from '../value-objects/property-purpose.enum';
 import { User } from './user.entity';
 import { PropertyImage } from './property-image.entity';
 
-@Entity('properties')
+@Entity({ name: 'properties', synchronize: false })
 export class Property {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -76,6 +76,21 @@ export class Property {
   // Relacionamento com imagens
   @OneToMany(() => PropertyImage, (image) => image.property)
   images: PropertyImage[];
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  embeddingVoyageModel?: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  embeddingVoyageUpdatedAt?: Date | null;
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  embeddingOpenaiModel?: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  embeddingOpenaiUpdatedAt?: Date | null;
+
+  @Column({ type: 'text', nullable: true })
+  embeddingChunk?: string | null;
 
   @CreateDateColumn()
   createdAt: Date;

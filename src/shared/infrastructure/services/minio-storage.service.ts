@@ -44,8 +44,13 @@ export class MinioStorageService implements IStorageService, OnModuleInit {
       secretKey: secretKey,
     });
 
-    const protocol = useSSL ? 'https' : 'http';
-    this.baseUrl = `${protocol}://${endpoint}:${port}/${this.bucketName}`;
+    const publicUrl = this.configService.get<string>('MINIO_PUBLIC_URL');
+    if (publicUrl) {
+      this.baseUrl = `${publicUrl.replace(/\/$/, '')}/${this.bucketName}`;
+    } else {
+      const protocol = useSSL ? 'https' : 'http';
+      this.baseUrl = `${protocol}://${endpoint}:${port}/${this.bucketName}`;
+    }
 
     try {
       await this.ensureBucketExists();
@@ -67,6 +72,22 @@ export class MinioStorageService implements IStorageService, OnModuleInit {
       await this.minioClient.makeBucket(this.bucketName, 'us-east-1');
       this.logger.info('Bucket criado', { bucket: this.bucketName });
     }
+    await this.setBucketPublicReadPolicy();
+  }
+
+  private async setBucketPublicReadPolicy(): Promise<void> {
+    const policy = JSON.stringify({
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Allow',
+          Principal: { AWS: ['*'] },
+          Action: ['s3:GetObject'],
+          Resource: [`arn:aws:s3:::${this.bucketName}/*`],
+        },
+      ],
+    });
+    await this.minioClient.setBucketPolicy(this.bucketName, policy);
   }
 
   private assertAvailable(): void {

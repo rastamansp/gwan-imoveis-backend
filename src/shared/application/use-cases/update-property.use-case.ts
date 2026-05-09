@@ -5,6 +5,8 @@ import { UpdatePropertyDto } from '../../../properties/presentation/dtos/update-
 import { ILogger } from '../interfaces/logger.interface';
 import { IUserRepository } from '../../domain/interfaces/user-repository.interface';
 import { UserRole } from '../../domain/value-objects/user-role.enum';
+import { GeneratePropertyEmbeddingUseCase } from './generate-property-embedding.use-case';
+import { dtoHasSemanticChange } from '../services/property-embedding-chunk.builder';
 
 @Injectable()
 export class UpdatePropertyUseCase {
@@ -15,6 +17,7 @@ export class UpdatePropertyUseCase {
     private readonly userRepository: IUserRepository,
     @Inject('ILogger')
     private readonly logger: ILogger,
+    private readonly generateEmbedding: GeneratePropertyEmbeddingUseCase,
   ) {}
 
   async execute(
@@ -101,12 +104,19 @@ export class UpdatePropertyUseCase {
 
     property.updatedAt = new Date();
 
+    const semanticChanged = dtoHasSemanticChange(updatePropertyDto as unknown as Record<string, unknown>);
+
     const updatedProperty = await this.propertyRepository.update(propertyId, property);
 
     this.logger.info('Imóvel atualizado com sucesso', {
       propertyId: updatedProperty.id,
       userId,
+      semanticChanged,
     });
+
+    if (semanticChanged) {
+      await this.generateEmbedding.execute(updatedProperty);
+    }
 
     return updatedProperty;
   }

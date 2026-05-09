@@ -11,6 +11,8 @@ import { DeletePropertyUseCase } from '../shared/application/use-cases/delete-pr
 import { GetPropertyByIdUseCase } from '../shared/application/use-cases/get-property-by-id.use-case';
 import { ListPropertiesUseCase } from '../shared/application/use-cases/list-properties.use-case';
 import { ListMyPropertiesUseCase } from '../shared/application/use-cases/list-my-properties.use-case';
+import { GeneratePropertyEmbeddingUseCase } from '../shared/application/use-cases/generate-property-embedding.use-case';
+import { SearchPropertiesSemanticUseCase } from '../shared/application/use-cases/search-properties-semantic.use-case';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Property])],
@@ -26,6 +28,8 @@ import { ListMyPropertiesUseCase } from '../shared/application/use-cases/list-my
     GetPropertyByIdUseCase,
     ListPropertiesUseCase,
     ListMyPropertiesUseCase,
+    GeneratePropertyEmbeddingUseCase,
+    SearchPropertiesSemanticUseCase,
   ],
   exports: ['IPropertyRepository'],
 })

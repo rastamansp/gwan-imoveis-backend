@@ -6,6 +6,7 @@ import { ILogger } from '../interfaces/logger.interface';
 import { IUserRepository } from '../../domain/interfaces/user-repository.interface';
 import { UserRole } from '../../domain/value-objects/user-role.enum';
 import { PropertyPurpose } from '../../domain/value-objects/property-purpose.enum';
+import { GeneratePropertyEmbeddingUseCase } from './generate-property-embedding.use-case';
 
 @Injectable()
 export class CreatePropertyUseCase {
@@ -16,6 +17,7 @@ export class CreatePropertyUseCase {
     private readonly userRepository: IUserRepository,
     @Inject('ILogger')
     private readonly logger: ILogger,
+    private readonly generateEmbedding: GeneratePropertyEmbeddingUseCase,
   ) {}
 
   async execute(createPropertyDto: CreatePropertyDto, realtorId: string): Promise<Property> {
@@ -62,6 +64,8 @@ export class CreatePropertyUseCase {
       propertyId: savedProperty.id,
       realtorId,
     });
+
+    await this.generateEmbedding.execute(savedProperty);
 
     return savedProperty;
   }

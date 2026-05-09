@@ -130,3 +130,12 @@ Authorization: Bearer {{token}}
 DELETE {{baseUrl}}/properties/{{propertyId}}
 Authorization: Bearer {{token}}
 
+
+### Busca semântica (RAG) - query em linguagem natural
+GET {{baseUrl}}/properties/search?q=apartamento perto do mar com piscina e área gourmet&limit=10
+
+### Busca semântica com pré-filtros estruturados
+GET {{baseUrl}}/properties/search?q=casa de praia com vista para o mar&city=São Sebastião&purpose=SALE&maxPrice=1000000&limit=20
+
+### Busca semântica com score mínimo
+GET {{baseUrl}}/properties/search?q=imóvel mobiliado de luxo&minScore=0.5

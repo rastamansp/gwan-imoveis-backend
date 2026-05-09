@@ -7,13 +7,16 @@ import { UserCredit } from './domain/entities/user-credit.entity';
 import { Agent } from './domain/entities/agent.entity';
 import { Property } from './domain/entities/property.entity';
 import { PropertyImage } from './domain/entities/property-image.entity';
+import { UserWhatsappConfig } from './domain/entities/user-whatsapp-config.entity';
 import { ConsoleLoggerService } from './infrastructure/logger/console-logger.service';
 import { UserTypeOrmRepository } from './infrastructure/repositories/user-typeorm.repository';
 import { ConversationTypeOrmRepository } from './infrastructure/repositories/conversation-typeorm.repository';
 import { MessageTypeOrmRepository } from './infrastructure/repositories/message-typeorm.repository';
 import { UserCreditTypeOrmRepository } from './infrastructure/repositories/user-credit-typeorm.repository';
 import { QRCodeService } from './infrastructure/services/qrcode.service';
-import { EmbeddingService } from './infrastructure/services/embedding.service';
+import { EmbeddingRouterService } from './infrastructure/services/embedding/embedding-router.service';
+import { VoyageEmbeddingProviderService } from './infrastructure/services/embedding/voyage-embedding-provider.service';
+import { OpenAiEmbeddingProviderService } from './infrastructure/services/embedding/openai-embedding-provider.service';
 import { ILogger } from './application/interfaces/logger.interface';
 import { IQRCodeService } from './application/interfaces/qrcode.interface';
 import { IEmbeddingService } from './application/interfaces/embedding-service.interface';
@@ -41,6 +44,7 @@ import { ImageProcessorService } from './infrastructure/services/image-processor
 import { IPropertyImageRepository } from './domain/interfaces/property-image-repository.interface';
 import { IStorageService } from './application/interfaces/storage-service.interface';
 import { IImageProcessorService } from './application/interfaces/image-processor-service.interface';
+import { UserWhatsappConfigTypeOrmRepository } from './infrastructure/repositories/user-whatsapp-config-typeorm.repository';
 import { CreatePropertyImageUseCase } from './application/use-cases/create-property-image.use-case';
 import { SetCoverImageUseCase } from './application/use-cases/set-cover-image.use-case';
 import { DeletePropertyImageUseCase } from './application/use-cases/delete-property-image.use-case';
@@ -51,7 +55,7 @@ import { forwardRef } from '@nestjs/common';
 @Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Conversation, Message, UserCredit, Agent, Property, PropertyImage]),
+    TypeOrmModule.forFeature([User, Conversation, Message, UserCredit, Agent, Property, PropertyImage, UserWhatsappConfig]),
     forwardRef(() => {
       const { WhatsappWebhookModule } = require('../whatsapp-webhook/whatsapp-webhook.module');
       return WhatsappWebhookModule;
@@ -73,9 +77,12 @@ import { forwardRef } from '@nestjs/common';
       provide: 'IQRCodeService',
       useClass: QRCodeService,
     },
+    VoyageEmbeddingProviderService,
+    OpenAiEmbeddingProviderService,
+    EmbeddingRouterService,
     {
       provide: 'IEmbeddingService',
-      useClass: EmbeddingService,
+      useExisting: EmbeddingRouterService,
     },
     
     // Repositories
@@ -108,6 +115,10 @@ import { forwardRef } from '@nestjs/common';
       useClass: PropertyImageTypeOrmRepository,
     },
     {
+      provide: 'IUserWhatsappConfigRepository',
+      useClass: UserWhatsappConfigTypeOrmRepository,
+    },
+    {
       provide: 'IStorageService',
       useClass: MinioStorageService,
     },
@@ -137,6 +148,7 @@ import { forwardRef } from '@nestjs/common';
     'ILogger',
     'IQRCodeService',
     'IEmbeddingService',
+    EmbeddingRouterService,
     'IUserRepository',
     'IConversationRepository',
     'IMessageRepository',
@@ -144,6 +156,7 @@ import { forwardRef } from '@nestjs/common';
     'IAgentRepository',
     'IPropertyRepository',
     'IPropertyImageRepository',
+    'IUserWhatsappConfigRepository',
     'IStorageService',
     'IImageProcessorService',
     RegisterUserUseCase,

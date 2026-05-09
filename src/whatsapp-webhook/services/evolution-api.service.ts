@@ -1,13 +1,20 @@
-import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
+import { Injectable, Inject, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EvolutionClient } from '@solufy/evolution-sdk';
 import axios from 'axios';
 import { ILogger } from '../../shared/application/interfaces/logger.interface';
+import {
+  EvolutionConnectDto,
+  EvolutionCreateInstanceInput,
+  EvolutionInstanceDto,
+  EvolutionWebhookConfig,
+} from '../dtos/evolution-instance.dto';
 
 @Injectable()
 export class EvolutionApiService implements OnModuleInit {
   private readonly baseUrl: string;
   private readonly apiKey: string;
+  private readonly webhookUrl: string | null;
 
   constructor(
     private readonly configService: ConfigService,
@@ -15,6 +22,7 @@ export class EvolutionApiService implements OnModuleInit {
   ) {
     this.baseUrl = this.configService.get<string>('EVOLUTION_INSTANCE_URL') || 'http://localhost:8080';
     this.apiKey = this.configService.get<string>('EVOLUTION_API_KEY') || '';
+    this.webhookUrl = this.configService.get<string>('EVOLUTION_WHATSAPP_WEBHOOK_URL') || null;
 
     if (!this.baseUrl) {
       this.logger.warn('EVOLUTION_INSTANCE_URL não configurada, usando valor padrão: http://localhost:8080');
@@ -365,6 +373,282 @@ export class EvolutionApiService implements OnModuleInit {
         sendId,
       });
       throw error;
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Gerenciamento de instâncias (usado pelo fluxo de conexão por usuário)
+  // -----------------------------------------------------------------------
+
+  private adminHeaders(): Record<string, string> {
+    return {
+      apikey: this.apiKey,
+      'Content-Type': 'application/json',
+    };
+  }
+
+  private mapInstance(raw: any): EvolutionInstanceDto | null {
+    if (!raw) return null;
+
+    // POST /instance/create devolve `{ instanceId, instanceName, status: 'created' }`,
+    // enquanto GET /instance/fetchInstances devolve `{ id, name, connectionStatus }`.
+    // Aceitamos as duas formas.
+    const id = raw.id ?? raw.instanceId;
+    const name = raw.name ?? raw.instanceName;
+
+    if (!id || !name) return null;
+
+    const rawStatus = raw.connectionStatus ?? raw.status;
+    const connectionStatus =
+      rawStatus === 'open' || rawStatus === 'connecting' || rawStatus === 'close'
+        ? rawStatus
+        : 'close';
+
+    return {
+      id,
+      name,
+      connectionStatus,
+      ownerJid: raw.ownerJid ?? null,
+      profileName: raw.profileName ?? null,
+      profilePicUrl: raw.profilePicUrl ?? null,
+      number: raw.number ?? null,
+      integration: raw.integration ?? null,
+    };
+  }
+
+  /**
+   * Busca uma instância pelo seu UUID (Evolution `id`).
+   * Retorna null se a instância não existir mais no Evolution (órfã).
+   */
+  async fetchInstanceById(instanceId: string): Promise<EvolutionInstanceDto | null> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/instance/fetchInstances`, {
+        params: { instanceId },
+        headers: this.adminHeaders(),
+        timeout: 10000,
+      });
+
+      const data = response.data;
+      const list = Array.isArray(data) ? data : [];
+
+      if (list.length === 0) {
+        return null;
+      }
+
+      return this.mapInstance(list[0]);
+    } catch (error) {
+      // 404 = instância não existe → null (não é erro, é estado válido).
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return null;
+      }
+      this.logger.error('[ERROR] Falha ao consultar instância no Evolution', {
+        instanceId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new ServiceUnavailableException('Serviço de WhatsApp indisponível');
+    }
+  }
+
+  /**
+   * Busca uma instância pelo nome (instanceName). Útil para detectar instâncias
+   * órfãs no Evolution antes de tentar recriá-las.
+   */
+  async fetchInstanceByName(instanceName: string): Promise<EvolutionInstanceDto | null> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/instance/fetchInstances`, {
+        params: { instanceName },
+        headers: this.adminHeaders(),
+        timeout: 10000,
+      });
+
+      const data = response.data;
+      const list = Array.isArray(data) ? data : [];
+
+      if (list.length === 0) {
+        return null;
+      }
+
+      return this.mapInstance(list[0]);
+    } catch (error) {
+      // 404 = instância não existe → null (não é erro).
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return null;
+      }
+      this.logger.error('[ERROR] Falha ao consultar instância por nome no Evolution', {
+        instanceName,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new ServiceUnavailableException('Serviço de WhatsApp indisponível');
+    }
+  }
+
+  /**
+   * Resolve a config de webhook a ser enviada na criação da instância.
+   * - Se `input.webhook` for passado explicitamente, ele tem prioridade.
+   * - Caso contrário, se `EVOLUTION_WHATSAPP_WEBHOOK_URL` estiver setada, monta config
+   *   default subscrevendo apenas `MESSAGES_UPSERT` em base64.
+   * - Se nada disso, retorna `null` (instância é criada sem webhook).
+   */
+  private resolveWebhookConfig(input: EvolutionCreateInstanceInput): EvolutionWebhookConfig | null {
+    if (input.webhook) {
+      return input.webhook;
+    }
+    if (!this.webhookUrl) {
+      return null;
+    }
+    return {
+      url: this.webhookUrl,
+      byEvents: false,
+      base64: true,
+      events: ['MESSAGES_UPSERT'],
+    };
+  }
+
+  /**
+   * Cria uma nova instância no Evolution já com `qrcode: true` e integração Baileys.
+   * Se `EVOLUTION_WHATSAPP_WEBHOOK_URL` estiver configurada, registra o webhook na criação
+   * (subscrição: `MESSAGES_UPSERT`).
+   */
+  async createInstance(input: EvolutionCreateInstanceInput): Promise<EvolutionInstanceDto> {
+    const webhook = this.resolveWebhookConfig(input);
+
+    const body: Record<string, unknown> = {
+      instanceName: input.instanceName,
+      qrcode: true,
+      integration: input.integration,
+    };
+
+    if (webhook) {
+      // Evolution v2 espera o webhook como objeto aninhado (campos flat são v1).
+      body.webhook = {
+        enabled: true,
+        url: webhook.url,
+        byEvents: webhook.byEvents ?? false,
+        base64: webhook.base64 ?? true,
+        events: webhook.events,
+      };
+    }
+
+    try {
+      const response = await axios.post(
+        `${this.baseUrl}/instance/create`,
+        body,
+        { headers: this.adminHeaders(), timeout: 15000 },
+      );
+
+      const raw = response.data?.instance ?? response.data;
+      const mapped = this.mapInstance(raw);
+
+      if (!mapped) {
+        throw new Error('Resposta inesperada do Evolution ao criar instância');
+      }
+
+      this.logger.info('[CREATE] Instância criada no Evolution', {
+        instanceName: mapped.name,
+        instanceId: mapped.id,
+        webhookUrl: webhook?.url ?? null,
+        webhookEvents: webhook?.events ?? null,
+      });
+
+      return mapped;
+    } catch (error) {
+      this.logger.error('[ERROR] Falha ao criar instância no Evolution', {
+        instanceName: input.instanceName,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new ServiceUnavailableException('Falha ao criar instância no WhatsApp');
+    }
+  }
+
+  /**
+   * Solicita o QR/pairing code de uma instância existente.
+   * Retorna `{ pairingCode, code, base64 }`.
+   */
+  async connectInstance(instanceName: string): Promise<EvolutionConnectDto> {
+    try {
+      const response = await axios.get(
+        `${this.baseUrl}/instance/connect/${encodeURIComponent(instanceName)}`,
+        { headers: this.adminHeaders(), timeout: 15000 },
+      );
+
+      const data = response.data || {};
+      return {
+        pairingCode: data.pairingCode ?? null,
+        code: data.code ?? null,
+        base64: data.base64 ?? null,
+        count: data.count,
+      };
+    } catch (error) {
+      this.logger.error('[ERROR] Falha ao gerar QR no Evolution', {
+        instanceName,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new ServiceUnavailableException('Falha ao iniciar conexão no WhatsApp');
+    }
+  }
+
+  /**
+   * Aplica o webhook padrão (definido por `EVOLUTION_WHATSAPP_WEBHOOK_URL`) numa
+   * instância já criada. No-op se a env não estiver setada. Não-fatal se falhar.
+   */
+  async applyConfiguredWebhook(instanceName: string): Promise<void> {
+    const webhook = this.resolveWebhookConfig({ instanceName, integration: 'WHATSAPP-BAILEYS' });
+    if (!webhook) return;
+    await this.setInstanceWebhook(instanceName, webhook);
+  }
+
+  /**
+   * Configura/atualiza o webhook de uma instância via endpoint dedicado.
+   * Usado como segunda etapa após o create — o body do create aceita webhook
+   * em algumas versões do v2, mas chamar `POST /webhook/set/{instance}`
+   * explicitamente garante que a config foi aplicada independente da versão.
+   */
+  async setInstanceWebhook(instanceName: string, webhook: EvolutionWebhookConfig): Promise<void> {
+    try {
+      await axios.post(
+        `${this.baseUrl}/webhook/set/${encodeURIComponent(instanceName)}`,
+        {
+          webhook: {
+            enabled: true,
+            url: webhook.url,
+            byEvents: webhook.byEvents ?? false,
+            base64: webhook.base64 ?? true,
+            events: webhook.events,
+          },
+        },
+        { headers: this.adminHeaders(), timeout: 10000 },
+      );
+      this.logger.info('[WEBHOOK] Webhook configurado na instância', {
+        instanceName,
+        url: webhook.url,
+        events: webhook.events,
+      });
+    } catch (error) {
+      // Logar mas não propagar — instância criada sem webhook é estado degradado
+      // (recuperável manualmente), instância não criada é estado pior.
+      this.logger.error('[ERROR] Falha ao configurar webhook (não-fatal)', {
+        instanceName,
+        url: webhook.url,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
+   * Faz logout de uma instância (sem apagá-la). Útil para "desconectar".
+   */
+  async logoutInstance(instanceName: string): Promise<void> {
+    try {
+      await axios.delete(
+        `${this.baseUrl}/instance/logout/${encodeURIComponent(instanceName)}`,
+        { headers: this.adminHeaders(), timeout: 10000 },
+      );
+    } catch (error) {
+      this.logger.error('[ERROR] Falha ao desconectar instância no Evolution', {
+        instanceName,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new ServiceUnavailableException('Falha ao desconectar do WhatsApp');
     }
   }
 }

@@ -1,0 +1,19 @@
+### Variáveis
+@baseUrl = http://localhost:3001/api
+@token = SEU_JWT_AQUI
+
+### 1. Status da integração WhatsApp do usuário autenticado
+GET {{baseUrl}}/users/me/whatsapp
+Authorization: Bearer {{token}}
+
+### 2. Criar instância Evolution para o usuário (idempotente)
+POST {{baseUrl}}/users/me/whatsapp/instance
+Authorization: Bearer {{token}}
+
+### 3. Solicitar QR Code (válido por 30s)
+POST {{baseUrl}}/users/me/whatsapp/connect
+Authorization: Bearer {{token}}
+
+### 4. Desconectar (logout sem apagar)
+POST {{baseUrl}}/users/me/whatsapp/disconnect
+Authorization: Bearer {{token}}
