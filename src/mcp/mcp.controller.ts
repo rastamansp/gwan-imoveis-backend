@@ -49,7 +49,7 @@ export class McpBridgeController {
   @ApiResponse({ status: 200, description: 'Resultado da execução do tool' })
   async callTool(@Body() body: CallToolDto): Promise<any> {
     // Tools públicas que não requerem autenticação MCP
-    const publicTools = ['list_properties', 'get_property_by_id'];
+    const publicTools = ['list_properties', 'get_property_by_id', 'search_properties_semantic'];
     const isPublicTool = publicTools.includes(body.name);
     
     // Autenticação do servidor MCP (não confundir com JWT do backend)

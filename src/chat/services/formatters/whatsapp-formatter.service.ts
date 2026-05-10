@@ -57,15 +57,15 @@ export class WhatsAppFormatterService {
     }
 
     const lastTool = toolsUsed[toolsUsed.length - 1].name.toLowerCase();
-    
-    if (lastTool.includes('list_properties')) {
+
+    if (lastTool.includes('list_properties') || lastTool.includes('search_properties_semantic')) {
       return 'property_list';
     }
-    
+
     if (lastTool.includes('get_property_by_id') || lastTool.includes('property_detail')) {
       return 'property_detail';
     }
-    
+
     return 'generic';
   }
 

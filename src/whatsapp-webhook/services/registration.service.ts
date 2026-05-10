@@ -16,6 +16,14 @@ import {
 
 export type RegistrationStatus = 'pending' | 'collecting_name' | 'collecting_email' | 'confirming' | 'completed' | 'cancelled';
 
+const INTERMEDIATE_STATUSES: RegistrationStatus[] = [
+  'pending',
+  'collecting_name',
+  'collecting_email',
+  'confirming',
+];
+const ABANDONED_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+
 interface RegistrationMetadata {
   registrationStatus: RegistrationStatus;
   registrationData: {
@@ -107,6 +115,24 @@ export class RegistrationService {
 
     const metadata = conversation.metadata as RegistrationMetadata;
     const currentStatus = metadata.registrationStatus;
+
+    // TTL de cadastro abandonado: se a conversa está em estado intermediário
+    // há mais de 24h, resetar para `pending` e reenviar a boas-vindas em vez
+    // de tentar processar a nova mensagem como continuação do fluxo antigo.
+    if (
+      INTERMEDIATE_STATUSES.includes(currentStatus) &&
+      conversation.updatedAt &&
+      Date.now() - new Date(conversation.updatedAt).getTime() > ABANDONED_TTL_MS
+    ) {
+      this.logger.info('[REGISTRATION] Cadastro expirado por inatividade — resetando', {
+        conversationId,
+        previousStatus: currentStatus,
+        updatedAt: conversation.updatedAt,
+      });
+      const numberToSend = remoteJid || phoneNumber;
+      await this.startRegistration(conversationId, phoneNumber, instanceName, numberToSend);
+      return { completed: false, shouldContinueChat: false };
+    }
 
     // Log detalhado para debug
     this.logger.info('[REGISTRATION] Processando mensagem de cadastro', {
@@ -405,10 +431,10 @@ export class RegistrationService {
         whatsappNumber: phoneNumber,
       });
 
-      // Garantir que o agente preferido seja definido para o agente de saúde por padrão (WhatsApp)
+      // Garantir que o agente preferido seja definido para corretor-imoveis (default global)
       await this.getOrSetUserPreferredAgentUseCase.execute({
         userId: user.id,
-        preferredAgentSlug: 'health',
+        preferredAgentSlug: 'corretor-imoveis',
       });
 
       // Atualizar conversa com userId
@@ -419,11 +445,11 @@ export class RegistrationService {
       };
       await this.conversationRepository.save(conversation);
 
-      // Definir agente atual da conversa como health por padrão
+      // Definir agente atual da conversa como corretor-imoveis
       await this.resolveConversationAgentUseCase.execute({
         conversationId,
         userId: user.id,
-        fallbackAgentSlug: 'health',
+        fallbackAgentSlug: 'corretor-imoveis',
       });
 
       // Formatar número para envio

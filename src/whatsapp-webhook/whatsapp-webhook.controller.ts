@@ -1,4 +1,5 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, Headers, RawBodyRequest, Req, Inject, Logger, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, Headers, RawBodyRequest, Req, Inject, Logger, UsePipes, ValidationPipe, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiHeader } from '@nestjs/swagger';
 import { WhatsappWebhookService } from './whatsapp-webhook.service';
 import { EvolutionWebhookDto } from './dtos/evolution-webhook.dto';
@@ -11,6 +12,7 @@ export class WhatsappWebhookController {
 
   constructor(
     private readonly whatsappWebhookService: WhatsappWebhookService,
+    private readonly configService: ConfigService,
     @Inject('ILogger') private readonly logger: ILogger,
   ) {}
 
@@ -96,10 +98,24 @@ export class WhatsappWebhookController {
     @Req() req: RawBodyRequest<Request>,
   ): Promise<{ success: boolean; message: string }> {
     const requestId = `req-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-    
+
+    // Autenticação via header compartilhado com a Evolution API.
+    // Quando WHATSAPP_WEBHOOK_SECRET está vazia, a checagem é desabilitada (apenas dev local).
+    const expectedToken = this.configService.get<string>('WHATSAPP_WEBHOOK_SECRET');
+    if (expectedToken) {
+      const providedToken =
+        headers['x-evolution-token'] || headers['X-Evolution-Token' as keyof typeof headers];
+      if (providedToken !== expectedToken) {
+        this.logger.warn('[WEBHOOK] Tentativa de webhook sem token válido', {
+          requestId,
+          hasToken: !!providedToken,
+        });
+        throw new UnauthorizedException('Invalid webhook token');
+      }
+    }
+
     // Log inicial usando Logger do NestJS (sempre aparece)
     this.nestLogger.log(`🔔 [WEBHOOK] Endpoint chamado - Webhook recebido - RequestId: ${requestId}`);
-    console.log(`🔔 [WEBHOOK] Console.log - Payload completo recebido - RequestId: ${requestId}:`, JSON.stringify(body, null, 2));
 
     // Normalizar o payload para o formato esperado (Evolution API pode usar diferentes formatos)
     const webhook: EvolutionWebhookDto = {
@@ -127,12 +143,9 @@ export class WhatsappWebhookController {
       messageIdFromPayload,
     });
 
-    // Log dos headers recebidos (podem conter informações importantes)
+    // Log dos headers recebidos (passa objeto cru — logger redacta chaves sensíveis)
     if (Object.keys(headers).length > 0) {
-      this.nestLogger.debug('Headers recebidos no webhook', JSON.stringify(headers, null, 2));
-      this.logger.debug('Headers recebidos no webhook', {
-        headers: JSON.stringify(headers, null, 2),
-      });
+      this.logger.debug('Headers recebidos no webhook', { headers });
     }
 
     try {
@@ -158,7 +171,7 @@ export class WhatsappWebhookController {
         messageIdFromPayload,
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
-        webhook: JSON.stringify(webhook, null, 2),
+        webhook,
       });
 
       throw error;

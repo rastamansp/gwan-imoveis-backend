@@ -11,4 +11,9 @@ export interface IMessageRepository {
     limit: number,
   ): Promise<PaginatedResult<Message>>;
   findByMessageId(messageId: string): Promise<Message | null>;
+  /**
+   * Retorna as últimas N mensagens da conversa em ordem cronológica ascendente.
+   * Usado para construir histórico de contexto para o LLM.
+   */
+  findRecentByConversationId(conversationId: string, limit: number): Promise<Message[]>;
 }

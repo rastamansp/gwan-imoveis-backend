@@ -96,8 +96,10 @@ export class ChatController {
       conversationId = conversation.id;
     }
 
-    // Chamar serviço de chat com canal WEB
-    const result = await this.chatService.chat(body.message, body.userCtx, MessageChannel.WEB);
+    // Chamar serviço de chat com canal WEB e (se houver) histórico da conversa
+    const result = await this.chatService.chat(body.message, body.userCtx, MessageChannel.WEB, {
+      conversationId: conversationId || undefined,
+    });
 
     // Salvar mensagens se tiver conversa
     if (conversationId) {

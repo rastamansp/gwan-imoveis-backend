@@ -2,6 +2,8 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { MessageChannel } from '../shared/domain/value-objects/message-channel.enum';
+import { MessageDirection } from '../shared/domain/value-objects/message-direction.enum';
+import { IMessageRepository } from '../shared/domain/interfaces/message-repository.interface';
 import { ResponseFormatterService } from './services/response-formatter.service';
 import { FormattedResponse } from './interfaces/chat-response.interface';
 import { OpenAIMessage } from './interfaces/chat-model.interface';
@@ -17,6 +19,9 @@ export class ChatService {
   private readonly mcpServerToken?: string;
   private readonly maxToolIterations = 3;
   private readonly requestTimeoutMs = 30000; // 30 segundos para operações que podem demorar mais
+  // Histórico curto: últimos 6 turnos (3 pares user/assistant) — suficiente para follow-ups
+  // sem inflar o prompt em conversas longas.
+  private readonly historyTurnLimit = 6;
 
   constructor(
     private readonly config: ConfigService,
@@ -24,6 +29,8 @@ export class ChatService {
     private readonly responseFormatter: ResponseFormatterService,
     private readonly chatModelRouter: ChatModelRouterService,
     private readonly chatToolResultService: ChatToolResultService,
+    @Inject('IMessageRepository')
+    private readonly messageRepository: IMessageRepository,
   ) {
     // Usar MCP_BRIDGE_BASE se definido, senão construir a partir de MCP_BASE_URL ou PORT
     const mcpBridgeBaseEnv = this.config.get<string>('MCP_BRIDGE_BASE');
@@ -47,11 +54,16 @@ export class ChatService {
     message: string,
     userCtx?: Record<string, unknown>,
     channel?: MessageChannel,
+    options?: { conversationId?: string },
   ): Promise<{ answer: string; toolsUsed: { name: string; arguments?: Record<string, unknown> }[]; formattedResponse?: FormattedResponse }> {
-    const systemPrompt = this.buildSystemPrompt();
+    const systemPrompt = this.buildSystemPrompt(channel, userCtx);
+    const history = options?.conversationId
+      ? await this.loadConversationHistory(options.conversationId, message)
+      : [];
     const messages: OpenAIMessage[] = [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: this.normalizeUserMessage(message, userCtx) },
+      ...history,
+      { role: 'user', content: message },
     ];
 
     const tools = this.buildToolsSchema();
@@ -179,15 +191,44 @@ export class ChatService {
     return { answer, toolsUsed, formattedResponse };
   }
 
-  private buildSystemPrompt(): string {
+  private buildSystemPrompt(channel?: MessageChannel, userCtx?: Record<string, unknown>): string {
+    const channelGuidance =
+      channel === MessageChannel.WHATSAPP
+        ? [
+            'CANAL: WhatsApp. Diretrizes específicas:',
+            '- Responda em até 800 caracteres quando possível.',
+            '- Evite tabelas, listas longas e blocos de Markdown extensos — preserve a leitura no celular.',
+            '- Use no máximo 1–2 emojis por parágrafo.',
+            '- Para listagens, traga até 5 itens e ofereça refinar a busca.',
+            '',
+          ]
+        : channel === MessageChannel.WEB
+        ? [
+            'CANAL: Web. Pode usar Markdown (cabeçalhos, listas, tabelas) se ajudar a clareza.',
+            '',
+          ]
+        : [];
+
+    const userCtxBlock =
+      userCtx && Object.keys(userCtx).length > 0
+        ? [
+            'CONTEXTO DO USUÁRIO (não repetir literalmente para o usuário; usar apenas como informação interna):',
+            JSON.stringify(userCtx),
+            '',
+          ]
+        : [];
+
     return [
       'Você é um assistente especializado em imóveis da plataforma Litoral Imóveis.',
       'Responda às perguntas do usuário e utilize ferramentas quando precisar de dados atualizados.',
       '',
+      ...channelGuidance,
+      ...userCtxBlock,
       'FERRAMENTAS DISPONÍVEIS:',
       '',
         'IMÓVEIS:',
-        '- list_properties: Lista imóveis cadastrados com filtros opcionais (cidade, tipo, finalidade, preço mínimo/máximo, realtor)',
+        '- list_properties: Lista imóveis com filtros estruturados explícitos (cidade, tipo, finalidade, preço mínimo/máximo, realtor)',
+        '  * Use quando o usuário fornecer filtros claros e exatos.',
         '  * Filtros disponíveis:',
         '    - city: Filtrar por cidade (ex: "São Sebastião")',
         '    - type: Filtrar por tipo (CASA, APARTAMENTO, TERRENO, SALA_COMERCIAL)',
@@ -196,14 +237,19 @@ export class ChatService {
         '    - maxPrice: Preço máximo (ex: 1000000)',
         '    - realtorId: Filtrar por realtor específico (UUID)',
         '  * Exemplos de uso:',
-        '    - "Liste imóveis em São Sebastião" → usar city="São Sebastião"',
-        '    - "Mostre casas à venda" → usar type="CASA", purpose="SALE"',
-        '    - "Busque imóveis para aluguel" → usar purpose="RENT"',
-        '    - "Busque imóveis entre 300 mil e 500 mil" → usar minPrice=300000, maxPrice=500000',
-        '    - "Imóveis com piscina" → usar list_properties e filtrar resultados por comodidades',
-      '- get_property_by_id: Obtém detalhes completos de um imóvel específico pelo UUID',
-      '  * Use quando o usuário solicitar detalhes de um imóvel específico ou mencionar um ID',
-      '  * Exemplos: "Mostre os detalhes do imóvel {id}", "Quero ver mais informações sobre esse imóvel"',
+        '    - "Liste imóveis em São Sebastião" → city="São Sebastião"',
+        '    - "Mostre casas à venda" → type="CASA", purpose="SALE"',
+        '    - "Busque imóveis entre 300 mil e 500 mil" → minPrice=300000, maxPrice=500000',
+        '- search_properties_semantic: Busca imóveis por similaridade semântica (RAG) a partir de uma descrição em linguagem natural.',
+        '  * Use quando o usuário expressar desejos subjetivos ou descritivos que não mapeiam diretamente para filtros estruturados.',
+        '  * Pode combinar com filtros estruturados como pré-filtro (city, type, purpose, minPrice, maxPrice, realtorId).',
+        '  * Exemplos:',
+        '    - "Imóvel confortável para receber família grande" → q="confortável para família grande"',
+        '    - "Casa com cara de praia, mobiliada e com vista pro mar" → q="casa de praia mobiliada com vista pro mar"',
+        '    - "Apartamento aconchegante perto do centro" → q="apartamento aconchegante perto do centro"',
+        '- get_property_by_id: Obtém detalhes completos de um imóvel específico pelo UUID',
+        '  * Use quando o usuário solicitar detalhes de um imóvel específico ou mencionar um ID',
+        '  * Exemplos: "Mostre os detalhes do imóvel {id}", "Quero ver mais informações sobre esse imóvel"',
       '',
       'CAMPOS DISPONÍVEIS EM IMÓVEIS:',
       '- Informações básicas: título, descrição, tipo, finalidade (RENT=Aluguel, SALE=Venda, INVESTMENT=Investimento), preço, cidade, bairro',
@@ -215,11 +261,6 @@ export class ChatService {
         'Quando retornar dados, seja objetivo e, se útil, sintetize os resultados:',
         '- Para imóveis: título, tipo, finalidade (Aluguel/Venda/Investimento), cidade, bairro, preço, área, quartos, banheiros, comodidades principais',
     ].join('\n');
-  }
-
-  private normalizeUserMessage(message: string, userCtx?: Record<string, unknown>): string {
-    const ctx = userCtx ? `\nContexto do usuário: ${JSON.stringify(userCtx)}` : '';
-    return `${message}${ctx}`;
   }
 
   private buildToolsSchema() {
@@ -270,12 +311,45 @@ export class ChatService {
           parameters: {
             type: 'object',
             properties: {
-              id: { 
+              id: {
                 type: 'string',
                 description: 'ID do imóvel (UUID)',
               },
             },
             required: ['id'],
+          },
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'search_properties_semantic',
+          description:
+            'Busca imóveis por similaridade semântica (RAG) a partir de uma descrição em linguagem natural. Use para buscas subjetivas/descritivas como "imóvel confortável para receber família grande", "casa aconchegante perto do mar". Aceita filtros estruturados como pré-filtro.',
+          parameters: {
+            type: 'object',
+            properties: {
+              q: {
+                type: 'string',
+                description: 'Texto da busca em linguagem natural (ex: "casa de praia mobiliada com vista pro mar")',
+              },
+              city: { type: 'string', description: 'Pré-filtro: cidade (ex: "São Sebastião")' },
+              type: {
+                type: 'string',
+                description: 'Pré-filtro: tipo do imóvel',
+                enum: ['CASA', 'APARTAMENTO', 'TERRENO', 'SALA_COMERCIAL'],
+              },
+              purpose: {
+                type: 'string',
+                description: 'Pré-filtro: finalidade',
+                enum: ['RENT', 'SALE', 'INVESTMENT'],
+              },
+              minPrice: { type: 'number', description: 'Pré-filtro: preço mínimo' },
+              maxPrice: { type: 'number', description: 'Pré-filtro: preço máximo' },
+              realtorId: { type: 'string', description: 'Pré-filtro: corretor (UUID)' },
+              limit: { type: 'number', description: 'Limite de resultados (default 20, max 50)' },
+            },
+            required: ['q'],
           },
         },
       },
@@ -290,7 +364,11 @@ export class ChatService {
 
   private async callMcpTool(name: string, args: Record<string, unknown>) {
     try {
-      const body: any = { name, arguments: args };
+      const effectiveArgs =
+        name === 'search_properties_semantic' && (args as any)?.minScore === undefined
+          ? { ...args, minScore: 0.45 }
+          : args;
+      const body: any = { name, arguments: effectiveArgs };
       if (this.mcpServerToken) body.authToken = this.mcpServerToken;
       const url = `${this.mcpBridgeBase}/tools/call`;
       
@@ -360,8 +438,14 @@ export class ChatService {
       // Se o primeiro resultado já for um array, usar diretamente
       const firstResult = results[0];
       
-      if (toolName === 'list_properties') {
-        const properties = Array.isArray(firstResult) ? firstResult : (firstResult?.data || firstResult?.properties || []);
+      if (toolName === 'list_properties' || toolName === 'search_properties_semantic') {
+        let properties = Array.isArray(firstResult) ? firstResult : (firstResult?.data || firstResult?.properties || []);
+        if (
+          properties.length > 0 &&
+          properties.every((p: any) => p && typeof p === 'object' && p.property)
+        ) {
+          properties = properties.map((p: any) => p.property);
+        }
         if (properties.length === 0) {
           return 'Não há imóveis cadastrados no sistema no momento.';
         }
@@ -400,6 +484,43 @@ export class ChatService {
     return uuidRegex.test(value);
   }
 
+  /**
+   * Carrega últimas mensagens da conversa como histórico para o LLM.
+   *
+   * Em alguns fluxos o caller já persistiu a mensagem atual antes de chamar
+   * `chat()` — nesse caso, o último item do histórico seria a própria pergunta
+   * sendo feita. Filtramos esse caso comparando direção INCOMING + conteúdo.
+   */
+  private async loadConversationHistory(
+    conversationId: string,
+    currentMessage: string,
+  ): Promise<OpenAIMessage[]> {
+    try {
+      const recent = await this.messageRepository.findRecentByConversationId(
+        conversationId,
+        this.historyTurnLimit + 1,
+      );
+      if (recent.length === 0) {
+        return [];
+      }
+
+      const last = recent[recent.length - 1];
+      const filtered =
+        last.direction === MessageDirection.INCOMING && last.content === currentMessage
+          ? recent.slice(0, -1)
+          : recent;
+
+      return filtered.slice(-this.historyTurnLimit).map((m) => ({
+        role: m.direction === MessageDirection.INCOMING ? 'user' : 'assistant',
+        content: m.content,
+      })) as OpenAIMessage[];
+    } catch (err) {
+      this.logger.warn(
+        `Falha ao carregar histórico da conversa ${conversationId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return [];
+    }
+  }
 }
 
 

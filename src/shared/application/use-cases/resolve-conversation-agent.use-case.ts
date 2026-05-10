@@ -122,7 +122,6 @@ export class ResolveConversationAgentUseCase {
    */
   private async ensureDefaultAgents(): Promise<void> {
     await this.ensureAgent('corretor-imoveis', 'Corretor de Imóveis', '/api/chat');
-    await this.ensureAgent('health', 'WhatsApp Bot', '/api/chat');
   }
 
   private async ensureAgent(slug: string, name: string, route: string): Promise<void> {

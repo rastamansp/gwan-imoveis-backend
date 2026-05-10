@@ -177,7 +177,7 @@ export class ChatToolResultService {
             }
 
             if (data.error) return null;
-            if (Array.isArray(data)) return data;
+            if (Array.isArray(data)) return this.unwrapSearchHits(data);
             if (data.properties) return Array.isArray(data.properties) ? data.properties : [data.properties];
             if (data.data) return Array.isArray(data.data) ? data.data : [data.data];
 
@@ -330,6 +330,17 @@ export class ChatToolResultService {
     } catch {
       return null;
     }
+  }
+
+  // Resultados de search_properties_semantic vêm como [{ property, score, distance }, ...].
+  // Achata para [Property] preservando a ordem (score já ordenou no backend).
+  private unwrapSearchHits(arr: any[]): any[] {
+    if (!arr.length) return arr;
+    const looksLikeHits = arr.every(
+      (it) => it && typeof it === 'object' && 'property' in it && it.property && typeof it.property === 'object',
+    );
+    if (!looksLikeHits) return arr;
+    return arr.map((it) => it.property);
   }
 
   private emptyArrayResponse(): string {

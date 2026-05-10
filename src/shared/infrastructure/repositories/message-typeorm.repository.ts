@@ -53,4 +53,13 @@ export class MessageTypeOrmRepository implements IMessageRepository {
       relations: ['conversation'],
     });
   }
+
+  async findRecentByConversationId(conversationId: string, limit: number): Promise<Message[]> {
+    const rows = await this.messageRepository.find({
+      where: { conversationId },
+      order: { timestamp: 'DESC' },
+      take: limit,
+    });
+    return rows.reverse();
+  }
 }

@@ -1,6 +1,7 @@
-import { Injectable, Inject } from '@nestjs/common';
+﻿import { Injectable, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
+import { ConfigService } from '@nestjs/config';
 import { ILogger } from '../shared/application/interfaces/logger.interface';
 import { EvolutionWebhookDto, EvolutionEventType } from './dtos/evolution-webhook.dto';
 import { ChatService } from '../chat/chat.service';
@@ -24,10 +25,14 @@ export class WhatsappWebhookService {
   private readonly messageIdCacheTtl = 24 * 60 * 60;
   // Fallback em memória se Redis não estiver disponível (apenas durante execução)
   private readonly inMemoryProcessedIds = new Set<string>();
+  // Mensagem padrão quando a IA falha — evita silêncio para o usuário
+  private readonly genericErrorReply =
+    'Tive um problema momentâneo aqui. Pode reenviar sua pergunta? Se persistir, fale com nosso corretor.';
 
   constructor(
     @Inject('ILogger') private readonly logger: ILogger,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    private readonly configService: ConfigService,
     private readonly chatService: ChatService,
     private readonly evolutionApiService: EvolutionApiService,
     private readonly createOrFindConversationUseCase: CreateOrFindConversationUseCase,
@@ -43,6 +48,11 @@ export class WhatsappWebhookService {
     @Inject('IQRCodeService')
     private readonly qrCodeService: IQRCodeService,
   ) {}
+
+  private isWhatsappRegistrationEnabled(): boolean {
+    const raw = this.configService.get<string>('FEATURE_WHATSAPP_REGISTRATION');
+    return String(raw).toLowerCase() === 'true';
+  }
 
   /**
    * Processa e registra webhook recebido da Evolution API
@@ -100,11 +110,11 @@ export class WhatsappWebhookService {
           instance: webhook.instance,
           data: webhook.data,
         });
-        // Log completo do payload para análise
+        // Log completo do payload para análise (logger redacta chaves sensíveis)
         this.logger.debug('Payload completo do webhook', {
           event: webhook.event,
           instance: webhook.instance,
-          fullPayload: JSON.stringify(webhook, null, 2),
+          fullPayload: webhook,
         });
     }
   }
@@ -137,7 +147,7 @@ export class WhatsappWebhookService {
           instance: webhook.instance,
           dataKeys: Object.keys(webhook.data || {}),
           sender: webhook.sender,
-          fullData: JSON.stringify(webhook.data, null, 2),
+          fullData: webhook.data,
         });
         messages = [webhook.data]; // Processar mesmo assim para logar
       }
@@ -262,7 +272,7 @@ export class WhatsappWebhookService {
         sender: webhook.sender,
         server_url: webhook.server_url,
         webhookId,
-        rawData: JSON.stringify(messageData, null, 2),
+        rawData: messageData,
       });
 
       // Extrair número de telefone do remoteJid
@@ -294,12 +304,11 @@ export class WhatsappWebhookService {
         return;
       }
 
-      // Se a conversa ainda não tem agente definido, usar health como default para WhatsApp
+      // Se a conversa ainda não tem agente definido, deixar o use case resolver o default global (corretor-imoveis)
       if (!conversation.currentAgentId) {
         await this.resolveConversationAgentUseCase.execute({
           conversationId: conversation.id,
           userId,
-          fallbackAgentSlug: 'health',
         });
 
         // Recarregar conversa para ter currentAgentId atualizado
@@ -319,10 +328,26 @@ export class WhatsappWebhookService {
         const registrationStatus = this.registrationService.getRegistrationStatus(conversation);
 
         if (!isUserRegistered) {
+          // Feature flag: cadastro via WhatsApp pode estar desativado.
+          if (!this.isWhatsappRegistrationEnabled()) {
+            this.logger.info('[REGISTRATION] Cadastro via WhatsApp desativado por feature flag', {
+              phoneNumber,
+              conversationId: conversation.id,
+            });
+            await this.evolutionApiService.sendTextMessage(
+              webhook.instance,
+              normalizedRemoteJid,
+              'Olá! Para usar nosso atendimento via WhatsApp, primeiro cadastre-se em https://imoveis.gwan.cloud. Depois é só voltar a falar comigo por aqui. 🙂',
+            );
+            await this.markMessageProcessed(messageId);
+            return;
+          }
+
           // Usuário não cadastrado - verificar se precisa iniciar cadastro
           if (!registrationStatus || registrationStatus === 'cancelled') {
             // Iniciar fluxo de cadastro
             await this.registrationService.startRegistration(conversation.id, phoneNumber, webhook.instance, normalizedRemoteJid);
+            await this.markMessageProcessed(messageId);
             return; // Não processar mensagem como chat normal
           } else if (registrationStatus !== 'completed') {
             // Cadastro em andamento - processar resposta
@@ -343,34 +368,8 @@ export class WhatsappWebhookService {
               }
             }
 
+            await this.markMessageProcessed(messageId);
             return; // Não processar como chat normal durante cadastro
-          }
-        }
-
-        // Comandos de troca de agente (apenas para usuários já cadastrados ou com cadastro completo)
-        if (isUserRegistered || registrationStatus === 'completed') {
-          const maybeAgentChanged = await this.handleAgentSwitchCommand(
-            normalizedCommand,
-            conversation,
-            phoneNumber,
-            webhook.instance,
-            normalizedRemoteJid,
-            userId,
-          );
-
-          if (maybeAgentChanged) {
-            // Já respondeu ao comando, não processar como chat normal
-            // Marcar mensagem como processada no cache
-            if (messageId !== 'Sem ID') {
-              const cacheKey = `processed:messageId:${messageId}`;
-              try {
-                await this.cacheManager.set(cacheKey, true, this.messageIdCacheTtl);
-                this.inMemoryProcessedIds.add(messageId);
-              } catch {
-                this.inMemoryProcessedIds.add(messageId);
-              }
-            }
-            continue;
           }
         }
 
@@ -414,37 +413,20 @@ export class WhatsappWebhookService {
               conversation.id,
               userId,
             );
-            
-            // Marcar mensagem como processada APENAS após processamento bem-sucedido
-            if (messageId !== 'Sem ID') {
-              const cacheKey = `processed:messageId:${messageId}`;
-              try {
-                await this.cacheManager.set(cacheKey, true, this.messageIdCacheTtl);
-                // Também adicionar ao fallback em memória
-                this.inMemoryProcessedIds.add(messageId);
-                this.logger.debug('[CACHE] Mensagem marcada como processada no cache Redis e memória', {
-                  messageId,
-                  cacheKey,
-                  ttl: this.messageIdCacheTtl,
-                });
-              } catch (error) {
-                // Se Redis não estiver disponível, usar apenas fallback em memória
-                this.inMemoryProcessedIds.add(messageId);
-                this.logger.error('[CACHE] Erro ao salvar no cache Redis - usando apenas fallback em memória', {
-                  messageId,
-                  error: error instanceof Error ? error.message : String(error),
-                });
-              }
-            }
           } catch (error) {
-            // Se houver erro no processamento, não marcar como processada para permitir retry
-            this.logger.error('[ERROR] Erro ao processar mensagem, não marcando como processada', {
+            // Falha ao processar a mensagem — tentar avisar o usuário e marcar como processada
+            // mesmo assim, para evitar loop infinito de retry pelo Evolution.
+            this.logger.error('[ERROR] Erro ao processar mensagem', {
               messageId,
               error: error instanceof Error ? error.message : String(error),
+              stack: error instanceof Error ? error.stack : undefined,
             });
-            // Não propagar o erro para não quebrar o webhook
-            // A mensagem poderá ser processada novamente se o webhook for chamado novamente
+            await this.sendErrorReply(webhook.instance, normalizedRemoteJid, messageId);
           }
+
+          // Marcar mensagem como processada — sucesso, falha ou resposta vazia.
+          // O objetivo é evitar reprocessamento; a resposta amigável já foi enviada.
+          await this.markMessageProcessed(messageId);
         }
       }
 
@@ -472,7 +454,7 @@ export class WhatsappWebhookService {
 
     this.logger.info('[UPDATE] Mensagem atualizada no WhatsApp', {
       instance: webhook.instance,
-      updateData: JSON.stringify(updateData, null, 2),
+      updateData: updateData,
     });
   }
 
@@ -484,7 +466,7 @@ export class WhatsappWebhookService {
 
     this.logger.info('[DELETE] Mensagem deletada no WhatsApp', {
       instance: webhook.instance,
-      deleteData: JSON.stringify(deleteData, null, 2),
+      deleteData,
     });
   }
 
@@ -497,7 +479,7 @@ export class WhatsappWebhookService {
     this.logger.info('[CONNECTION] Status de conexão atualizado', {
       instance: webhook.instance,
       connectionState: connectionData.state || 'Desconhecido',
-      connectionData: JSON.stringify(connectionData, null, 2),
+      connectionData,
     });
   }
 
@@ -522,7 +504,7 @@ export class WhatsappWebhookService {
 
     this.logger.info('[CONTACT] Contato atualizado', {
       instance: webhook.instance,
-      contactData: JSON.stringify(contactsData, null, 2),
+      contactData: contactsData,
     });
   }
 
@@ -534,7 +516,7 @@ export class WhatsappWebhookService {
 
     this.logger.info('[GROUP] Grupo atualizado', {
       instance: webhook.instance,
-      groupData: JSON.stringify(groupsData, null, 2),
+      groupData: groupsData,
     });
   }
 
@@ -546,7 +528,7 @@ export class WhatsappWebhookService {
 
     this.logger.info('[PRESENCE] Presença atualizada', {
       instance: webhook.instance,
-      presenceData: JSON.stringify(presenceData, null, 2),
+      presenceData,
     });
   }
 
@@ -597,7 +579,9 @@ export class WhatsappWebhookService {
       const userCtx = userId ? { userId } : undefined;
 
       // Usar serviço de chat padrão (será atualizado para imóveis)
-      const chatResponse = await this.chatService.chat(messageText, userCtx, MessageChannel.WHATSAPP);
+      const chatResponse = await this.chatService.chat(messageText, userCtx, MessageChannel.WHATSAPP, {
+        conversationId,
+      });
 
       if (!chatResponse || !chatResponse.answer) {
         this.logger.warn('[WARNING] Chat não retornou resposta válida', {
@@ -606,6 +590,7 @@ export class WhatsappWebhookService {
           messageText,
           chatResponse: chatResponse ? JSON.stringify(chatResponse) : 'null',
         });
+        await this.sendErrorReply(instanceName, remoteJid, messageId);
         return;
       }
 
@@ -699,7 +684,6 @@ export class WhatsappWebhookService {
     } catch (error) {
       const duration = Date.now() - startTime;
 
-      // Logar erro mas não propagar para não quebrar processamento do webhook
       this.logger.error('[ERROR] Erro ao processar mensagem recebida', {
         instanceName,
         remoteJid,
@@ -709,6 +693,9 @@ export class WhatsappWebhookService {
         stack: error instanceof Error ? error.stack : undefined,
         duration,
       });
+
+      // Propaga para o caller decidir resposta ao usuário e dedup do messageId.
+      throw error;
     }
   }
 
@@ -728,26 +715,42 @@ export class WhatsappWebhookService {
     return 'unknown';
   }
 
-  /**
-   * Processa comandos de troca de agente enviados pelo usuário.
-   * Retorna true se o comando foi reconhecido e uma resposta foi enviada.
-   */
-  private async handleAgentSwitchCommand(
-    normalizedMessage: string,
-    conversation: any,
-    phoneNumber: string | null,
-    instanceName: string,
-    remoteJid: string,
-    userId?: string | null,
-  ): Promise<boolean> {
-    const cleaned = normalizedMessage
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .trim();
 
-    // Comandos de troca de agente removidos - será atualizado para imóveis
-    // Por enquanto, não há suporte a troca de agente
-    return false;
+  /**
+   * Marca um messageId como processado (Redis + fallback em memória).
+   * Best-effort: nunca propaga erros — sempre adiciona ao Set em memória.
+   */
+  private async markMessageProcessed(messageId: string): Promise<void> {
+    if (!messageId || messageId === 'Sem ID') {
+      return;
+    }
+    const cacheKey = `processed:messageId:${messageId}`;
+    try {
+      await this.cacheManager.set(cacheKey, true, this.messageIdCacheTtl);
+    } catch (error) {
+      this.logger.error('[CACHE] Falha ao salvar messageId no Redis — usando memória', {
+        messageId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    this.inMemoryProcessedIds.add(messageId);
+  }
+
+  /**
+   * Envia mensagem genérica de erro quando a IA falha.
+   * Falhas no envio são apenas logadas — não propagam.
+   */
+  private async sendErrorReply(instanceName: string, remoteJid: string, messageId: string): Promise<void> {
+    try {
+      await this.evolutionApiService.sendTextMessage(instanceName, remoteJid, this.genericErrorReply);
+    } catch (sendError) {
+      this.logger.error('[ERROR] Falha ao enviar mensagem de erro amigável', {
+        instanceName,
+        remoteJid,
+        messageId,
+        error: sendError instanceof Error ? sendError.message : String(sendError),
+      });
+    }
   }
 }
 

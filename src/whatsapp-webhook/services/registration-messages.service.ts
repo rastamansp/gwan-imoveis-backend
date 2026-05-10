@@ -100,18 +100,6 @@ Por favor, use outro email ou entre em contato com o suporte.`;
   }
 
   /**
-   * Mensagem quando dados incompletos
-   */
-  static getIncompleteDataMessage(missingFields: string[]): string {
-    const fields = missingFields.join(' e ');
-    return `📝 Ainda preciso de algumas informações:
-
-Faltam: ${fields}
-
-Por favor, envie essas informações para continuar.`;
-  }
-
-  /**
    * Mensagem de reinício do cadastro
    */
   static getRestartMessage(): string {

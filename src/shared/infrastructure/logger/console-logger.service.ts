@@ -1,13 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ILogger } from '../../application/interfaces/logger.interface';
+import { redactReplacer } from '../utils/redact.util';
 
 @Injectable()
 export class ConsoleLoggerService implements ILogger {
   private readonly logger = new Logger('App');
 
+  private serialize(context: any): string {
+    return JSON.stringify(context, redactReplacer);
+  }
+
   info(message: string, context?: any): void {
     if (context && Object.keys(context).length > 0) {
-      this.logger.log(`${message} ${JSON.stringify(context)}`);
+      this.logger.log(`${message} ${this.serialize(context)}`);
     } else {
       this.logger.log(message);
     }
@@ -15,7 +20,7 @@ export class ConsoleLoggerService implements ILogger {
 
   warn(message: string, context?: any): void {
     if (context && Object.keys(context).length > 0) {
-      this.logger.warn(`${message} ${JSON.stringify(context)}`);
+      this.logger.warn(`${message} ${this.serialize(context)}`);
     } else {
       this.logger.warn(message);
     }
@@ -23,7 +28,7 @@ export class ConsoleLoggerService implements ILogger {
 
   error(message: string, context?: any): void {
     if (context && Object.keys(context).length > 0) {
-      this.logger.error(`${message} ${JSON.stringify(context)}`);
+      this.logger.error(`${message} ${this.serialize(context)}`);
     } else {
       this.logger.error(message);
     }
@@ -31,7 +36,7 @@ export class ConsoleLoggerService implements ILogger {
 
   debug(message: string, context?: any): void {
     if (context && Object.keys(context).length > 0) {
-      this.logger.debug(`${message} ${JSON.stringify(context)}`);
+      this.logger.debug(`${message} ${this.serialize(context)}`);
     } else {
       this.logger.debug(message);
     }
