@@ -18,7 +18,7 @@ export class WebFormatterService {
     @Inject('ILogger')
     private readonly logger: ILogger,
   ) {
-    this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'https://litoralimoveis.com.br/';
+    this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'https://imoveis.gwan.cloud/';
   }
 
   /**
@@ -109,7 +109,7 @@ export class WebFormatterService {
         return active;
       })(),
       coverImageUrl: p.coverImageUrl || null,
-      url: `${this.frontendUrl}imoveis/${p.id}`,
+      url: `${this.frontendUrl}property/${p.id}`,
     }));
 
     const suggestions = this.suggestionsService.generateContextualSuggestions('property_list', { properties: paginatedProperties });
@@ -186,7 +186,7 @@ export class WebFormatterService {
       }
       
       // Link para detalhes
-      markdown += `\n[Ver detalhes](${this.frontendUrl}imoveis/${p.id})\n\n`;
+      markdown += `\n[Ver detalhes](${this.frontendUrl}property/${p.id})\n\n`;
       markdown += '---\n\n';
     });
 
@@ -243,7 +243,7 @@ export class WebFormatterService {
       // Campos formatados para conveniência
       priceFormatted: property.price ? `R$ ${Number(property.price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null,
       areaFormatted: property.area ? `${Number(property.area).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²` : null,
-      url: `${this.frontendUrl}imoveis/${property.id}`,
+      url: `${this.frontendUrl}property/${property.id}`,
     };
 
     const suggestions = this.suggestionsService.generateContextualSuggestions('property_detail', completeProperty);
@@ -328,7 +328,7 @@ export class WebFormatterService {
     
     // Realtor
     if (property.realtor) {
-      markdown += `## 👤 Realtor\n\n`;
+      markdown += `## 👤 Corretor\n\n`;
       markdown += `- **Nome:** ${property.realtor.name || 'N/A'}\n`;
       if (property.realtor.email) markdown += `- **Email:** ${property.realtor.email}\n`;
       if (property.realtor.phone) markdown += `- **Telefone:** ${property.realtor.phone}\n`;
@@ -346,7 +346,7 @@ export class WebFormatterService {
     }
     
     // Link para visualização
-    markdown += `\n[Ver no site](${this.frontendUrl}imoveis/${property.id})\n`;
+    markdown += `\n[Ver no site](${this.frontendUrl}property/${property.id})\n`;
 
     return markdown;
   }

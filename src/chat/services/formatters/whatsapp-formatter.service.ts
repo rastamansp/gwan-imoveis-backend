@@ -10,7 +10,6 @@ import { ILogger } from '../../../shared/application/interfaces/logger.interface
 @Injectable()
 export class WhatsAppFormatterService {
   private readonly maxMessageLength = 4000; // Limite seguro para WhatsApp
-  private readonly maxCaptionLength = 1024; // Limite de caption no WhatsApp
   private readonly defaultEventLimit = 5; // Limite padrão de eventos para listar
   private readonly frontendUrl: string;
 
@@ -21,7 +20,7 @@ export class WhatsAppFormatterService {
     @Inject('ILogger')
     private readonly logger: ILogger,
   ) {
-    this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'https://litoralimoveis.com.br/';
+    this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'https://imoveis.gwan.cloud/';
   }
 
   /**
@@ -137,7 +136,7 @@ export class WhatsAppFormatterService {
         message += `   ${amenities.join(' • ')}\n`;
       }
       
-      message += `   🔗 ${this.frontendUrl}imoveis/${p.id}\n\n`;
+      message += `   🔗 ${this.frontendUrl}property/${p.id}\n\n`;
     });
 
     if (properties.length > this.defaultEventLimit) {
@@ -206,11 +205,11 @@ export class WhatsAppFormatterService {
     
     // Realtor
     if (property.realtor) {
-      message += `👤 *Realtor:* ${property.realtor.name || property.realtor.email}\n\n`;
+      message += `👤 *Corretor:* ${property.realtor.name || property.realtor.email}\n\n`;
     }
     
     // Link
-    message += `🔗 ${this.frontendUrl}imoveis/${property.id}`;
+    message += `🔗 ${this.frontendUrl}property/${property.id}`;
 
     return {
       answer: message,
@@ -222,9 +221,7 @@ export class WhatsAppFormatterService {
       media: property.coverImageUrl ? [{
         type: 'image' as const,
         url: property.coverImageUrl,
-        caption: message.length > this.maxCaptionLength 
-          ? message.substring(0, this.maxCaptionLength - 3) + '...' 
-          : message,
+        caption: property.title || '',
       }] : undefined,
     };
   }

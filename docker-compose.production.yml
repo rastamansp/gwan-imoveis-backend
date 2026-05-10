@@ -15,6 +15,9 @@ services:
       # API Base URL
       - API_BASE_URL=https://imoveis-api.gwan.cloud
 
+      # Frontend URL (usado pelos formatters do chat para gerar links de imóveis nas mensagens do WhatsApp)
+      - FRONTEND_URL=${FRONTEND_URL:-https://imoveis.gwan.cloud/}
+
       # Database (usando DATABASE_URL completa)
       - DATABASE_URL=${DATABASE_URL}
       
