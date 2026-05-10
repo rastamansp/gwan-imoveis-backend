@@ -52,7 +52,8 @@ services:
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
       - MINIO_BUCKET=${MINIO_BUCKET}
       - MINIO_USE_SSL=${MINIO_USE_SSL}
-      
+      - MINIO_PUBLIC_URL=${MINIO_PUBLIC_URL}
+
       # Redis Cache (se necessário)
       - REDIS_URL=${REDIS_URL}
       
