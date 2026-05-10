@@ -144,6 +144,8 @@ export class PropertyResponseDto {
     name: string;
     email: string;
     phone?: string;
+    contactWhatsapp?: string | null;
+    contactWhatsappSource?: 'evolution' | 'profile' | 'user' | null;
     profile?: {
       businessName?: string;
       contactName?: string;
@@ -174,7 +176,13 @@ export class PropertyResponseDto {
   })
   updatedAt: Date;
 
-  static fromEntity(property: Property): PropertyResponseDto {
+  static fromEntity(
+    property: Property,
+    extras?: {
+      contactWhatsapp?: string | null;
+      contactWhatsappSource?: 'evolution' | 'profile' | 'user' | null;
+    },
+  ): PropertyResponseDto {
     const dto = new PropertyResponseDto();
     dto.id = property.id;
     dto.title = property.title;
@@ -206,6 +214,8 @@ export class PropertyResponseDto {
         name: property.realtor.name,
         email: property.realtor.email,
         phone: property.realtor.phone,
+        contactWhatsapp: extras?.contactWhatsapp ?? null,
+        contactWhatsappSource: extras?.contactWhatsappSource ?? null,
       };
 
       // Include professional profile if available

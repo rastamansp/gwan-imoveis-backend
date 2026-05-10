@@ -38,6 +38,7 @@ import { ListPropertiesUseCase } from '../shared/application/use-cases/list-prop
 import { ListMyPropertiesUseCase } from '../shared/application/use-cases/list-my-properties.use-case';
 import { SearchPropertiesSemanticUseCase } from '../shared/application/use-cases/search-properties-semantic.use-case';
 import { PropertySearchResultDto } from './presentation/dtos/property-search-result.dto';
+import { RealtorContactResolverService } from './services/realtor-contact-resolver.service';
 
 @ApiTags('Imóveis')
 @Controller('properties')
@@ -50,6 +51,7 @@ export class PropertiesController {
     private readonly listPropertiesUseCase: ListPropertiesUseCase,
     private readonly listMyPropertiesUseCase: ListMyPropertiesUseCase,
     private readonly searchPropertiesSemanticUseCase: SearchPropertiesSemanticUseCase,
+    private readonly realtorContactResolver: RealtorContactResolverService,
   ) {}
 
   @Post()
@@ -281,7 +283,13 @@ export class PropertiesController {
   @ApiExtraModels(PropertyResponseDto)
   async findOne(@Param('id') id: string): Promise<PropertyResponseDto> {
     const property = await this.getPropertyByIdUseCase.execute(id);
-    return PropertyResponseDto.fromEntity(property);
+    const contact = property.realtor
+      ? await this.realtorContactResolver.resolveWhatsapp(property.realtor)
+      : null;
+    return PropertyResponseDto.fromEntity(property, {
+      contactWhatsapp: contact?.whatsapp ?? null,
+      contactWhatsappSource: contact?.source ?? null,
+    });
   }
 
   @Put(':id')
