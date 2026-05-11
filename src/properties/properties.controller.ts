@@ -7,12 +7,15 @@ import {
   Body,
   Param,
   Query,
+  Res,
   UseGuards,
   Request,
+  ForbiddenException,
   HttpCode,
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -39,6 +42,8 @@ import { ListMyPropertiesUseCase } from '../shared/application/use-cases/list-my
 import { SearchPropertiesSemanticUseCase } from '../shared/application/use-cases/search-properties-semantic.use-case';
 import { PropertySearchResultDto } from './presentation/dtos/property-search-result.dto';
 import { RealtorContactResolverService } from './services/realtor-contact-resolver.service';
+import { PropertyPdfCacheService } from './services/property-pdf-cache.service';
+import { UserRole } from '../shared/domain/value-objects/user-role.enum';
 
 @ApiTags('Imóveis')
 @Controller('properties')
@@ -52,6 +57,7 @@ export class PropertiesController {
     private readonly listMyPropertiesUseCase: ListMyPropertiesUseCase,
     private readonly searchPropertiesSemanticUseCase: SearchPropertiesSemanticUseCase,
     private readonly realtorContactResolver: RealtorContactResolverService,
+    private readonly propertyPdfCache: PropertyPdfCacheService,
   ) {}
 
   @Post()
@@ -295,6 +301,59 @@ export class PropertiesController {
       score: Number(hit.score.toFixed(4)),
       distance: Number(hit.distance.toFixed(4)),
     }));
+  }
+
+  @Get(':id/pdf')
+  @UseGuards(JwtAuthGuard, CorretorOrAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Baixar anúncio do imóvel em PDF',
+    description:
+      'Gera e baixa um PDF com o anúncio completo do imóvel (capa, dados, descrição, contato e galeria). Apenas o corretor dono do imóvel ou ADMIN podem baixar.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID do imóvel',
+    example: 'd4da01e3-2f5a-4edf-8fa3-71f262e04eb5',
+    type: String,
+  })
+  @ApiResponse({ status: 200, description: 'PDF gerado com sucesso (application/pdf)' })
+  @ApiResponse({ status: 401, description: 'Não autorizado - Token JWT inválido ou ausente' })
+  @ApiResponse({ status: 403, description: 'Permissão negada - Apenas o dono do imóvel ou ADMIN podem baixar' })
+  @ApiResponse({ status: 404, description: 'Imóvel não encontrado' })
+  async downloadPdf(
+    @Param('id') id: string,
+    @Request() req: any,
+    @Res() res: Response,
+  ): Promise<void> {
+    const userId = req.user?.id || req.user?.sub;
+    const userRole: UserRole = req.user?.role;
+
+    const property = await this.getPropertyByIdUseCase.execute(id);
+
+    if (userRole !== UserRole.ADMIN && property.realtorId !== userId) {
+      throw new ForbiddenException('Você não tem permissão para baixar o PDF deste imóvel');
+    }
+
+    const pdf = await this.propertyPdfCache.getOrGenerate(property);
+
+    const filename = this.buildPdfFilename(property.title, property.id);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdf.length.toString());
+    res.send(pdf);
+  }
+
+  private buildPdfFilename(title: string, id: string): string {
+    const slug = title
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-zA-Z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase()
+      .slice(0, 50);
+    const suffix = id.slice(0, 8);
+    return `${slug || 'imovel'}-${suffix}.pdf`;
   }
 
   @Get(':id')

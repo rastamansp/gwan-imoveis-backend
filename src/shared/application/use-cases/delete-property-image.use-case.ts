@@ -80,6 +80,9 @@ export class DeletePropertyImageUseCase {
       // Deletar do banco
       const deleted = await this.propertyImageRepository.delete(imageId);
 
+      // Invalida cache do PDF — galeria mudou.
+      await this.propertyRepository.clearAdPdfCache(propertyId);
+
       const duration = Date.now() - startTime;
       this.logger.info('Imagem deletada com sucesso', {
         imageId,

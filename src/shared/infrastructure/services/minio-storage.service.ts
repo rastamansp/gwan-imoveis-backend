@@ -118,6 +118,34 @@ export class MinioStorageService implements IStorageService, OnModuleInit {
     }
   }
 
+  async putObjectAtPath(filePath: string, buffer: Buffer, contentType: string): Promise<string> {
+    this.assertAvailable();
+    try {
+      await this.minioClient.putObject(this.bucketName, filePath, buffer, buffer.length, {
+        'Content-Type': contentType,
+      });
+      this.logger.info('Objeto enviado para MinIO (caminho fixo)', { filePath, bucket: this.bucketName });
+      return filePath;
+    } catch (error) {
+      this.logger.error('Erro ao fazer upload para MinIO (caminho fixo)', {
+        filePath,
+        error: error.message,
+      });
+      throw error;
+    }
+  }
+
+  async getObject(filePath: string): Promise<Buffer> {
+    this.assertAvailable();
+    const stream = await this.minioClient.getObject(this.bucketName, filePath);
+    const chunks: Buffer[] = [];
+    return new Promise<Buffer>((resolve, reject) => {
+      stream.on('data', (chunk: Buffer) => chunks.push(chunk));
+      stream.on('end', () => resolve(Buffer.concat(chunks)));
+      stream.on('error', reject);
+    });
+  }
+
   async deleteFile(filePath: string): Promise<boolean> {
     this.assertAvailable();
     try {

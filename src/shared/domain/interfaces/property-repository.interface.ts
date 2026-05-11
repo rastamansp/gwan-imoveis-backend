@@ -35,6 +35,11 @@ export interface IPropertyRepository {
 
   findIdsWithoutEmbedding(provider: EmbeddingProviderName, limit?: number): Promise<string[]>;
   updateEmbedding(id: string, result: EmbeddingResult, chunk: string): Promise<void>;
+  /**
+   * Invalida o cache do PDF do anúncio (zera adPdfUrl/adPdfPath/adPdfGeneratedAt).
+   * Não toca no arquivo no MinIO — a próxima geração sobrescreve no mesmo caminho.
+   */
+  clearAdPdfCache(id: string): Promise<void>;
   searchBySimilarity(
     provider: EmbeddingProviderName,
     embedding: number[],

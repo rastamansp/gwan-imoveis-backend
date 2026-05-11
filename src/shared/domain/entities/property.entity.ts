@@ -73,6 +73,17 @@ export class Property {
   @Column({ type: 'varchar', length: 500, nullable: true })
   coverImageUrl?: string;
 
+  // Cache do PDF do anúncio armazenado no MinIO.
+  // Invalidado (nulled) em qualquer mudança no imóvel ou nas suas imagens; regenerado on-demand no próximo download.
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  adPdfUrl?: string | null;
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  adPdfPath?: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  adPdfGeneratedAt?: Date | null;
+
   // Relacionamento com imagens
   @OneToMany(() => PropertyImage, (image) => image.property)
   images: PropertyImage[];

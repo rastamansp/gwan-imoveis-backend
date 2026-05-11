@@ -15,6 +15,8 @@ import { GeneratePropertyEmbeddingUseCase } from '../shared/application/use-case
 import { SearchPropertiesSemanticUseCase } from '../shared/application/use-cases/search-properties-semantic.use-case';
 import { WhatsappWebhookModule } from '../whatsapp-webhook/whatsapp-webhook.module';
 import { RealtorContactResolverService } from './services/realtor-contact-resolver.service';
+import { PropertyPdfService } from './services/property-pdf.service';
+import { PropertyPdfCacheService } from './services/property-pdf-cache.service';
 
 @Module({
   imports: [
@@ -36,6 +38,8 @@ import { RealtorContactResolverService } from './services/realtor-contact-resolv
     GeneratePropertyEmbeddingUseCase,
     SearchPropertiesSemanticUseCase,
     RealtorContactResolverService,
+    PropertyPdfService,
+    PropertyPdfCacheService,
   ],
   exports: ['IPropertyRepository'],
 })

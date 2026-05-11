@@ -74,6 +74,9 @@ export class SetCoverImageUseCase {
       property.coverImageUrl = updatedImage.url;
       await this.propertyRepository.update(propertyId, property);
 
+      // Invalida cache do PDF — capa mudou.
+      await this.propertyRepository.clearAdPdfCache(propertyId);
+
       const duration = Date.now() - startTime;
       this.logger.info('Imagem definida como capa com sucesso', {
         imageId: updatedImage.id,

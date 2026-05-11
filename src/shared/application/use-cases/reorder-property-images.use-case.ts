@@ -70,6 +70,9 @@ export class ReorderPropertyImagesUseCase {
         }
       }
 
+      // Invalida cache do PDF — ordem da galeria mudou.
+      await this.propertyRepository.clearAdPdfCache(propertyId);
+
       const duration = Date.now() - startTime;
       this.logger.info('Imagens reordenadas com sucesso', {
         propertyId,

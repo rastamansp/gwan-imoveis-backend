@@ -116,6 +116,9 @@ export class CreatePropertyImageUseCase {
         await this.propertyRepository.update(propertyId, property);
       }
 
+      // Invalida cache do PDF — galeria mudou.
+      await this.propertyRepository.clearAdPdfCache(propertyId);
+
       const duration = Date.now() - startTime;
       this.logger.info('Imagem de propriedade criada com sucesso', {
         imageId: savedImage.id,

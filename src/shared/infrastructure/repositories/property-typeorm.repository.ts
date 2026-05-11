@@ -108,6 +108,14 @@ export class PropertyTypeOrmRepository implements IPropertyRepository {
     return rows.map((r: { id: string }) => r.id);
   }
 
+  async clearAdPdfCache(id: string): Promise<void> {
+    await this.propertyRepository.update(id, {
+      adPdfUrl: null,
+      adPdfPath: null,
+      adPdfGeneratedAt: null,
+    });
+  }
+
   async updateEmbedding(id: string, result: EmbeddingResult, chunk: string): Promise<void> {
     const cols = PROVIDER_COLUMNS[result.provider];
     const sql = pgvector.toSql(result.vector);

@@ -103,6 +103,10 @@ export class UpdatePropertyUseCase {
         }
 
     property.updatedAt = new Date();
+    // Invalida cache do PDF — qualquer campo editável aparece no anúncio.
+    property.adPdfUrl = null;
+    property.adPdfPath = null;
+    property.adPdfGeneratedAt = null;
 
     const semanticChanged = dtoHasSemanticChange(updatePropertyDto as unknown as Record<string, unknown>);
 
