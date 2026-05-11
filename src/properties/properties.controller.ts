@@ -146,6 +146,12 @@ export class PropertiesController {
   @ApiQuery({ name: 'minPrice', required: false, description: 'Preço mínimo', example: 100000 })
   @ApiQuery({ name: 'maxPrice', required: false, description: 'Preço máximo', example: 1000000 })
   @ApiQuery({ name: 'realtorId', required: false, description: 'Filter by realtor', example: 'd4da01e3-2f5a-4edf-8fa3-71f262e04eb5' })
+  @ApiQuery({ name: 'hasPool', required: false, description: 'Filtrar imóveis com piscina', example: true })
+  @ApiQuery({ name: 'hasJacuzzi', required: false, description: 'Filtrar imóveis com hidromassagem', example: true })
+  @ApiQuery({ name: 'oceanFront', required: false, description: 'Filtrar imóveis de frente para o mar', example: true })
+  @ApiQuery({ name: 'hasGarden', required: false, description: 'Filtrar imóveis com jardim', example: true })
+  @ApiQuery({ name: 'hasGourmetArea', required: false, description: 'Filtrar imóveis com área gourmet', example: true })
+  @ApiQuery({ name: 'furnished', required: false, description: 'Filtrar imóveis mobiliados', example: true })
   @ApiOkResponse({
     description: 'Lista de imóveis obtida com sucesso',
     type: [PropertyResponseDto],
@@ -158,6 +164,12 @@ export class PropertiesController {
     @Query('minPrice') minPrice?: string,
     @Query('maxPrice') maxPrice?: string,
     @Query('realtorId') realtorId?: string,
+    @Query('hasPool') hasPool?: string,
+    @Query('hasJacuzzi') hasJacuzzi?: string,
+    @Query('oceanFront') oceanFront?: string,
+    @Query('hasGarden') hasGarden?: string,
+    @Query('hasGourmetArea') hasGourmetArea?: string,
+    @Query('furnished') furnished?: string,
   ): Promise<PropertyResponseDto[]> {
     const filters: any = {};
     if (city) filters.city = city;
@@ -166,6 +178,12 @@ export class PropertiesController {
     if (minPrice) filters.minPrice = parseFloat(minPrice);
     if (maxPrice) filters.maxPrice = parseFloat(maxPrice);
     if (realtorId) filters.realtorId = realtorId;
+    if (hasPool === 'true') filters.hasPool = true;
+    if (hasJacuzzi === 'true') filters.hasJacuzzi = true;
+    if (oceanFront === 'true') filters.oceanFront = true;
+    if (hasGarden === 'true') filters.hasGarden = true;
+    if (hasGourmetArea === 'true') filters.hasGourmetArea = true;
+    if (furnished === 'true') filters.furnished = true;
 
     const properties = await this.listPropertiesUseCase.execute(filters);
     return properties.map((property) => PropertyResponseDto.fromEntity(property));
@@ -213,8 +231,14 @@ export class PropertiesController {
   @ApiQuery({ name: 'minPrice', required: false, description: 'Pré-filtro: preço mínimo', example: 100000 })
   @ApiQuery({ name: 'maxPrice', required: false, description: 'Pré-filtro: preço máximo', example: 1000000 })
   @ApiQuery({ name: 'realtorId', required: false, description: 'Pré-filtro: corretor' })
+  @ApiQuery({ name: 'hasPool', required: false, description: 'Pré-filtro: imóveis com piscina', example: true })
+  @ApiQuery({ name: 'hasJacuzzi', required: false, description: 'Pré-filtro: imóveis com hidromassagem', example: true })
+  @ApiQuery({ name: 'oceanFront', required: false, description: 'Pré-filtro: imóveis de frente para o mar', example: true })
+  @ApiQuery({ name: 'hasGarden', required: false, description: 'Pré-filtro: imóveis com jardim', example: true })
+  @ApiQuery({ name: 'hasGourmetArea', required: false, description: 'Pré-filtro: imóveis com área gourmet', example: true })
+  @ApiQuery({ name: 'furnished', required: false, description: 'Pré-filtro: imóveis mobiliados', example: true })
   @ApiQuery({ name: 'limit', required: false, description: 'Limite de resultados (default 20, max 50)', example: 20 })
-  @ApiQuery({ name: 'minScore', required: false, description: 'Score mínimo de similaridade (0..1)', example: 0 })
+  @ApiQuery({ name: 'minScore', required: false, description: 'Score mínimo de similaridade cosseno (0..1). Default 0.5 — passe 0 para receber tudo.', example: 0.5 })
   @ApiOkResponse({ description: 'Resultados ordenados por similaridade decrescente', type: [PropertySearchResultDto] })
   @ApiResponse({ status: 400, description: 'Parâmetro q ausente' })
   @ApiResponse({ status: 503, description: 'Provider de embedding sem API key configurada' })
@@ -227,6 +251,12 @@ export class PropertiesController {
     @Query('minPrice') minPrice?: string,
     @Query('maxPrice') maxPrice?: string,
     @Query('realtorId') realtorId?: string,
+    @Query('hasPool') hasPool?: string,
+    @Query('hasJacuzzi') hasJacuzzi?: string,
+    @Query('oceanFront') oceanFront?: string,
+    @Query('hasGarden') hasGarden?: string,
+    @Query('hasGourmetArea') hasGourmetArea?: string,
+    @Query('furnished') furnished?: string,
     @Query('limit') limit?: string,
     @Query('minScore') minScore?: string,
   ): Promise<PropertySearchResultDto[]> {
@@ -241,9 +271,17 @@ export class PropertiesController {
     if (realtorId) filters.realtorId = realtorId;
     if (minPrice) filters.minPrice = parseFloat(minPrice);
     if (maxPrice) filters.maxPrice = parseFloat(maxPrice);
+    if (hasPool === 'true') filters.hasPool = true;
+    if (hasJacuzzi === 'true') filters.hasJacuzzi = true;
+    if (oceanFront === 'true') filters.oceanFront = true;
+    if (hasGarden === 'true') filters.hasGarden = true;
+    if (hasGourmetArea === 'true') filters.hasGourmetArea = true;
+    if (furnished === 'true') filters.furnished = true;
 
     const parsedLimit = limit ? Math.min(parseInt(limit, 10) || 20, 50) : 20;
-    const parsedMinScore = minScore ? Math.max(0, Math.min(parseFloat(minScore) || 0, 1)) : 0;
+    // Default 0.5: corta a "cauda" de resultados pouco relevantes que apareceriam
+    // em busca puramente semântica (cosine sim) — cliente pode sobrescrever para 0 se quiser tudo.
+    const parsedMinScore = minScore !== undefined ? Math.max(0, Math.min(parseFloat(minScore) || 0, 1)) : 0.5;
 
     const hits = await this.searchPropertiesSemanticUseCase.execute({
       q: q.trim(),

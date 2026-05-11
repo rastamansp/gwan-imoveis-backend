@@ -146,6 +146,12 @@ export class PropertyTypeOrmRepository implements IPropertyRepository {
     if (filters.realtorId) qb.andWhere('property.realtorId = :realtorId', { realtorId: filters.realtorId });
     if (filters.minPrice !== undefined) qb.andWhere('property.price >= :minPrice', { minPrice: filters.minPrice });
     if (filters.maxPrice !== undefined) qb.andWhere('property.price <= :maxPrice', { maxPrice: filters.maxPrice });
+    if (filters.hasPool === true) qb.andWhere('property.hasPool = TRUE');
+    if (filters.hasJacuzzi === true) qb.andWhere('property.hasJacuzzi = TRUE');
+    if (filters.oceanFront === true) qb.andWhere('property.oceanFront = TRUE');
+    if (filters.hasGarden === true) qb.andWhere('property.hasGarden = TRUE');
+    if (filters.hasGourmetArea === true) qb.andWhere('property.hasGourmetArea = TRUE');
+    if (filters.furnished === true) qb.andWhere('property.furnished = TRUE');
 
     if (minScore > 0) {
       const maxDistance = 1 - minScore;

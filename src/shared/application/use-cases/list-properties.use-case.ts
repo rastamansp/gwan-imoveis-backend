@@ -11,7 +11,17 @@ export interface ListPropertiesFilters {
   minPrice?: number;
   maxPrice?: number;
   realtorId?: string;
+  hasPool?: boolean;
+  hasJacuzzi?: boolean;
+  oceanFront?: boolean;
+  hasGarden?: boolean;
+  hasGourmetArea?: boolean;
+  furnished?: boolean;
 }
+
+const AMENITY_KEYS: ReadonlyArray<keyof Pick<ListPropertiesFilters,
+  'hasPool' | 'hasJacuzzi' | 'oceanFront' | 'hasGarden' | 'hasGourmetArea' | 'furnished'
+>> = ['hasPool', 'hasJacuzzi', 'oceanFront', 'hasGarden', 'hasGourmetArea', 'furnished'];
 
 @Injectable()
 export class ListPropertiesUseCase {
@@ -64,6 +74,13 @@ export class ListPropertiesUseCase {
     // Aplicar filtro por purpose se fornecido
     if (filters.purpose) {
       properties = properties.filter((p) => p.purpose === filters.purpose);
+    }
+
+    // Aplicar filtros de comodidades (apenas quando true — false/undefined ignora)
+    for (const key of AMENITY_KEYS) {
+      if (filters[key] === true) {
+        properties = properties.filter((p) => p[key] === true);
+      }
     }
 
     // Preencher coverImageUrl com a primeira imagem disponível se não houver capa definida

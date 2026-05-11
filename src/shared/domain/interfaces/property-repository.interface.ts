@@ -8,6 +8,12 @@ export interface SemanticSearchFilters {
   minPrice?: number;
   maxPrice?: number;
   realtorId?: string;
+  hasPool?: boolean;
+  hasJacuzzi?: boolean;
+  oceanFront?: boolean;
+  hasGarden?: boolean;
+  hasGourmetArea?: boolean;
+  furnished?: boolean;
 }
 
 export interface SemanticSearchHit {
