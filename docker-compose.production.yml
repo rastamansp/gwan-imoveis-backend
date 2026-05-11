@@ -41,6 +41,12 @@ services:
       - CLAUDE_API_KEY=${CLAUDE_API_KEY}
       - CLAUDE_MODEL=${CLAUDE_MODEL:-claude-haiku-4-5}
       - CLAUDE_FALLBACK_MODELS=${CLAUDE_FALLBACK_MODELS:-claude-haiku-4-5-20251001,claude-sonnet-4-6}
+
+      # Embeddings (RAG de imóveis) — provider configurável: voyage (default) ou openai
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-voyage}
+      - VOYAGE_API_KEY=${VOYAGE_API_KEY}
+      - VOYAGE_EMBEDDING_MODEL=${VOYAGE_EMBEDDING_MODEL:-voyage-3-lite}
+      - VOYAGE_API_BASE_URL=${VOYAGE_API_BASE_URL:-https://api.voyageai.com/v1}
       
       # Evolution API (WhatsApp)
       - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
