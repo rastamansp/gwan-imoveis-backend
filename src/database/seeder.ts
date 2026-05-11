@@ -54,13 +54,13 @@ export class DatabaseSeeder {
   }
 
   private async createCorretorUser(): Promise<void> {
-    const existing = await this.userRepository.findOne({ where: { email: 'corretor@litoralimoveis.com.br' } });
+    const existing = await this.userRepository.findOne({ where: { email: 'corretor@imoveis.gwan.cloud' } });
     if (existing) return;
 
     const user = User.create(
       CORRETOR_ID,
       'João Silva Corretor',
-      'corretor@litoralimoveis.com.br',
+      'corretor@imoveis.gwan.cloud',
       await bcrypt.hash('corretor123', 10),
       '+5511888888888',
       null,

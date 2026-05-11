@@ -219,7 +219,7 @@ export class ChatService {
         : [];
 
     return [
-      'Você é um assistente especializado em imóveis da plataforma Litoral Imóveis.',
+      'Você é um assistente especializado em imóveis da plataforma Imóveis.',
       'Responda às perguntas do usuário e utilize ferramentas quando precisar de dados atualizados.',
       '',
       ...channelGuidance,
