@@ -119,9 +119,10 @@ export class ConversationsController {
   @ApiParam({ name: 'id', description: 'UUID da conversa', type: String })
   @ApiBody({ type: ReplyConversationDto })
   @ApiResponse({ status: 201, type: MessageResponseDto })
-  @ApiResponse({ status: 400, description: 'Conversa encerrada ou texto inválido' })
+  @ApiResponse({ status: 400, description: 'Conversa encerrada, texto inválido ou número do cliente inválido' })
   @ApiResponse({ status: 403, description: 'Conversa não atribuída a você' })
   @ApiResponse({ status: 404, description: 'Conversa não encontrada' })
+  @ApiResponse({ status: 503, description: 'WhatsApp desconectado ou Evolution API indisponível' })
   async reply(
     @Param('id') id: string,
     @Body() dto: ReplyConversationDto,
