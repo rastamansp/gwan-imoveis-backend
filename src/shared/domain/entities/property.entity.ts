@@ -4,7 +4,7 @@ import { PropertyPurpose } from '../value-objects/property-purpose.enum';
 import { User } from './user.entity';
 import { PropertyImage } from './property-image.entity';
 
-@Entity({ name: 'properties', synchronize: false })
+@Entity({ name: 'properties', synchronize: true })
 export class Property {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -73,6 +73,15 @@ export class Property {
   @Column({ type: 'varchar', length: 500, nullable: true })
   coverImageUrl?: string;
 
+  // Tour virtual: foto panorâmica equirretangular (360°) exibida em visualizador
+  // interativo na página do imóvel. Guardada sem redimensionamento — recortar ou
+  // reescalar quebraria a projeção e o tour sairia distorcido.
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  tourImageUrl?: string | null;
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  tourImagePath?: string | null;
+
   // Cache do PDF do anúncio armazenado no MinIO.
   // Invalidado (nulled) em qualquer mudança no imóvel ou nas suas imagens; regenerado on-demand no próximo download.
   @Column({ type: 'varchar', length: 500, nullable: true })
@@ -135,6 +144,10 @@ export class Property {
 
   public getCoverImage(): string | null {
     return this.coverImageUrl || null;
+  }
+
+  public hasVirtualTour(): boolean {
+    return !!this.tourImageUrl;
   }
 }
 

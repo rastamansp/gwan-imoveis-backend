@@ -18,6 +18,7 @@ import { RealtorContactResolverService } from './services/realtor-contact-resolv
 import { PropertyPdfService } from './services/property-pdf.service';
 import { PropertyPdfCacheService } from './services/property-pdf-cache.service';
 import { ExtractPropertyFromTextUseCase } from '../shared/application/use-cases/extract-property-from-text.use-case';
+import { UploadPropertyTourUseCase } from '../shared/application/use-cases/upload-property-tour.use-case';
 import { ChatModule } from '../chat/chat.module';
 
 @Module({
@@ -41,6 +42,7 @@ import { ChatModule } from '../chat/chat.module';
     GeneratePropertyEmbeddingUseCase,
     SearchPropertiesSemanticUseCase,
     ExtractPropertyFromTextUseCase,
+    UploadPropertyTourUseCase,
     RealtorContactResolverService,
     PropertyPdfService,
     PropertyPdfCacheService,
