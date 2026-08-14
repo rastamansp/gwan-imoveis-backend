@@ -4,7 +4,6 @@ import * as dotenv from 'dotenv';
 import { User } from '../shared/domain/entities/user.entity';
 import { Conversation } from '../shared/domain/entities/conversation.entity';
 import { Message } from '../shared/domain/entities/message.entity';
-import { UserCredit } from '../shared/domain/entities/user-credit.entity';
 import { Agent } from '../shared/domain/entities/agent.entity';
 import { Property } from '../shared/domain/entities/property.entity';
 import { PropertyImage } from '../shared/domain/entities/property-image.entity';
@@ -22,7 +21,6 @@ const AppDataSource = new DataSource({
     User,
     Conversation,
     Message,
-    UserCredit,
     Agent,
     Property,
     PropertyImage,
