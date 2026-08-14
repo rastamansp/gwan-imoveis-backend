@@ -164,11 +164,6 @@ export class PropertyResponseDto {
   })
   coverImageUrl?: string;
 
-  @ApiPropertyOptional({
-    description: 'URL da foto panorâmica 360° do tour virtual, quando o imóvel tiver uma',
-    example: 'https://minio.gwan.com.br:9000/gwan-imoveis-uploads/properties/123/tour/tour-panorama.jpg',
-  })
-  tourImageUrl?: string | null;
 
   @ApiProperty({
     description: 'Data de criação',
@@ -210,7 +205,6 @@ export class PropertyResponseDto {
     dto.furnished = property.furnished;
     dto.realtorId = property.realtorId;
     dto.coverImageUrl = property.coverImageUrl;
-    dto.tourImageUrl = property.tourImageUrl ?? null;
     dto.createdAt = property.createdAt;
     dto.updatedAt = property.updatedAt;
 

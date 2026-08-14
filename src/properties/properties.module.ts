@@ -18,20 +18,27 @@ import { RealtorContactResolverService } from './services/realtor-contact-resolv
 import { PropertyPdfService } from './services/property-pdf.service';
 import { PropertyPdfCacheService } from './services/property-pdf-cache.service';
 import { ExtractPropertyFromTextUseCase } from '../shared/application/use-cases/extract-property-from-text.use-case';
-import { UploadPropertyTourUseCase } from '../shared/application/use-cases/upload-property-tour.use-case';
+import { ManagePropertyTourUseCase } from '../shared/application/use-cases/manage-property-tour.use-case';
+import { PropertyTourController } from './property-tour.controller';
+import { PropertyTourScene } from '../shared/domain/entities/property-tour-scene.entity';
+import { PropertyTourSceneTypeOrmRepository } from '../shared/infrastructure/repositories/property-tour-scene-typeorm.repository';
 import { ChatModule } from '../chat/chat.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Property]),
+    TypeOrmModule.forFeature([Property, PropertyTourScene]),
     forwardRef(() => WhatsappWebhookModule),
     forwardRef(() => ChatModule),
   ],
-  controllers: [PropertiesController, PropertyImagesController],
+  controllers: [PropertiesController, PropertyImagesController, PropertyTourController],
   providers: [
     {
       provide: 'IPropertyRepository',
       useClass: PropertyTypeOrmRepository,
+    },
+    {
+      provide: 'IPropertyTourSceneRepository',
+      useClass: PropertyTourSceneTypeOrmRepository,
     },
     CreatePropertyUseCase,
     UpdatePropertyUseCase,
@@ -42,7 +49,7 @@ import { ChatModule } from '../chat/chat.module';
     GeneratePropertyEmbeddingUseCase,
     SearchPropertiesSemanticUseCase,
     ExtractPropertyFromTextUseCase,
-    UploadPropertyTourUseCase,
+    ManagePropertyTourUseCase,
     RealtorContactResolverService,
     PropertyPdfService,
     PropertyPdfCacheService,

@@ -14,16 +14,7 @@ import {
   HttpCode,
   HttpStatus,
   HttpException,
-  UseInterceptors,
-  UploadedFile,
-  ParseFilePipe,
-  MaxFileSizeValidator,
-  FileTypeValidator,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-// `import * as sharp` para casar com o esModuleInterop desligado do projeto —
-// o default import compila para algo que não é chamável em runtime.
-import * as sharp from 'sharp';
 import type { Response } from 'express';
 import {
   ApiTags,
@@ -55,7 +46,6 @@ import { ListPropertiesUseCase } from '../shared/application/use-cases/list-prop
 import { ListMyPropertiesUseCase } from '../shared/application/use-cases/list-my-properties.use-case';
 import { SearchPropertiesSemanticUseCase } from '../shared/application/use-cases/search-properties-semantic.use-case';
 import { ExtractPropertyFromTextUseCase } from '../shared/application/use-cases/extract-property-from-text.use-case';
-import { UploadPropertyTourUseCase } from '../shared/application/use-cases/upload-property-tour.use-case';
 import { PropertySearchResultDto } from './presentation/dtos/property-search-result.dto';
 import { RealtorContactResolverService } from './services/realtor-contact-resolver.service';
 import { PropertyPdfCacheService } from './services/property-pdf-cache.service';
@@ -75,81 +65,7 @@ export class PropertiesController {
     private readonly realtorContactResolver: RealtorContactResolverService,
     private readonly propertyPdfCache: PropertyPdfCacheService,
     private readonly extractPropertyFromTextUseCase: ExtractPropertyFromTextUseCase,
-    private readonly uploadPropertyTourUseCase: UploadPropertyTourUseCase,
   ) {}
-
-  @Post(':id/tour')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard, CorretorOrAdminGuard)
-  @ApiBearerAuth()
-  @UseInterceptors(FileInterceptor('tour'))
-  @ApiConsumes('multipart/form-data')
-  @ApiOperation({
-    summary: 'Enviar tour virtual (foto 360°)',
-    description:
-      'Envia a foto panorâmica equirretangular (proporção 2:1) que será exibida como tour virtual na ' +
-      'página do imóvel. Substitui a anterior, se houver. Apenas o corretor dono ou ADMIN.',
-  })
-  @ApiParam({ name: 'id', description: 'UUID do imóvel', type: String })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        tour: {
-          type: 'string',
-          format: 'binary',
-          description: 'Foto panorâmica 360° equirretangular (JPEG, PNG ou WebP, máximo 25MB)',
-        },
-      },
-    },
-  })
-  @ApiResponse({ status: 200, type: PropertyResponseDto })
-  @ApiResponse({ status: 400, description: 'Arquivo inválido ou não é uma panorâmica 2:1' })
-  @ApiResponse({ status: 403, description: 'Imóvel de outro corretor' })
-  @ApiResponse({ status: 404, description: 'Imóvel não encontrado' })
-  async uploadTour(
-    @Param('id') propertyId: string,
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          // Panorâmicas são pesadas: 25MB contra os 10MB das fotos comuns.
-          new MaxFileSizeValidator({ maxSize: 25 * 1024 * 1024 }),
-          new FileTypeValidator({ fileType: /(jpeg|jpg|png|webp)$/ }),
-        ],
-      }),
-    )
-    file: Express.Multer.File,
-    @Request() req: any,
-  ): Promise<PropertyResponseDto> {
-    const metadata = await sharp(file.buffer).metadata();
-
-    const property = await this.uploadPropertyTourUseCase.execute({
-      propertyId,
-      buffer: file.buffer,
-      fileName: file.originalname,
-      requesterId: req.user.id,
-      width: metadata.width,
-      height: metadata.height,
-    });
-
-    return PropertyResponseDto.fromEntity(property);
-  }
-
-  @Delete(':id/tour')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard, CorretorOrAdminGuard)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Remover tour virtual',
-    description: 'Remove a foto 360° do imóvel e apaga o arquivo do storage. Apenas o corretor dono ou ADMIN.',
-  })
-  @ApiParam({ name: 'id', description: 'UUID do imóvel', type: String })
-  @ApiResponse({ status: 200, type: PropertyResponseDto })
-  @ApiResponse({ status: 404, description: 'Imóvel não encontrado ou sem tour virtual' })
-  async removeTour(@Param('id') propertyId: string, @Request() req: any): Promise<PropertyResponseDto> {
-    const property = await this.uploadPropertyTourUseCase.remove(propertyId, req.user.id);
-    return PropertyResponseDto.fromEntity(property);
-  }
 
   @Post('extract')
   @HttpCode(HttpStatus.OK)

@@ -7,6 +7,7 @@ import { Message } from '../shared/domain/entities/message.entity';
 import { Agent } from '../shared/domain/entities/agent.entity';
 import { Property } from '../shared/domain/entities/property.entity';
 import { PropertyImage } from '../shared/domain/entities/property-image.entity';
+import { PropertyTourScene } from '../shared/domain/entities/property-tour-scene.entity';
 import { RealtorProfile } from '../shared/domain/entities/realtor-profile.entity';
 
 // Carregar variáveis de ambiente
@@ -24,6 +25,7 @@ const AppDataSource = new DataSource({
     Agent,
     Property,
     PropertyImage,
+    PropertyTourScene,
     RealtorProfile,
   ],
   migrations: ['src/migrations/*.ts'],

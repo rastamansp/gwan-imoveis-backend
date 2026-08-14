@@ -73,14 +73,8 @@ export class Property {
   @Column({ type: 'varchar', length: 500, nullable: true })
   coverImageUrl?: string;
 
-  // Tour virtual: foto panorâmica equirretangular (360°) exibida em visualizador
-  // interativo na página do imóvel. Guardada sem redimensionamento — recortar ou
-  // reescalar quebraria a projeção e o tour sairia distorcido.
-  @Column({ type: 'varchar', length: 500, nullable: true })
-  tourImageUrl?: string | null;
-
-  @Column({ type: 'varchar', length: 500, nullable: true })
-  tourImagePath?: string | null;
+  // O tour virtual vive em `property_tour_scenes` (uma linha por ambiente,
+  // conectadas por hotspots) — ver PropertyTourScene.
 
   // Cache do PDF do anúncio armazenado no MinIO.
   // Invalidado (nulled) em qualquer mudança no imóvel ou nas suas imagens; regenerado on-demand no próximo download.
@@ -146,8 +140,5 @@ export class Property {
     return this.coverImageUrl || null;
   }
 
-  public hasVirtualTour(): boolean {
-    return !!this.tourImageUrl;
-  }
 }
 
