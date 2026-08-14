@@ -31,6 +31,10 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CorretorOrAdminGuard } from '../auth/guards/corretor-or-admin.guard';
 import { CreatePropertyDto } from './presentation/dtos/create-property.dto';
+import {
+  ExtractPropertyFromTextDto,
+  ExtractPropertyResponseDto,
+} from './presentation/dtos/extract-property.dto';
 import { UpdatePropertyDto } from './presentation/dtos/update-property.dto';
 import { PropertyResponseDto } from './presentation/dtos/property-response.dto';
 import { CreatePropertyUseCase } from '../shared/application/use-cases/create-property.use-case';
@@ -40,6 +44,7 @@ import { GetPropertyByIdUseCase } from '../shared/application/use-cases/get-prop
 import { ListPropertiesUseCase } from '../shared/application/use-cases/list-properties.use-case';
 import { ListMyPropertiesUseCase } from '../shared/application/use-cases/list-my-properties.use-case';
 import { SearchPropertiesSemanticUseCase } from '../shared/application/use-cases/search-properties-semantic.use-case';
+import { ExtractPropertyFromTextUseCase } from '../shared/application/use-cases/extract-property-from-text.use-case';
 import { PropertySearchResultDto } from './presentation/dtos/property-search-result.dto';
 import { RealtorContactResolverService } from './services/realtor-contact-resolver.service';
 import { PropertyPdfCacheService } from './services/property-pdf-cache.service';
@@ -58,7 +63,35 @@ export class PropertiesController {
     private readonly searchPropertiesSemanticUseCase: SearchPropertiesSemanticUseCase,
     private readonly realtorContactResolver: RealtorContactResolverService,
     private readonly propertyPdfCache: PropertyPdfCacheService,
+    private readonly extractPropertyFromTextUseCase: ExtractPropertyFromTextUseCase,
   ) {}
+
+  @Post('extract')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, CorretorOrAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Extrair dados de imóvel a partir de texto livre',
+    description:
+      'Lê um texto livre (anúncio, mensagem de WhatsApp, e-mail do proprietário) e devolve os campos ' +
+      'identificados para pré-preencher o formulário de cadastro. NÃO cria nada no banco — é apenas ' +
+      'sugestão, e o corretor revisa e confirma antes de salvar. Apenas CORRETOR ou ADMIN.',
+  })
+  @ApiBody({ type: ExtractPropertyFromTextDto })
+  @ApiResponse({ status: 200, type: ExtractPropertyResponseDto })
+  @ApiResponse({ status: 400, description: 'Texto ausente, curto demais ou longo demais' })
+  @ApiResponse({ status: 403, description: 'Apenas corretores e administradores' })
+  @ApiResponse({ status: 422, description: 'O texto não descreve um imóvel identificável' })
+  @ApiResponse({ status: 503, description: 'Provedor de IA indisponível' })
+  async extractFromText(
+    @Body() dto: ExtractPropertyFromTextDto,
+    @Request() req: any,
+  ): Promise<ExtractPropertyResponseDto> {
+    return this.extractPropertyFromTextUseCase.execute({
+      text: dto.text,
+      requesterId: req.user.id,
+    });
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)

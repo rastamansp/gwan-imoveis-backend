@@ -17,11 +17,14 @@ import { WhatsappWebhookModule } from '../whatsapp-webhook/whatsapp-webhook.modu
 import { RealtorContactResolverService } from './services/realtor-contact-resolver.service';
 import { PropertyPdfService } from './services/property-pdf.service';
 import { PropertyPdfCacheService } from './services/property-pdf-cache.service';
+import { ExtractPropertyFromTextUseCase } from '../shared/application/use-cases/extract-property-from-text.use-case';
+import { ChatModule } from '../chat/chat.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Property]),
     forwardRef(() => WhatsappWebhookModule),
+    forwardRef(() => ChatModule),
   ],
   controllers: [PropertiesController, PropertyImagesController],
   providers: [
@@ -37,6 +40,7 @@ import { PropertyPdfCacheService } from './services/property-pdf-cache.service';
     ListMyPropertiesUseCase,
     GeneratePropertyEmbeddingUseCase,
     SearchPropertiesSemanticUseCase,
+    ExtractPropertyFromTextUseCase,
     RealtorContactResolverService,
     PropertyPdfService,
     PropertyPdfCacheService,

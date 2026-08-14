@@ -28,7 +28,10 @@ import { ChatToolResultService } from './services/chat-tool-result.service';
     ChatModelRouterService,
     ChatToolResultService,
   ],
-  exports: [ChatService, WhatsAppFormatterService, ResponseFormatterService], // Exportar para permitir uso em outros módulos
+  // ChatModelRouterService é exportado para que outros módulos (ex.: extração de
+  // dados de imóvel a partir de texto) usem o provider de IA já configurado,
+  // sem duplicar credencial nem lógica de OpenAI/Claude.
+  exports: [ChatService, WhatsAppFormatterService, ResponseFormatterService, ChatModelRouterService],
 })
 export class ChatModule {}
 
