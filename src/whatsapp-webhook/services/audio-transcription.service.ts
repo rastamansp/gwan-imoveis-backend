@@ -40,7 +40,7 @@ const num = (name: string, fallback: number): number => {
 const maxAudioMb = () => num('STT_MAX_AUDIO_MB', 25);
 const maxAttempts = () => num('STT_MAX_ATTEMPTS', 60);
 const retryBackoffSeconds = () => num('STT_RETRY_BACKOFF_SECONDS', 120);
-const pendingTtlHours = () => num('STT_pendingTtlHours()', 6);
+const pendingTtlHours = () => num('STT_PENDING_TTL_HOURS', 6);
 
 /**
  * Recebimento de áudio no WhatsApp (F18).
