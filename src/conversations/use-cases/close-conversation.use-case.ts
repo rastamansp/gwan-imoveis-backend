@@ -1,4 +1,6 @@
 import { Injectable, Inject, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { AuditLogService } from '../../shared/application/services/audit-log.service';
+import { AuditAction } from '../../shared/domain/entities/audit-log.entity';
 import { IConversationRepository } from '../../shared/domain/interfaces/conversation-repository.interface';
 import { ConversationStatus } from '../../shared/domain/value-objects/conversation-status.enum';
 import { ILogger } from '../../shared/application/interfaces/logger.interface';
@@ -15,6 +17,7 @@ export class CloseConversationUseCase {
   constructor(
     @Inject('IConversationRepository')
     private readonly conversationRepository: IConversationRepository,
+    private readonly auditLog: AuditLogService,
     @Inject('ILogger')
     private readonly logger: ILogger,
   ) {}
@@ -36,6 +39,14 @@ export class CloseConversationUseCase {
     }
 
     await this.conversationRepository.close(conversationId);
+
+    this.auditLog.record({
+      action: AuditAction.CONVERSATION_CLOSED,
+      entityType: 'conversation',
+      entityId: conversationId,
+      actorId: requesterId,
+      actorRole: requesterRole,
+    });
 
     this.logger.info('[Conversations] Conversa encerrada', {
       conversationId,

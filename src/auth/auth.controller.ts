@@ -1,4 +1,6 @@
 import { Controller, Post, Body, UseGuards, Request, Get, HttpCode, Inject, UseFilters } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { authLimits, throttle } from '../shared/infrastructure/throttler/throttler.config';
 // import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
@@ -14,6 +16,8 @@ import { UserAlreadyExistsFilter } from '../shared/presentation/filters/user-alr
 import { JwtService } from '@nestjs/jwt';
 
 @ApiTags('Autenticação')
+// Limite estrito: aqui a defesa e contra forca bruta, nao contra custo.
+@Throttle(throttle(authLimits()))
 @Controller('auth')
 export class AuthController {
   constructor(

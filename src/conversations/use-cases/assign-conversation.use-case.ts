@@ -1,4 +1,6 @@
 import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
+import { AuditLogService } from '../../shared/application/services/audit-log.service';
+import { AuditAction } from '../../shared/domain/entities/audit-log.entity';
 import { IConversationRepository } from '../../shared/domain/interfaces/conversation-repository.interface';
 import { IUserRepository } from '../../shared/domain/interfaces/user-repository.interface';
 import { ILogger } from '../../shared/application/interfaces/logger.interface';
@@ -16,6 +18,7 @@ export class AssignConversationUseCase {
     private readonly conversationRepository: IConversationRepository,
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
+    private readonly auditLog: AuditLogService,
     @Inject('ILogger')
     private readonly logger: ILogger,
   ) {}
@@ -38,6 +41,15 @@ export class AssignConversationUseCase {
     }
 
     await this.conversationRepository.assignRealtor(conversationId, realtorId);
+
+    // Atribuicao muda quem ve a conversa de um cliente. Sem trilha, "por que essa
+    // conversa saiu da minha inbox?" nao tem resposta.
+    this.auditLog.record({
+      action: AuditAction.CONVERSATION_ASSIGNED,
+      entityType: 'conversation',
+      entityId: conversationId,
+      metadata: { realtorId },
+    });
 
     this.logger.info('[Conversations] Conversa atribuída ao corretor', {
       conversationId,

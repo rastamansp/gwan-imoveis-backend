@@ -7,6 +7,8 @@ import { Agent } from './domain/entities/agent.entity';
 import { Property } from './domain/entities/property.entity';
 import { PropertyImage } from './domain/entities/property-image.entity';
 import { UserWhatsappConfig } from './domain/entities/user-whatsapp-config.entity';
+import { AuditLog } from './domain/entities/audit-log.entity';
+import { AuditLogService } from './application/services/audit-log.service';
 import { ConsoleLoggerService } from './infrastructure/logger/console-logger.service';
 import { UserTypeOrmRepository } from './infrastructure/repositories/user-typeorm.repository';
 import { ConversationTypeOrmRepository } from './infrastructure/repositories/conversation-typeorm.repository';
@@ -50,7 +52,7 @@ import { forwardRef } from '@nestjs/common';
 @Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Conversation, Message, Agent, Property, PropertyImage, UserWhatsappConfig]),
+    TypeOrmModule.forFeature([User, Conversation, Message, Agent, Property, PropertyImage, UserWhatsappConfig, AuditLog]),
     forwardRef(() => {
       const { WhatsappWebhookModule } = require('../whatsapp-webhook/whatsapp-webhook.module');
       return WhatsappWebhookModule;
@@ -61,6 +63,7 @@ import { forwardRef } from '@nestjs/common';
     }),
   ],
   providers: [
+    AuditLogService,
     // Logger
     {
       provide: 'ILogger',
@@ -134,6 +137,7 @@ import { forwardRef } from '@nestjs/common';
     ReorderPropertyImagesUseCase,
   ],
   exports: [
+    AuditLogService,
     'ILogger',
     'IQRCodeService',
     'IEmbeddingService',

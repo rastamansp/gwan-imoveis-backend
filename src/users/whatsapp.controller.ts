@@ -119,12 +119,12 @@ export class UserWhatsappController {
   @Post('disconnect')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Desconecta a instância (logout) sem apagá-la',
+    summary: 'Desvincula o WhatsApp: logout, remove a instância e a config local',
     description:
-      'Endpoint preparado para uso futuro — sem botão visível na UI nesta entrega. ' +
-      'Faz logout no Evolution mantendo a config local.',
+      'Faz logout, apaga a instância no Evolution e remove o vínculo local — o /profile ' +
+      'volta ao estado "sem instância" e o próximo conectar cria uma nova.',
   })
-  @ApiOkResponse({ description: 'Logout efetuado', schema: { example: { success: true } } })
+  @ApiOkResponse({ description: 'WhatsApp desvinculado', schema: { example: { success: true } } })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
   @ApiResponse({ status: 404, description: 'Instância não criada' })
   @ApiResponse({ status: 503, description: 'Evolution API indisponível' })
