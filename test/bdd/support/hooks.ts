@@ -15,7 +15,7 @@ let testClient: TestClient;
  */
 export function getTestClient(): TestClient {
   if (!testClient) {
-    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3009';
+    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3003';
     testClient = new TestClient(baseUrl);
   }
   return testClient;
@@ -23,7 +23,7 @@ export function getTestClient(): TestClient {
 
 BeforeAll(async () => {
   // Obter base URL do ambiente ou usar padrão
-  const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3009';
+  const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3003';
 
   // Verificar se a aplicação está rodando
   testClient = new TestClient(baseUrl);

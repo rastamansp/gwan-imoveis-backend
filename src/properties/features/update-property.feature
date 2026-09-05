@@ -10,7 +10,7 @@ Funcionalidade: Atualizar Propriedade (PUT /api/properties/:id)
 
   @properties @auth @update
   Cenário: Atualizar propriedade (requer autenticacao e ser dono)
-    Dado que estou autenticado como "joao.santos@email.com" com senha "senha123"
+    Dado que estou autenticado como "corretor@imoveis.gwan.cloud" com senha "corretor123"
     E que existe uma propriedade com ID criada anteriormente
     Quando atualizo a propriedade com ID criada anteriormente com os seguintes dados:
       | Preco     | Quartos | Tem Piscina |

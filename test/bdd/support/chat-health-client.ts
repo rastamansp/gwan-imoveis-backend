@@ -30,7 +30,7 @@ export class ChatHealthTestClient {
   private readonly baseUrl: string;
   private sessionId?: string;
 
-  constructor(baseUrl: string = 'http://localhost:3001') {
+  constructor(baseUrl: string = 'http://localhost:3003') {
     this.baseUrl = baseUrl;
   }
 

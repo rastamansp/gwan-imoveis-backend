@@ -1,4 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { AuditLogService } from '../services/audit-log.service';
+import { AuditAction } from '../../domain/entities/audit-log.entity';
 import { IUserRepository } from '../../domain/interfaces/user-repository.interface';
 import { ILogger } from '../interfaces/logger.interface';
 import { User } from '../../domain/entities/user.entity';
@@ -11,6 +13,7 @@ export class PromoteUserToCorretorUseCase {
   constructor(
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
+    private readonly auditLog: AuditLogService,
     @Inject('ILogger')
     private readonly logger: ILogger,
   ) {}
@@ -63,6 +66,16 @@ export class PromoteUserToCorretorUseCase {
         oldRole: targetUser.role,
         newRole: targetRole,
         duration,
+      });
+
+      // Escalada de privilegio: a acao mais sensivel do sistema depois de apagar
+      // imovel, e a que menos deixava rastro.
+      this.auditLog.record({
+        action: AuditAction.USER_PROMOTED,
+        entityType: 'user',
+        entityId: targetUserId,
+        actorId: promoterUserId,
+        metadata: { novoPapel: targetRole },
       });
 
       return savedUser!;

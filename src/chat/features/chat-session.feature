@@ -13,7 +13,7 @@ Funcionalidade: Sessão e Contexto do Chat (POST /api/chat)
     Quando envio a mensagem "Liste imoveis em Sao Sebastiao"
     Então devo receber uma resposta
     E o status da resposta deve ser 200
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     # Nota: sessionId é opcional e só é retornado quando phoneNumber é fornecido
 
   @chat @session
@@ -24,7 +24,7 @@ Funcionalidade: Sessão e Contexto do Chat (POST /api/chat)
     Quando envio a mensagem "Mostre apenas casas" com a mesma sessao
     Então devo receber uma resposta
     E o status da resposta deve ser 200
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve conter "CASA"
 
   @chat @session @context
@@ -41,6 +41,6 @@ Funcionalidade: Sessão e Contexto do Chat (POST /api/chat)
       """
     Então devo receber uma resposta
     E o status da resposta deve ser 200
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve conter "Sao Sebastiao"
 

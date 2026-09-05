@@ -11,4 +11,14 @@ export interface IPropertyTourSceneRepository {
    * informada. Chamado ao excluir uma cena, para não deixar portal órfão.
    */
   removeHotspotsTargeting(propertyId: string, targetSceneId: string): Promise<void>;
+
+  /**
+   * Reatribui a ordem das cenas em UMA transação.
+   *
+   * Escrita em lote, e não um `save` por cena, porque durante a reordenação
+   * existe um estado intermediário em que duas cenas ocupam a mesma posição — e
+   * a primeira posição é a porta de entrada do tour. Meio caminho gravado
+   * deixaria o visitante entrando pelo ambiente errado.
+   */
+  reorder(propertyId: string, sceneIdsInOrder: string[]): Promise<void>;
 }

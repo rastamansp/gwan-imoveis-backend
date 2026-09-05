@@ -165,7 +165,7 @@ src/shared/infrastructure/services/embedding/
 └── embedding-provider.interface.ts      # Contrato comum
 ```
 
-A `EmbeddingService` atual ([`src/shared/infrastructure/services/embedding.service.ts`](../../src/shared/infrastructure/services/embedding.service.ts))
+A `EmbeddingService` atual (`src/shared/infrastructure/services/embedding.service.ts` — ⚠️ arquivo **não existe mais**: este plano descreve o estado anterior à refatoração que ele mesmo propõe, executada desde então; hoje o código vive em `services/embedding/openai-embedding-provider.service.ts`)
 vira `OpenAiEmbeddingProviderService` (renomear + ajustar). A interface
 `IEmbeddingService` continua existindo e passa a ser implementada pelo
 **router**, não pelos providers — assim o resto do código que injeta

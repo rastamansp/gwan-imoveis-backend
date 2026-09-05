@@ -651,4 +651,32 @@ export class EvolutionApiService implements OnModuleInit {
       throw new ServiceUnavailableException('Falha ao desconectar do WhatsApp');
     }
   }
+
+  /**
+   * Apaga a instância no Evolution. Diferente de `logoutInstance`, o nome volta a
+   * ficar livre — é o que permite recriar a conexão do zero em `/profile`.
+   *
+   * Tolerante a 404: instância que já não existe é o estado desejado, e tratar
+   * isso como erro deixaria a config local presa a um nome órfão (foi assim que
+   * conversas antigas ficaram apontando para `gwan` e `gwan_imoveis`).
+   */
+  async deleteInstance(instanceName: string): Promise<void> {
+    try {
+      await axios.delete(
+        `${this.baseUrl}/instance/delete/${encodeURIComponent(instanceName)}`,
+        { headers: this.adminHeaders(), timeout: 10000 },
+      );
+      this.logger.info('[DELETE] Instância removida do Evolution', { instanceName });
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        this.logger.warn('[DELETE] Instância já não existia no Evolution', { instanceName });
+        return;
+      }
+      this.logger.error('[ERROR] Falha ao remover instância no Evolution', {
+        instanceName,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new ServiceUnavailableException('Falha ao remover a instância do WhatsApp');
+    }
+  }
 }

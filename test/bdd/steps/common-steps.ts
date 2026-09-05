@@ -1,6 +1,7 @@
 import { Given, When, Then } from '@cucumber/cucumber';
 import { TestWorld } from '../support/world';
 import { getTestClient } from '../support/hooks';
+import { describeApiFailure } from '../support/api-failure';
 
 /**
  * Steps compartilhados reutilizáveis em múltiplos cenários
@@ -15,10 +16,8 @@ Given('que o chatbot está disponível', async function (this: TestWorld) {
     testClient.validateResponse(response);
     this.attach('✅ Chatbot está disponível e respondendo');
   } catch (error) {
-    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3001';
-    throw new Error(
-      `Chatbot não está disponível em ${baseUrl}. Certifique-se de que a aplicação está rodando.`,
-    );
+    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3003';
+    throw new Error(describeApiFailure(error, baseUrl, 'Chatbot'));
   }
 });
 
@@ -32,10 +31,8 @@ Given('que o chatbot esta disponivel', async function (this: TestWorld) {
     testClient.validateResponse(response);
     this.attach('✅ Chatbot está disponível e respondendo');
   } catch (error) {
-    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3001';
-    throw new Error(
-      `Chatbot não está disponível em ${baseUrl}. Certifique-se de que a aplicação está rodando.`,
-    );
+    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3003';
+    throw new Error(describeApiFailure(error, baseUrl, 'Chatbot'));
   }
 });
 

@@ -6,14 +6,23 @@ O projeto inclui configurações Docker completas para deploy em diferentes ambi
 
 ## Arquivos Docker
 
-### docker-compose.yml
-Arquivo principal para deploy padrão com todas as configurações.
+### docker-compose.production.yml
+**O único compose deste repositório.** É o que roda em produção
+(`gwan-imoveis-backend` em `imoveis-api.gwan.cloud`), publicado **exclusivamente pelo Portainer**.
 
-### docker-compose.prod.yml
-Configuração específica para produção com otimizações e segurança.
+> ⚠️ **Corrigido em 2026-09-04.** Esta seção descrevia `docker-compose.yml`,
+> `docker-compose.dev.yml` e `docker-compose.prod.yml`. O último nunca existiu; os dois primeiros
+> existiam e eram **cópia do compose do app `events`** — declaravam os containers
+> `gwan-events-backend` e `gwan-events-mcp` e variáveis de Spotify, que o Imóveis não usa, apontando
+> para o Dockerfile deste repositório. Um `docker compose up` neste diretório criaria um container
+> com o nome de um app **que está no ar em produção**. Os dois foram removidos.
 
-### docker-compose.dev.yml
-Configuração para desenvolvimento com hot reload e debug.
+### Desenvolvimento local
+
+Não use compose para rodar o backend em dev. A infraestrutura local (PostgreSQL, Redis, MinIO) sobe
+por `apps/imoveis/make.ps1 infra` no monorepo `gwan-infra`, e o backend roda nativo com
+`npm run start:dev` (porta 3003). Ver
+`gwan-infra/apps/imoveis/docs/spec/40-architecture/dev-environment.md`.
 
 ## Estrutura dos Containers
 
@@ -152,7 +161,7 @@ chmod +x scripts/deploy-portainer.sh
 docker-compose -f docker-compose.prod.yml up -d --build
 
 # Desenvolvimento
-docker-compose -f docker-compose.dev.yml up -d --build
+# (removido: o fluxo de dev nao usa compose - ver "Desenvolvimento local" acima)
 
 # Padrão
 docker-compose up -d --build
@@ -348,5 +357,5 @@ deploy:
 
 1. [Deploy Automático](./deploy-automation.md) - Deploy automático
 2. [Configuração de Ambiente](./environment.md) - Configuração detalhada
-3. [Monitoramento](../monitoring/overview.md) - Sistema de monitoramento
-4. [Backup](../backup/overview.md) - Estratégias de backup
+3. [Monitoramento](../operations/monitoring/overview.md) - Sistema de monitoramento
+4. [Backup](../operations/backup/overview.md) - Estratégias de backup

@@ -56,6 +56,35 @@ Then('a resposta deve usar a ferramenta {string}', function (this: TestWorld, to
   }
 });
 
+/**
+ * Aceita qualquer uma das ferramentas que buscam imóveis no catálogo.
+ *
+ * O agente escolhe entre `list_properties` (filtro estruturado) e
+ * `search_properties_semantic` (RAG) conforme interpreta a pergunta, e a escolha
+ * varia para a mesma frase — é um LLM decidindo. Exigir uma ferramenta específica
+ * transformava 7 cenários em falha intermitente sem que nenhuma das respostas
+ * estivesse errada: as duas consultam o catálogo e devolvem resultado válido.
+ *
+ * O que o teste precisa garantir é que o agente **usou o catálogo** em vez de
+ * responder de cabeça. Para isso qualquer das duas serve; o que não serve é nenhuma.
+ */
+Then('a resposta deve usar uma ferramenta de busca de imoveis', function (this: TestWorld) {
+  if (!this.lastResponse) {
+    throw new Error('Nenhuma resposta foi recebida do chatbot');
+  }
+
+  const ferramentasDeBusca = ['list_properties', 'search_properties_semantic'];
+  const usou = ferramentasDeBusca.some((tool) => this.toolWasUsed(tool));
+
+  if (!usou) {
+    const toolsUsed = this.lastResponse.toolsUsed?.map((t) => t.name).join(', ') || 'nenhuma';
+    throw new Error(
+      `Esperado que a resposta use uma ferramenta de busca (${ferramentasDeBusca.join(' ou ')}), ` +
+        `mas ferramentas usadas: ${toolsUsed}`,
+    );
+  }
+});
+
 Then('a resposta não deve usar a ferramenta {string}', function (this: TestWorld, toolName: string) {
   if (!this.lastResponse) {
     throw new Error('Nenhuma resposta foi recebida do chatbot');

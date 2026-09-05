@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsNumber, IsOptional, IsArray, ValidateNested, IsUUID, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsOptional, IsArray, ArrayMinSize, ValidateNested, IsUUID, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PropertyTourScene, TourHotspot } from '../../../shared/domain/entities/property-tour-scene.entity';
@@ -29,6 +29,20 @@ export class SetTourHotspotsDto {
   @ValidateNested({ each: true })
   @Type(() => TourHotspotDto)
   hotspots: TourHotspotDto[];
+}
+
+export class ReorderTourScenesDto {
+  @ApiProperty({
+    type: [String],
+    description:
+      'Lista COMPLETA dos ids das cenas, na ordem desejada. A primeira posição é a entrada do ' +
+      'tour. Precisa conter exatamente os ambientes do imóvel — sem faltar, sobrar ou repetir.',
+    example: ['b1f2...', 'a7c3...'],
+  })
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID('4', { each: true })
+  sceneIds: string[];
 }
 
 export class RenameTourSceneDto {

@@ -32,6 +32,7 @@ import { CorretorOrAdminGuard } from '../auth/guards/corretor-or-admin.guard';
 import { ManagePropertyTourUseCase } from '../shared/application/use-cases/manage-property-tour.use-case';
 import {
   RenameTourSceneDto,
+  ReorderTourScenesDto,
   SetInitialYawDto,
   SetTourHotspotsDto,
   TourSceneResponseDto,
@@ -107,6 +108,38 @@ export class PropertyTourController {
     });
 
     return TourSceneResponseDto.fromEntity(scene);
+  }
+
+  /**
+   * ⚠️ Declarada ANTES de `@Put(':sceneId')`. O Nest casa as rotas na ordem em
+   * que foram registradas: com o parâmetro dinâmico primeiro, `reorder` seria
+   * lido como um `sceneId` e cairia no renomear.
+   */
+  @Put('reorder')
+  @UseGuards(JwtAuthGuard, CorretorOrAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Reordenar os ambientes do tour',
+    description:
+      'Recebe a lista COMPLETA de ids na ordem desejada e reatribui a posição de cada ambiente. ' +
+      'A primeira posição é a entrada do tour. A lista precisa conter exatamente os ambientes do ' +
+      'imóvel: reordenar não serve para adicionar nem remover cena.',
+  })
+  @ApiParam({ name: 'id', description: 'UUID do imóvel', type: String })
+  @ApiResponse({ status: 200, type: [TourSceneResponseDto] })
+  @ApiResponse({ status: 400, description: 'Lista incompleta, com repetição ou com cena de outro imóvel' })
+  @ApiResponse({ status: 403, description: 'Não é o corretor dono nem admin' })
+  async reorder(
+    @Param('id') propertyId: string,
+    @Body() dto: ReorderTourScenesDto,
+    @Request() req: any,
+  ): Promise<TourSceneResponseDto[]> {
+    const scenes = await this.manageTour.reorderScenes({
+      propertyId,
+      requesterId: req.user.id,
+      sceneIds: dto.sceneIds,
+    });
+    return scenes.map(TourSceneResponseDto.fromEntity);
   }
 
   @Put(':sceneId')

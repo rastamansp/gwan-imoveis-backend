@@ -13,7 +13,7 @@ Funcionalidade: Listar Imóveis via Chat (POST /api/chat)
     Quando envio a mensagem "Liste todos os imoveis cadastrados"
     Então devo receber uma resposta
     E o status da resposta deve ser 200
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve ser uma string não vazia
 
   @chat @list @city
@@ -21,7 +21,7 @@ Funcionalidade: Listar Imóveis via Chat (POST /api/chat)
     Quando envio a mensagem "Liste imoveis em Sao Sebastiao"
     Então devo receber uma resposta
     E o status da resposta deve ser 200
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve conter "Sao Sebastiao"
 
   @chat @list @type
@@ -29,7 +29,7 @@ Funcionalidade: Listar Imóveis via Chat (POST /api/chat)
     Quando envio a mensagem "Mostre casas a venda"
     Então devo receber uma resposta
     E o status da resposta deve ser 200
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve conter "CASA"
 
   @chat @list @type
@@ -37,7 +37,7 @@ Funcionalidade: Listar Imóveis via Chat (POST /api/chat)
     Quando envio a mensagem "Quero ver apartamentos disponiveis"
     Então devo receber uma resposta
     E o status da resposta deve ser 200
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve conter "APARTAMENTO"
 
   @chat @list @purpose
@@ -45,7 +45,7 @@ Funcionalidade: Listar Imóveis via Chat (POST /api/chat)
     Quando envio a mensagem "Liste imoveis para aluguel"
     Então devo receber uma resposta
     E o status da resposta deve ser 200
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve conter "aluguel" ou "RENT"
 
   @chat @list @purpose
@@ -53,7 +53,7 @@ Funcionalidade: Listar Imóveis via Chat (POST /api/chat)
     Quando envio a mensagem "Mostre imoveis a venda"
     Então devo receber uma resposta
     E o status da resposta deve ser 200
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve conter "venda" ou "SALE"
 
   @chat @list @purpose
@@ -61,7 +61,7 @@ Funcionalidade: Listar Imóveis via Chat (POST /api/chat)
     Quando envio a mensagem "Quero ver imoveis para investimento"
     Então devo receber uma resposta
     E o status da resposta deve ser 200
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve conter "investimento" ou "INVESTMENT"
 
   @chat @list @price
@@ -69,7 +69,7 @@ Funcionalidade: Listar Imóveis via Chat (POST /api/chat)
     Quando envio a mensagem "Busque imoveis entre 300 mil e 500 mil"
     Então devo receber uma resposta
     E o status da resposta deve ser 200
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve ser uma string não vazia
 
   @chat @list @neighborhood
@@ -77,6 +77,6 @@ Funcionalidade: Listar Imóveis via Chat (POST /api/chat)
     Quando envio a mensagem "Liste imoveis no bairro Maresias"
     Então devo receber uma resposta
     E o status da resposta deve ser 200
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve conter "Maresias"
 

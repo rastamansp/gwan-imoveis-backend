@@ -1,6 +1,7 @@
 import { IsString, IsNotEmpty, MinLength, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PropertyType } from '../../../shared/domain/value-objects/property-type.enum';
+import { PropertyPurpose } from '../../../shared/domain/value-objects/property-purpose.enum';
 
 /**
  * Texto livre (anúncio, mensagem de WhatsApp, e-mail do proprietário) do qual
@@ -36,6 +37,13 @@ export class ExtractedPropertyFieldsDto {
 
   @ApiPropertyOptional({ enum: PropertyType, example: PropertyType.CASA })
   type?: PropertyType;
+
+  /**
+   * Só vem preenchido quando o texto traz verbo ou expressão explícita de venda
+   * ou locação. Preço, por mais sugestivo que seja, não conta — ver RN-17.18.
+   */
+  @ApiPropertyOptional({ enum: PropertyPurpose, example: PropertyPurpose.SALE })
+  purpose?: PropertyPurpose;
 
   @ApiPropertyOptional({ example: 1250000 })
   price?: number;

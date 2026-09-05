@@ -1,4 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { AuditLogService } from '../services/audit-log.service';
+import { AuditAction } from '../../domain/entities/audit-log.entity';
 import { IPropertyImageRepository } from '../../domain/interfaces/property-image-repository.interface';
 import { IPropertyRepository } from '../../domain/interfaces/property-repository.interface';
 import { IStorageService } from '../interfaces/storage-service.interface';
@@ -17,6 +19,7 @@ export class DeletePropertyImageUseCase {
     private readonly storageService: IStorageService,
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
+    private readonly auditLog: AuditLogService,
     @Inject('ILogger')
     private readonly logger: ILogger,
   ) {}
@@ -89,6 +92,14 @@ export class DeletePropertyImageUseCase {
         propertyId,
         deleted,
         duration,
+      });
+
+      this.auditLog.record({
+        action: AuditAction.PROPERTY_IMAGE_DELETED,
+        entityType: 'property_image',
+        entityId: imageId,
+        actorId: realtorId,
+        metadata: { propertyId },
       });
 
       return deleted;

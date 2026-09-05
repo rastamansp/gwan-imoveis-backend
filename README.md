@@ -327,7 +327,7 @@ O chatbot utiliza **OpenAI GPT** com integração **MCP** para:
 ### Documentação Completa
 
 Para entender em detalhes o fluxo completo do chatbot, consulte:
-- 📖 [Fluxo de Chamadas do Chatbot](./docs/chatbot/chatbot-flow.md) - Documentação completa
+- 📖 [Fluxo de Chamadas do Chatbot](./docs/features/chatbot/chatbot-flow.md) - Documentação completa
 - 📊 [Diagramas do Chatbot](./docs/diagrams/chatbot-flow.md) - Diagramas Mermaid detalhados
 
 ## 📝 Scripts Disponíveis
@@ -425,7 +425,7 @@ npm run test:watch
 - [Arquitetura](./docs/architecture/overview.md)
 - [Desenvolvimento](./docs/development/setup.md)
 - [APIs](./docs/api/overview.md)
-- [MCP](./docs/mcp/overview.md)
+- [MCP](./docs/features/mcp/overview.md)
 - [Deploy](./docs/deployment/deploy-automation.md)
 - [Diagramas](./docs/diagrams/system-architecture.md)
 
@@ -490,7 +490,7 @@ npm run build
 
 ## 📄 Licença
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+⚠️ **Licença indefinida.** O `package.json` declara `UNLICENSED` e **não existe arquivo `LICENSE` neste repositório** — este texto afirmava MIT, o que contradizia o `package.json` (corrigido em 2026-09-04). Definir a licença antes de qualquer distribuição.
 
 ## 🆘 Suporte
 

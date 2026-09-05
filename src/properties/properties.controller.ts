@@ -15,6 +15,8 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { aiLimits, throttle } from '../shared/infrastructure/throttler/throttler.config';
 import type { Response } from 'express';
 import {
   ApiTags,
@@ -68,6 +70,9 @@ export class PropertiesController {
   ) {}
 
   @Post('extract')
+  // Uma chamada paga a provedor de IA por requisicao. O papel do usuario ja
+  // restringe o acesso, mas credencial vazada ou script em loop viram fatura.
+  @Throttle(throttle(aiLimits()))
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, CorretorOrAdminGuard)
   @ApiBearerAuth()

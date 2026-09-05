@@ -10,7 +10,7 @@ Funcionalidade: Deletar Propriedade (DELETE /api/properties/:id)
 
   @properties @auth @delete
   Cenário: Deletar propriedade (requer autenticacao e ser dono)
-    Dado que estou autenticado como "joao.santos@email.com" com senha "senha123"
+    Dado que estou autenticado como "corretor@imoveis.gwan.cloud" com senha "corretor123"
     E que existe uma propriedade com ID criada anteriormente
     Quando deleto a propriedade com ID criada anteriormente
     Então o status da resposta deve ser 200

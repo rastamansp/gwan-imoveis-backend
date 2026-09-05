@@ -7,7 +7,7 @@ import { ChatResponse } from './world';
 export class TestClient {
   private readonly baseUrl: string;
 
-  constructor(baseUrl: string = 'http://localhost:3001') {
+  constructor(baseUrl: string = 'http://localhost:3003') {
     this.baseUrl = baseUrl;
   }
 

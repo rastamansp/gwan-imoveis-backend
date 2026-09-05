@@ -1,4 +1,5 @@
 import axios, { AxiosError } from 'axios';
+import { getToken } from './token-cache';
 
 export interface Property {
   id: string;
@@ -83,7 +84,7 @@ export interface UpdatePropertyDto {
 export class PropertiesTestClient {
   private readonly baseUrl: string;
 
-  constructor(baseUrl: string = 'http://localhost:3009') {
+  constructor(baseUrl: string = 'http://localhost:3003') {
     this.baseUrl = baseUrl;
   }
 
@@ -333,28 +334,17 @@ export class PropertiesTestClient {
   }
 
   /**
-   * Fazer login para obter token
+   * Fazer login para obter token.
+   *
+   * O token vem do cache compartilhado da suíte: cada cenário que reautenticava
+   * contava contra o rate limit do `auth.controller` (10/min por IP), e a partir
+   * do 11º cenário a suíte inteira quebrava com 429.
    */
   public async login(email: string, password: string): Promise<{ token: string; status: number }> {
     try {
-      const response = await axios.post<{ access_token: string }>(
-        `${this.baseUrl}/api/auth/login`,
-        {
-          email,
-          password,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          timeout: 30000,
-        },
-      );
+      const token = await getToken(this.baseUrl, email, password);
 
-      return {
-        token: response.data.access_token,
-        status: response.status,
-      };
+      return { token, status: 201 };
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError<{ message?: string }>;

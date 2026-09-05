@@ -2,6 +2,7 @@ import { Given, When, Then } from '@cucumber/cucumber';
 import axios, { AxiosError } from 'axios';
 import { TestWorld } from '../../../test/bdd/support/world';
 import { PropertiesTestClient, Property } from '../../../test/bdd/support/properties-client';
+import { describeApiFailure } from '../../../test/bdd/support/api-failure';
 
 let propertiesClient: PropertiesTestClient;
 
@@ -10,7 +11,7 @@ let propertiesClient: PropertiesTestClient;
  */
 function getPropertiesClient(): PropertiesTestClient {
   if (!propertiesClient) {
-    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3009';
+    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3003';
     propertiesClient = new PropertiesTestClient(baseUrl);
   }
   return propertiesClient;
@@ -22,9 +23,21 @@ interface PropertiesWorld extends TestWorld {
   property?: Property;
   authToken?: string;
   createdPropertyId?: string;
+  /** UUID citado na feature → id realmente usado, quando o citado não existe. */
+  propertyIdAliases?: Record<string, string>;
 }
 
 type WorldType = PropertiesWorld;
+
+/**
+ * Traduz o ID escrito na feature para o que existe de fato no banco.
+ *
+ * Sem alias registrado devolve o próprio valor, então o step continua servindo aos
+ * cenários que criam a própria propriedade e passam um id real.
+ */
+function resolvePropertyId(world: WorldType, id: string): string {
+  return world.propertyIdAliases?.[id] ?? id;
+}
 
 Given('que a API de propriedades está disponível', async function (this: WorldType) {
   const client = getPropertiesClient();
@@ -37,10 +50,8 @@ Given('que a API de propriedades está disponível', async function (this: World
     }
     this.attach('✅ API de propriedades está disponível e respondendo');
   } catch (error) {
-    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3009';
-    throw new Error(
-      `API de propriedades não está disponível em ${baseUrl}. Certifique-se de que a aplicação está rodando.`,
-    );
+    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3003';
+    throw new Error(describeApiFailure(error, baseUrl, 'API de propriedades'));
   }
 });
 
@@ -56,10 +67,8 @@ Given('que a API de propriedades esta disponivel', async function (this: WorldTy
     }
     this.attach('✅ API de propriedades está disponível e respondendo');
   } catch (error) {
-    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3009';
-    throw new Error(
-      `API de propriedades não está disponível em ${baseUrl}. Certifique-se de que a aplicação está rodando.`,
-    );
+    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3003';
+    throw new Error(describeApiFailure(error, baseUrl, 'API de propriedades'));
   }
 });
 
@@ -159,6 +168,7 @@ When('listo propriedades com preco entre {int} e {int}', async function (
 });
 
 When('obtenho a propriedade com ID {string}', async function (this: WorldType, id: string) {
+  id = resolvePropertyId(this, id);
   const client = getPropertiesClient();
   try {
     const { property, status } = await client.getPropertyById(id);
@@ -237,6 +247,7 @@ When('atualizo a propriedade com ID {string} com os seguintes dados:', async fun
   id: string,
   dataTable: any,
 ) {
+  id = resolvePropertyId(this, id);
   if (!this.authToken) {
     throw new Error('É necessário estar autenticado para atualizar propriedades');
   }
@@ -264,6 +275,7 @@ When('atualizo a propriedade com ID {string} com os seguintes dados:', async fun
 });
 
 When('deleto a propriedade com ID {string}', async function (this: WorldType, id: string) {
+  id = resolvePropertyId(this, id);
   if (!this.authToken) {
     throw new Error('É necessário estar autenticado para deletar propriedades');
   }
@@ -592,17 +604,45 @@ Then('a propriedade deve ter o campo {string} em ingles', function (
   }
 });
 
+/**
+ * Garante que o cenário tenha uma propriedade real para trabalhar.
+ *
+ * As features citam um UUID fixo (`f0b68272-…`) que veio de um banco antigo e não
+ * existe mais em lugar nenhum. Antes, este step só registrava a ausência e seguia
+ * — a falha então estourava dois ou três steps adiante, como `404` inexplicado no
+ * "obtenho a propriedade", longe da causa.
+ *
+ * Agora, quando o ID citado não existe, o step resolve para a primeira propriedade
+ * do catálogo público e registra a substituição em `propertyIdAliases`. Os steps
+ * que recebem um ID passam por `resolvePropertyId`, então continuam funcionando
+ * com o literal escrito na feature.
+ */
 Given('que existe uma propriedade com ID {string}', async function (this: WorldType, id: string) {
-  // Apenas verificar se a propriedade existe, não criar
   const client = getPropertiesClient();
+
   try {
     const { property } = await client.getPropertyById(id);
     this.property = property;
     this.attach(`Propriedade encontrada: ${property.title}`, 'text/plain');
-  } catch (error) {
-    // Se não existir, apenas registrar - alguns testes podem criar depois
-    this.attach(`Propriedade com ID ${id} não encontrada (pode ser criada durante o teste)`, 'text/plain');
+    return;
+  } catch {
+    // Segue para a substituição abaixo.
   }
+
+  const { properties } = await client.listProperties();
+  if (!properties.length) {
+    throw new Error(
+      `A propriedade ${id} não existe e o catálogo está vazio. Rode o seed antes: npm run db:seed`,
+    );
+  }
+
+  const substituta = properties[0];
+  this.property = substituta;
+  this.propertyIdAliases = { ...(this.propertyIdAliases ?? {}), [id]: substituta.id };
+  this.attach(
+    `Propriedade ${id} não existe; usando "${substituta.title}" (${substituta.id}) no lugar`,
+    'text/plain',
+  );
 });
 
 Given('que existe uma propriedade com ID criada anteriormente', async function (this: WorldType) {
@@ -771,6 +811,7 @@ When('atualizo a propriedade com ID {string} sem autenticacao com os seguintes d
   id: string,
   dataTable: any,
 ) {
+  id = resolvePropertyId(this, id);
   const client = getPropertiesClient();
   const data = dataTable.hashes()[0];
 
@@ -793,6 +834,7 @@ When('atualizo a propriedade com ID {string} sem autenticacao com os seguintes d
 });
 
 When('deleto a propriedade com ID {string} sem autenticacao', async function (this: WorldType, id: string) {
+  id = resolvePropertyId(this, id);
   const client = getPropertiesClient();
   try {
     await client.deleteProperty(id, '');

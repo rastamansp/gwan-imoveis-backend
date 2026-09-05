@@ -231,7 +231,7 @@ npm run format
 ### Docker Compose
 
 ```yaml
-# docker-compose.yml
+# docker-compose.production.yml (unico compose do repo; dev nao usa compose)
 version: '3.8'
 
 services:

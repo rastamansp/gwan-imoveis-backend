@@ -1,4 +1,6 @@
 import { Body, Controller, HttpCode, Post, Request, Inject } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { aiLimits, throttle } from '../shared/infrastructure/throttler/throttler.config';
 import { ApiBody, ApiExtraModels, ApiOkResponse, ApiOperation, ApiTags, getSchemaPath } from '@nestjs/swagger';
 import { ChatService } from './chat.service';
 import { ChatRequestDto } from './dtos/chat-request.dto';
@@ -12,6 +14,8 @@ import { MessageChannel } from '../shared/domain/value-objects/message-channel.e
 
 @ApiTags('Chat')
 @ApiExtraModels(ChatResponseDto)
+// Cada mensagem e uma chamada paga a provedor de IA, e o endpoint e publico.
+@Throttle(throttle(aiLimits()))
 @Controller('chat')
 export class ChatController {
   constructor(

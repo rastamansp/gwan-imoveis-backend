@@ -35,11 +35,34 @@ npm run test:bdd:report
 
 ## Variáveis de Ambiente
 
-- `TEST_BASE_URL`: URL base da aplicação (padrão: `http://localhost:3001`)
+- `TEST_BASE_URL`: URL base da aplicação (padrão: `http://localhost:3003`, porta do slot 3)
 
 ```bash
-TEST_BASE_URL=http://localhost:3001 npm run test:bdd
+TEST_BASE_URL=http://localhost:3003 npm run test:bdd
 ```
+
+## ⚠️ A API precisa subir com os limites de teste
+
+A suíte dispara 343 steps contra o mesmo IP em menos de um minuto. Isso estoura o rate limiting
+(`THROTTLE_PUBLIC_PER_MINUTE=120` no default de produção) e **todos os cenários falham** — inclusive
+os que nada têm a ver com o endpoint limitado.
+
+O sintoma engana: a mensagem dizia "API não está disponível" enquanto a aplicação respondia
+normalmente, só que com `429`. Os steps de disponibilidade hoje distinguem os dois casos, mas o
+ajuste de ambiente continua necessário. Suba a API assim:
+
+```bash
+THROTTLE_PUBLIC_PER_MINUTE=100000 THROTTLE_PUBLIC_PER_DAY=1000000 \
+THROTTLE_AUTH_PER_MINUTE=1000 THROTTLE_AUTH_PER_DAY=100000 \
+THROTTLE_AI_PER_MINUTE=1000 THROTTLE_AI_PER_DAY=100000 \
+npm run start:dev
+```
+
+Esses valores valem **só para teste** — nunca para produção, onde o limite é o que protege o
+`/chat`, que custa dinheiro por mensagem.
+
+O login é autenticado **uma vez por credencial** por execução (`support/token-cache.ts`), então
+cenário que precise exercitar o próprio login deve invalidar a entrada antes.
 
 ## Tags
 

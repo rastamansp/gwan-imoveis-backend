@@ -1,6 +1,7 @@
 import { Injectable, Inject, ServiceUnavailableException, UnprocessableEntityException } from '@nestjs/common';
 import { ChatModelRouterService } from '../../../chat/services/providers/chat-model-router.service';
 import { PropertyType } from '../../domain/value-objects/property-type.enum';
+import { PropertyPurpose } from '../../domain/value-objects/property-purpose.enum';
 import { ILogger } from '../interfaces/logger.interface';
 import {
   ExtractedPropertyFieldsDto,
@@ -42,6 +43,14 @@ const EXTRACTION_TOOL = {
           enum: Object.values(PropertyType),
           description: 'Tipo do imóvel. Só preencha se der para inferir com segurança.',
         },
+        purpose: {
+          type: 'string',
+          enum: Object.values(PropertyPurpose),
+          description:
+            'Finalidade do anúncio: SALE (venda), RENT (locação/aluguel/temporada) ou INVESTMENT. ' +
+            'Preencha APENAS com verbo ou expressão explícita do texto ("vendo", "à venda", ' +
+            '"alugo", "para locação", "temporada"). NUNCA deduza a partir do preço.',
+        },
         price: {
           type: 'number',
           description:
@@ -80,6 +89,10 @@ Regras:
 - Campos booleanos: marque true apenas quando a característica for mencionada. Nunca marque false explicitamente para "não mencionado" — apenas omita.
 - Números vêm sem formatação: "R$ 1.250.000,00" -> 1250000; "180 m²" -> 180; "1,2 milhão" -> 1200000.
 - title e description podem ser redigidos por você a partir do conteúdo, mas sem acrescentar fatos.
+- PRECO NUNCA E EVIDENCIA DE FINALIDADE. So preencha purpose se o texto trouxer verbo ou
+  expressao explicita de venda ou locacao. Um imovel caro nao e "venda" por ser caro, e um barato
+  nao e "aluguel" por ser barato — inferir isso a partir do valor produz anuncio com preco absurdo
+  para a finalidade, que e pior do que o campo vazio. Na duvida, omita e registre em warnings.
 - Se o texto não descrever um imóvel, chame a função sem nenhum campo preenchido.`;
 
 interface ExtractPropertyFromTextInput {
@@ -185,6 +198,16 @@ export class ExtractPropertyFromTextUseCase {
       const candidate = raw.type.trim().toUpperCase();
       if ((Object.values(PropertyType) as string[]).includes(candidate)) {
         fields.type = candidate as PropertyType;
+      }
+    }
+
+    // Mesmo tratamento de `type`: enum fechado, valor desconhecido é descartado.
+    // O que impede a inferência por preço é o prompt; o que garante que só valor
+    // válido chega ao formulário é isto aqui.
+    if (typeof raw.purpose === 'string') {
+      const candidate = raw.purpose.trim().toUpperCase();
+      if ((Object.values(PropertyPurpose) as string[]).includes(candidate)) {
+        fields.purpose = candidate as PropertyPurpose;
       }
     }
 

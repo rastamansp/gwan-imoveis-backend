@@ -144,7 +144,7 @@ MCP_AUTH_TOKEN=production-mcp-token
 1. [Documentação Completa](./docs/README.md)
 2. [Deploy Automático](./docs/deployment/deploy-automation.md)
 3. [Configuração de Ambiente](./docs/deployment/environment.md)
-4. [Monitoramento](./docs/deployment/monitoring.md)
+4. [Monitoramento](./docs/operations/monitoring/overview.md)
 
 ---
 

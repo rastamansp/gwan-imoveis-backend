@@ -12,14 +12,14 @@ Funcionalidade: Integracao de Propriedades com Chat
   Cenário: Buscar propriedades atraves do chat
     Quando envio a mensagem "Quais imoveis estao disponiveis em Sao Sebastiao?"
     Então devo receber uma resposta
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve conter "Sao Sebastiao"
 
   @integration @chat @properties
   Cenário: Buscar propriedades por tipo atraves do chat
     Quando envio a mensagem "Mostre-me casas a venda"
     Então devo receber uma resposta
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve conter "CASA"
 
   @integration @chat @properties
@@ -33,7 +33,7 @@ Funcionalidade: Integracao de Propriedades com Chat
   Cenário: Buscar propriedades com filtros combinados atraves do chat
     Quando envio a mensagem "Quero ver apartamentos para alugar em Sao Sebastiao com preco ate 600000"
     Então devo receber uma resposta
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve conter "APARTAMENTO"
     E a resposta deve conter "Sao Sebastiao"
 

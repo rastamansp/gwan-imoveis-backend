@@ -1,4 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { AuditLogService } from '../services/audit-log.service';
+import { AuditAction } from '../../domain/entities/audit-log.entity';
 import { IPropertyRepository } from '../../domain/interfaces/property-repository.interface';
 import { ILogger } from '../interfaces/logger.interface';
 import { IUserRepository } from '../../domain/interfaces/user-repository.interface';
@@ -14,6 +16,7 @@ export class DeletePropertyUseCase {
     private readonly userRepository: IUserRepository,
     @Inject('IStorageService')
     private readonly storageService: IStorageService,
+    private readonly auditLog: AuditLogService,
     @Inject('ILogger')
     private readonly logger: ILogger,
   ) {}
@@ -55,6 +58,23 @@ export class DeletePropertyUseCase {
         });
       }
     }
+
+    // Antes do delete: depois dele, `property` ja e a unica fonte desses dados.
+    // Delecao e irreversivel e leva imagens e cenas de tour junto (cascade) — e a
+    // acao com maior chance de virar "quem foi que apagou?" semanas depois.
+    this.auditLog.record({
+      action: AuditAction.PROPERTY_DELETED,
+      entityType: 'property',
+      entityId: propertyId,
+      actorId: userId,
+      actorRole: user.role,
+      metadata: {
+        title: property.title,
+        city: property.city,
+        neighborhood: property.neighborhood,
+        realtorId: property.realtorId,
+      },
+    });
 
     const deleted = await this.propertyRepository.delete(propertyId);
     if (!deleted) {

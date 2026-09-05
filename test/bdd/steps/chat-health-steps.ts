@@ -9,7 +9,7 @@ let chatHealthClient: ChatHealthTestClient;
  */
 function getChatHealthClient(): ChatHealthTestClient {
   if (!chatHealthClient) {
-    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3001';
+    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3003';
     chatHealthClient = new ChatHealthTestClient(baseUrl);
   }
   return chatHealthClient;
@@ -27,7 +27,7 @@ Given('que o chatbot de saúde está disponível', async function (this: WorldTy
     client.validateResponse(response);
     this.attach('✅ Chatbot de saúde está disponível e respondendo');
   } catch (error) {
-    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3001';
+    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3003';
     throw new Error(
       `Chatbot de saúde não está disponível em ${baseUrl}. Certifique-se de que a aplicação está rodando.`,
     );

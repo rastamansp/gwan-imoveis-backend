@@ -10,7 +10,7 @@ Funcionalidade: Listar Minhas Propriedades (GET /api/properties/me)
 
   @properties @auth @list
   Cenário: Listar minhas propriedades (requer autenticacao)
-    Dado que estou autenticado como "joao.santos@email.com" com senha "senha123"
+    Dado que estou autenticado como "corretor@imoveis.gwan.cloud" com senha "corretor123"
     Quando listo minhas propriedades
     Então o status da resposta deve ser 200
     E devo receber uma lista de propriedades

@@ -34,6 +34,21 @@ export class PropertyTourSceneTypeOrmRepository implements IPropertyTourSceneRep
     await this.repository.delete(sceneId);
   }
 
+  async reorder(propertyId: string, sceneIdsInOrder: string[]): Promise<void> {
+    // Uma transação: durante a reatribuição há um instante em que duas cenas
+    // dividem a mesma posição, e a posição 0 é a entrada do tour. Um visitante
+    // que carregasse a página nesse instante entraria pelo ambiente errado.
+    await this.repository.manager.transaction(async (manager) => {
+      for (const [index, sceneId] of sceneIdsInOrder.entries()) {
+        await manager.update(
+          PropertyTourScene,
+          { id: sceneId, propertyId },
+          { order: index },
+        );
+      }
+    });
+  }
+
   async removeHotspotsTargeting(propertyId: string, targetSceneId: string): Promise<void> {
     // Filtra no banco: percorrer as cenas na aplicação abriria janela para
     // corrida entre a leitura e a escrita de outra edição simultânea.

@@ -1,4 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { AuditLogService } from '../services/audit-log.service';
+import { AuditAction } from '../../domain/entities/audit-log.entity';
 import { IPropertyRepository } from '../../domain/interfaces/property-repository.interface';
 import { Property } from '../../domain/entities/property.entity';
 import { CreatePropertyDto } from '../../../properties/presentation/dtos/create-property.dto';
@@ -15,6 +17,7 @@ export class CreatePropertyUseCase {
     private readonly propertyRepository: IPropertyRepository,
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
+    private readonly auditLog: AuditLogService,
     @Inject('ILogger')
     private readonly logger: ILogger,
     private readonly generateEmbedding: GeneratePropertyEmbeddingUseCase,
@@ -66,6 +69,14 @@ export class CreatePropertyUseCase {
     });
 
     await this.generateEmbedding.execute(savedProperty);
+
+    this.auditLog.record({
+      action: AuditAction.PROPERTY_CREATED,
+      entityType: 'property',
+      entityId: savedProperty.id,
+      actorId: realtorId,
+      metadata: { title: savedProperty.title, city: savedProperty.city },
+    });
 
     return savedProperty;
   }

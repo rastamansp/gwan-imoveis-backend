@@ -13,7 +13,7 @@ Funcionalidade: Buscar Imóveis com Filtros via Chat (POST /api/chat)
     Quando envio a mensagem "Busque casas com piscina"
     Então devo receber uma resposta
     E o status da resposta deve ser 200
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve ser uma string não vazia
 
   @chat @search @amenities
@@ -21,7 +21,7 @@ Funcionalidade: Buscar Imóveis com Filtros via Chat (POST /api/chat)
     Quando envio a mensagem "Quero ver imoveis com frente para o mar"
     Então devo receber uma resposta
     E o status da resposta deve ser 200
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve ser uma string não vazia
 
   @chat @search @amenities
@@ -29,7 +29,7 @@ Funcionalidade: Buscar Imóveis com Filtros via Chat (POST /api/chat)
     Quando envio a mensagem "Mostre apartamentos mobiliados em Sao Sebastiao"
     Então devo receber uma resposta
     E o status da resposta deve ser 200
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve conter "mobiliado" ou "furnished"
 
   @chat @search @combined
@@ -37,7 +37,7 @@ Funcionalidade: Buscar Imóveis com Filtros via Chat (POST /api/chat)
     Quando envio a mensagem "Busque casas em Maresias com piscina e area gourmet"
     Então devo receber uma resposta
     E o status da resposta deve ser 200
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve conter "Maresias"
     E a resposta deve conter "CASA"
 
@@ -46,7 +46,7 @@ Funcionalidade: Buscar Imóveis com Filtros via Chat (POST /api/chat)
     Quando envio a mensagem "Mostre casas a venda em Sao Sebastiao"
     Então devo receber uma resposta
     E o status da resposta deve ser 200
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve conter "Sao Sebastiao"
     E a resposta deve conter "CASA"
     E a resposta deve conter "venda" ou "SALE"
@@ -56,7 +56,7 @@ Funcionalidade: Buscar Imóveis com Filtros via Chat (POST /api/chat)
     Quando envio a mensagem "Quero ver apartamentos para alugar em Sao Sebastiao com preco ate 600000"
     Então devo receber uma resposta
     E o status da resposta deve ser 200
-    E a resposta deve usar a ferramenta "list_properties"
+    E a resposta deve usar uma ferramenta de busca de imoveis
     E a resposta deve conter "APARTAMENTO"
     E a resposta deve conter "Sao Sebastiao"
     E a resposta deve conter "alugar" ou "RENT"

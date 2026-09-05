@@ -9,7 +9,7 @@ interface SearchWorld extends TestWorld {
 let client: PropertiesTestClient | null = null;
 function getClient(): PropertiesTestClient {
   if (!client) {
-    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3009';
+    const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3003';
     client = new PropertiesTestClient(baseUrl);
   }
   return client;

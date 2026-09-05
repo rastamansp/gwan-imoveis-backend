@@ -13,6 +13,8 @@ import { IStorageService } from '../interfaces/storage-service.interface';
 import { ILogger } from '../interfaces/logger.interface';
 import { UserRole } from '../../domain/value-objects/user-role.enum';
 import { PropertyTourScene, TourHotspot } from '../../domain/entities/property-tour-scene.entity';
+import { AuditLogService } from '../services/audit-log.service';
+import { AuditAction } from '../../domain/entities/audit-log.entity';
 
 /**
  * Equirretangular tem proporção 2:1 (360° na horizontal, 180° na vertical).
@@ -41,6 +43,7 @@ export class ManagePropertyTourUseCase {
     private readonly userRepository: IUserRepository,
     @Inject('IStorageService')
     private readonly storageService: IStorageService,
+    private readonly auditLog: AuditLogService,
     @Inject('ILogger')
     private readonly logger: ILogger,
   ) {}
@@ -141,6 +144,17 @@ export class ManagePropertyTourUseCase {
     }
 
     await this.propertyRepository.clearAdPdfCache(propertyId);
+
+    // Remover cena leva junto os portais que apontavam para ela: e destrutivo
+    // alem do obvio, e por isso entra na trilha.
+    this.auditLog.record({
+      action: AuditAction.TOUR_SCENE_DELETED,
+      entityType: 'tour_scene',
+      entityId: sceneId,
+      actorId: requesterId,
+      metadata: { propertyId, nome: scene.name },
+    });
+
     this.logger.info('[Tour] Cena removida', { propertyId, sceneId });
   }
 
@@ -190,6 +204,58 @@ export class ManagePropertyTourUseCase {
     });
 
     return saved;
+  }
+
+  /**
+   * Reordena os ambientes do tour.
+   *
+   * Recebe a lista COMPLETA de ids na ordem desejada, como a reordenação de
+   * imagens (RN-07.8) — e pelo mesmo motivo: lista parcial deixa ambíguo o que
+   * fazer com o resto.
+   *
+   * A validação é de **conjunto exato**: mesma quantidade, mesmos ids, sem
+   * repetição. Reordenar não pode virar um caminho lateral para adicionar ou
+   * remover cena, e qualquer desvio recusa antes de gravar qualquer coisa.
+   */
+  async reorderScenes(input: {
+    propertyId: string;
+    requesterId: string;
+    sceneIds: string[];
+  }): Promise<PropertyTourScene[]> {
+    const { propertyId, requesterId, sceneIds } = input;
+
+    await this.assertCanEdit(propertyId, requesterId);
+
+    const scenes = await this.sceneRepository.findByPropertyId(propertyId);
+    const existingIds = new Set(scenes.map((s) => s.id));
+
+    if (sceneIds.length !== scenes.length) {
+      throw new BadRequestException(
+        `A lista precisa conter exatamente os ${scenes.length} ambientes do tour ` +
+          `(recebidos: ${sceneIds.length})`,
+      );
+    }
+
+    const unique = new Set(sceneIds);
+    if (unique.size !== sceneIds.length) {
+      throw new BadRequestException('A lista tem ambientes repetidos');
+    }
+
+    for (const sceneId of sceneIds) {
+      if (!existingIds.has(sceneId)) {
+        throw new BadRequestException('A lista contém um ambiente que não é deste imóvel');
+      }
+    }
+
+    await this.sceneRepository.reorder(propertyId, sceneIds);
+    await this.propertyRepository.clearAdPdfCache(propertyId);
+
+    this.logger.info('[Tour] Ambientes reordenados', {
+      propertyId,
+      total: sceneIds.length,
+    });
+
+    return this.sceneRepository.findByPropertyId(propertyId);
   }
 
   /** Guarda a direção em que a cena abre (o "olhar inicial"). */

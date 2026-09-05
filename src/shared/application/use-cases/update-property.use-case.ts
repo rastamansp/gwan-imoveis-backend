@@ -1,4 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { AuditLogService } from '../services/audit-log.service';
+import { AuditAction } from '../../domain/entities/audit-log.entity';
 import { IPropertyRepository } from '../../domain/interfaces/property-repository.interface';
 import { Property } from '../../domain/entities/property.entity';
 import { UpdatePropertyDto } from '../../../properties/presentation/dtos/update-property.dto';
@@ -15,6 +17,7 @@ export class UpdatePropertyUseCase {
     private readonly propertyRepository: IPropertyRepository,
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
+    private readonly auditLog: AuditLogService,
     @Inject('ILogger')
     private readonly logger: ILogger,
     private readonly generateEmbedding: GeneratePropertyEmbeddingUseCase,
@@ -121,6 +124,17 @@ export class UpdatePropertyUseCase {
     if (semanticChanged) {
       await this.generateEmbedding.execute(updatedProperty);
     }
+
+    this.auditLog.record({
+      action: AuditAction.PROPERTY_UPDATED,
+      entityType: 'property',
+      entityId: updatedProperty.id,
+      actorId: userId,
+      // Guarda QUAIS campos mudaram, nao o conteudo deles: saber que o preco foi
+      // alterado e o que responde "quem mexeu nisso"; guardar os valores encheria
+      // a trilha de copia do registro.
+      metadata: { camposAlterados: Object.keys(updatePropertyDto ?? {}) },
+    });
 
     return updatedProperty;
   }
