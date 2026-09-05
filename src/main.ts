@@ -1,4 +1,6 @@
 import { NestFactory } from '@nestjs/core';
+import { json, urlencoded } from 'express';
+import helmet from 'helmet';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
@@ -10,6 +12,57 @@ export async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['log', 'error', 'warn', 'debug', 'verbose'],
   });
+
+  /**
+   * Cabeçalhos de segurança da API.
+   *
+   * A suposição registrada no SDD era que dava para "confiar no Nginx/Traefik
+   * para headers". Medido em produção em 2026-09-05, é falso dos dois lados: a
+   * API não passa pelo Nginx do frontend (vai direto do Traefik ao Nest), o
+   * Traefik não injeta cabeçalho de segurança por default, e a única coisa que
+   * `imoveis-api.gwan.cloud` devolvia era `X-Powered-By: Express` — que entrega
+   * a stack de graça a quem estiver procurando alvo.
+   *
+   * Duas escolhas deliberadas:
+   *
+   * - **CSP desligada aqui.** A API serve JSON e o Swagger em `/api`, que carrega
+   *   assets próprios e quebra com CSP restritiva. Quem precisa de CSP é o
+   *   frontend, e lá ela existe (ver `gwan-imoveis/nginx/security-headers.conf`).
+   * - **HSTS desligado.** Quem termina o TLS é o Traefik; emitir HSTS daqui seria
+   *   o serviço errado decidindo por todos os domínios atrás do mesmo proxy.
+   */
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      strictTransportSecurity: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
+
+  /**
+   * O webhook da Evolution chega com `base64: true`, então mensagem de mídia traz
+   * o binário no CORPO do request. O default do Nest é 100kb — qualquer áudio de
+   * WhatsApp estoura isso e a requisição morre com 413 **antes** de chegar ao
+   * handler, o que faria a F18 nunca funcionar em produção sem deixar rastro no
+   * log da aplicação. Descoberto em teste ponta a ponta, não em produção.
+   *
+   * O teto acompanha `STT_MAX_AUDIO_MB` com folga para o inchaço do base64
+   * (~4/3) e para o resto do payload.
+   */
+  const maxAudioMb = Number(process.env.STT_MAX_AUDIO_MB || 25);
+  const bodyLimit = `${Math.ceil(maxAudioMb * 1.5) + 2}mb`;
+  app.use(json({ limit: bodyLimit }));
+  app.use(urlencoded({ extended: true, limit: bodyLimit }));
+
+  /**
+   * Em produção a API fica atrás do Traefik. Sem `trust proxy`, `req.ip` é o
+   * endereço do PROXY para todo mundo — o rate limiting continuaria funcionando
+   * e viraria um teto global acidental, derrubando usuários legítimos assim que
+   * dois visitantes navegassem juntos. O sintoma não aparece em dev, onde não há
+   * proxy na frente.
+   */
+  // `app.set` nao existe em INestApplication; chega no Express pelo adapter.
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   // Configuração de CORS
   const corsOriginsEnv = process.env.CORS_ORIGINS

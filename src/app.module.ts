@@ -1,4 +1,9 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
+import { AppThrottlerGuard } from './shared/infrastructure/throttler/app-throttler.guard';
+import { throttlerDefinitions } from './shared/infrastructure/throttler/throttler.config';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { getTypeOrmConfig } from './config/typeorm.config';
@@ -26,6 +31,11 @@ import { ConversationsModule } from './conversations/conversations.module';
       useFactory: getTypeOrmConfig,
       inject: [ConfigService],
     }),
+    // Rate limiting: duas janelas (1min e 24h) ativas em toda rota, com os
+    // limites folgados da leitura pública. Rotas caras apertam via @Throttle.
+    ThrottlerModule.forRoot(throttlerDefinitions()),
+    // Reconciliador de audio do WhatsApp (F18)
+    ScheduleModule.forRoot(),
     RedisCacheModule,
     SharedModule,
     AuthModule,
@@ -39,6 +49,12 @@ import { ConversationsModule } from './conversations/conversations.module';
     PropertiesModule,
     RealtorsModule,
     ConversationsModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: AppThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}
