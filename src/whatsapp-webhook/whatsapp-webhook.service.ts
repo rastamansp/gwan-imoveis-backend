@@ -1,4 +1,4 @@
-﻿import { Injectable, Inject } from '@nestjs/common';
+﻿import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
@@ -16,11 +16,27 @@ import { MessageDirection } from '../shared/domain/value-objects/message-directi
 import { MessageChannel } from '../shared/domain/value-objects/message-channel.enum';
 import { RegistrationService } from './services/registration.service';
 import { ResolveConversationAgentUseCase } from '../shared/application/use-cases/resolve-conversation-agent.use-case';
+import { AudioTranscriptionService } from './services/audio-transcription.service';
+import { AudioTranscriptionReconciler } from './services/audio-transcription.reconciler';
+
+/**
+ * Respostas do fluxo de áudio (F18). Ficam aqui, e não espalhadas no meio do
+ * código, porque são o que o cliente lê quando algo não funciona — e o que ele
+ * lê importa tanto quanto o que o sistema faz.
+ */
+const AUDIO_ACK_MESSAGE =
+  'Recebi seu áudio! Estou ouvindo e já te respondo. 🎧';
+const AUDIO_EXPIRED_MESSAGE =
+  'Desculpe, não consegui ouvir seu áudio. Pode me mandar sua dúvida por escrito?';
+const AUDIO_FAILED_MESSAGE =
+  'Não consegui entender esse áudio. Pode tentar de novo ou escrever sua dúvida?';
+const AUDIO_ACK_ENABLED = String(process.env.STT_ACK_ENABLED ?? 'true').toLowerCase() !== 'false';
+const AUDIO_PLACEHOLDER = '[Áudio]';
 import { GetOrSetUserPreferredAgentUseCase } from '../shared/application/use-cases/get-or-set-user-preferred-agent.use-case';
 import { ResponseFormatterService } from '../chat/services/response-formatter.service';
 
 @Injectable()
-export class WhatsappWebhookService {
+export class WhatsappWebhookService implements OnModuleInit {
   // TTL para cache de messageIds processados (24 horas em segundos) - aumentado para evitar reprocessamento
   private readonly messageIdCacheTtl = 24 * 60 * 60;
   // Fallback em memória se Redis não estiver disponível (apenas durante execução)
@@ -47,7 +63,35 @@ export class WhatsappWebhookService {
     private readonly conversationRepository: IConversationRepository,
     @Inject('IQRCodeService')
     private readonly qrCodeService: IQRCodeService,
+    private readonly audioTranscription: AudioTranscriptionService,
+    private readonly audioReconciler: AudioTranscriptionReconciler,
   ) {}
+
+  /**
+   * Liga o reconciliador de áudio (F18) a quem sabe responder o cliente. O
+   * reconciliador cuida da fila; a resposta continua sendo assunto daqui.
+   */
+  onModuleInit(): void {
+    this.audioReconciler.registerHandlers({
+      onTranscribed: async (job, text) => {
+        await this.processIncomingMessage(
+          job.instanceName,
+          job.remoteJid,
+          text,
+          job.messageId,
+          job.conversationId ?? '',
+          job.userId,
+        );
+      },
+      onExpired: async (job) => {
+        await this.evolutionApiService.sendTextMessage(
+          job.instanceName,
+          job.remoteJid,
+          AUDIO_EXPIRED_MESSAGE,
+        );
+      },
+    });
+  }
 
   private isWhatsappRegistrationEnabled(): boolean {
     const raw = this.configService.get<string>('FEATURE_WHATSAPP_REGISTRATION');
@@ -242,6 +286,9 @@ export class WhatsappWebhookService {
 
       // Extrair texto da mensagem
       let messageText = '';
+      // O que a inbox mostra ao corretor. Igual ao texto na maioria dos casos;
+      // difere quando a origem foi áudio (F18), que ganha marcação própria.
+      let inboxContent = '';
       if (message.conversation) {
         messageText = message.conversation;
       } else if (message.extendedTextMessage?.text) {
@@ -251,12 +298,16 @@ export class WhatsappWebhookService {
       } else if (message.videoMessage?.caption) {
         messageText = `[Vídeo] ${message.videoMessage.caption}`;
       } else if (message.audioMessage) {
-        messageText = '[Áudio]';
+        // F18: o conteúdo do áudio deixa de ser descartado. `audioOutcome` é
+        // resolvido adiante, quando já existe conversa para vincular o job.
+        messageText = AUDIO_PLACEHOLDER;
       } else if (message.documentMessage) {
         messageText = `[Documento] ${message.documentMessage.fileName || ''}`;
       } else {
         messageText = '[Mensagem sem texto]';
       }
+
+      inboxContent = messageText;
 
       // Log detalhado da mensagem
       this.logger.info('[MENSAGEM] Mensagem recebida/enviada via WhatsApp', {
@@ -321,8 +372,55 @@ export class WhatsappWebhookService {
 
       // Processar mensagens recebidas
       if (!isFromMe && messageText && messageText !== '[Mensagem sem texto]') {
-        const normalizedCommand = messageText.trim().toLowerCase();
         const normalizedRemoteJid = normalizeNumberForEvolutionSDK(remoteJid, remoteJidAlt);
+
+        /**
+         * F18 — áudio vira texto aqui, ANTES de qualquer decisão sobre a
+         * mensagem. Daqui para baixo o fluxo é o mesmo de uma mensagem digitada:
+         * cadastro, agente e bot não sabem (nem precisam saber) que a origem foi
+         * um áudio. Só a inbox marca a diferença, para o corretor.
+         */
+        if (messageText === AUDIO_PLACEHOLDER) {
+          const outcome = await this.audioTranscription.receiveAudio({
+            messageId,
+            instanceName: webhook.instance,
+            remoteJid: normalizedRemoteJid,
+            phoneNumber,
+            conversationId: conversation.id,
+            userId,
+            audioMessage: message.audioMessage,
+            rawMessage: messageData,
+          });
+
+          if (outcome.text) {
+            messageText = outcome.text;
+            inboxContent = `🎤 ${outcome.text}`;
+          } else {
+            // Sem texto não há o que perguntar ao bot. O que muda é só o que o
+            // cliente ouve de volta — e o silêncio nunca é opção.
+            if (outcome.reason !== 'duplicado') {
+              const reply =
+                outcome.status === 'PENDING'
+                  ? AUDIO_ACK_ENABLED
+                    ? AUDIO_ACK_MESSAGE
+                    : null
+                  : AUDIO_FAILED_MESSAGE;
+
+              if (reply) {
+                await this.evolutionApiService.sendTextMessage(
+                  webhook.instance,
+                  normalizedRemoteJid,
+                  reply,
+                );
+              }
+            }
+
+            await this.markMessageProcessed(messageId);
+            return;
+          }
+        }
+
+        const normalizedCommand = messageText.trim().toLowerCase();
 
         // Verificar se tem cadastro em andamento (sempre ler do banco atualizado)
         const registrationStatus = this.registrationService.getRegistrationStatus(conversation);
@@ -388,7 +486,7 @@ export class WhatsappWebhookService {
         // Salvar mensagem recebida com agente associado
         await this.saveMessageUseCase.execute({
           conversationId: conversation.id,
-          content: messageText,
+          content: inboxContent,
           direction: MessageDirection.INCOMING,
           messageId,
           phoneNumber,
